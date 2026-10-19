@@ -10,8 +10,8 @@
  * 2. หรือตั้งค่าผ่านปุ่ม "ตั้งค่าฐานข้อมูล Supabase" บนหน้าเว็บไซต์โดยตรง
  */
 
-const DEFAULT_SUPABASE_URL = ""; // ตัวอย่าง: "https://xxxxxxxxxxxxxxxxxxxx.supabase.co"
-const DEFAULT_SUPABASE_ANON_KEY = ""; // ตัวอย่าง: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+const DEFAULT_SUPABASE_URL = "https://vuhihimohaheveiwfyyb.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg";
 
 (function initRMUTSBSupabaseConfig() {
   function getSaved(k) {
