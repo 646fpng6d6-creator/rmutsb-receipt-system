@@ -1306,28 +1306,27 @@
         <h3>เข้าสู่ระบบผู้ดูแลระบบ (Admin Login)</h3>
         <button class="btn btn-outline btn-sm" onclick="closeAdminLoginModal()">ปิด</button>
       </div>
-      <p style="font-size:0.88rem; color:var(--slate-500); margin-bottom:1rem;">ค่าเริ่มต้น: ชื่อผู้ใช้งาน <code>Admin</code> และรหัสผ่าน <code>admin1234</code> (สามารถแก้ไขชื่อผู้ใช้และรหัสผ่านได้เองในหน้าระบบ)</p>
       <div id="adminLoginError" class="alert-box alert-danger" style="display:none;"></div>
       <form onsubmit="handleLoginSubmit(event, 'admin')">
         <div class="form-group">
           <label class="form-label">ชื่อผู้ใช้งานผู้ดูแลระบบ (Admin Username / Email)</label>
-          <input type="text" id="adminEmailInput" class="form-control" placeholder="Admin" value="Admin" required autocomplete="username" />
+          <input type="text" id="adminEmailInput" class="form-control" placeholder="กรอกชื่อผู้ใช้งาน" required autocomplete="username" />
         </div>
         <div class="form-group">
           <label class="form-label">รหัสผ่าน (Password)</label>
           <div style="display:flex; gap:0.4rem;">
-            <input type="password" id="adminPasswordInput" class="form-control" placeholder="admin1234" required autocomplete="current-password" />
+            <input type="password" id="adminPasswordInput" class="form-control" placeholder="กรอกรหัสผ่าน" required autocomplete="current-password" />
             <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('adminPasswordInput', this)">แสดง</button>
           </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-top:1.25rem;">
-          <button type="button" class="btn btn-outline btn-sm" onclick="fillDefaultAdminLogin()">กรอกค่าเริ่มต้น (Admin / admin1234)</button>
+        <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-top:1.25rem;">
           <div style="display:flex; gap:0.65rem;">
             <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">ยกเลิก</button>
             <button type="submit" class="btn btn-primary" id="adminLoginBtn">เข้าสู่ระบบ Admin</button>
           </div>
         </div>
       </form>
+
     </div>
   </div>
 
@@ -3194,12 +3193,10 @@
 
     function openAdminLoginModal() {
       document.getElementById("adminLoginError").style.display = "none";
-      const adminInput = document.getElementById("adminEmailInput");
-      if (!adminInput.value) {
-        adminInput.value = (appState.admin && appState.admin.adminUsername) || "Admin";
-      }
+      document.getElementById("adminEmailInput").value = "";
+      document.getElementById("adminPasswordInput").value = "";
       document.getElementById("adminLoginModal").classList.add("open");
-      setTimeout(() => document.getElementById("adminPasswordInput").focus(), 80);
+      setTimeout(() => document.getElementById("adminEmailInput").focus(), 80);
     }
 
     function closeAdminLoginModal() {
