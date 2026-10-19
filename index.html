@@ -4922,7 +4922,7 @@
       if (title) {
         prefixFormatted = standardPrefixesNoSpace.includes(title) ? title : (title + " ");
       }
-      const payerFullName = `${prefixFormatted}${firstName}${lastName ? "   " + lastName : ""}`.trim();
+      const payerFullName = `${prefixFormatted}${firstName}${lastName ? "\u00a0\u00a0\u00a0" + lastName : ""}`.trim();
 
       const detailLine1 = document.getElementById("rcpDetailLine1Input").value.trim();
       const studentCode = document.getElementById("rcpStudentCodeInput").value.trim();
@@ -5275,6 +5275,20 @@
 
       const isStudentFormat = (r.payerType === "นักศึกษา") || Boolean(r.studentCode);
 
+      const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
+      let pfx = "";
+      if (r.title) {
+        pfx = standardPrefixesNoSpace.includes(r.title) ? r.title : (r.title + " ");
+      }
+      let displayPayerName = "";
+      if (r.firstName && r.lastName) {
+        displayPayerName = `${pfx}${r.firstName}\u00a0\u00a0\u00a0${r.lastName}`.trim();
+      } else if (r.payerFullName) {
+        displayPayerName = r.payerFullName.replace(/ +/g, "\u00a0\u00a0\u00a0");
+      } else {
+        displayPayerName = `${pfx}${r.firstName || ""}`.trim();
+      }
+
       return `
         <div class="a5-receipt-page">
           ${r.status === "ยกเลิก" ? `
@@ -5320,7 +5334,7 @@
 
             <div class="receipt-field-line">
               <span class="receipt-field-label bold">ได้รับเงินจาก</span>
-              <span class="receipt-field-fill">${escapeHtml(r.payerFullName || ((r.title || "") + (r.firstName || "") + "   " + (r.lastName || "")).trim())}</span>
+              <span class="receipt-field-fill" style="white-space:pre-wrap;">${escapeHtml(displayPayerName)}</span>
             </div>
 
             ${isStudentFormat ? `
