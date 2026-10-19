@@ -4922,7 +4922,7 @@
       if (title) {
         prefixFormatted = standardPrefixesNoSpace.includes(title) ? title : (title + " ");
       }
-      const payerFullName = `${prefixFormatted}${firstName}${lastName ? " " + lastName : ""}`.trim();
+      const payerFullName = `${prefixFormatted}${firstName}${lastName ? "   " + lastName : ""}`.trim();
 
       const detailLine1 = document.getElementById("rcpDetailLine1Input").value.trim();
       const studentCode = document.getElementById("rcpStudentCodeInput").value.trim();
@@ -5320,7 +5320,7 @@
 
             <div class="receipt-field-line">
               <span class="receipt-field-label bold">ได้รับเงินจาก</span>
-              <span class="receipt-field-fill">${escapeHtml(r.payerFullName || ((r.title || "") + (r.firstName || "") + " " + (r.lastName || "")).trim())}</span>
+              <span class="receipt-field-fill">${escapeHtml(r.payerFullName || ((r.title || "") + (r.firstName || "") + "   " + (r.lastName || "")).trim())}</span>
             </div>
 
             ${isStudentFormat ? `
