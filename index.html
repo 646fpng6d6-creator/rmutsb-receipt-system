@@ -2196,7 +2196,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">สิทธิ์การปฏิบัติงาน *</label>
-            <select id="modalUserPermission" class="form-select">
+            <select id="modalUserPermission" class="form-select" onchange="toggleUserSignatureVisibility()">
               <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ/พิมพ์/ยกเลิก)</option>
               <option value="viewer">เจ้าหน้าที่เรียกดูอย่างเดียว (ดู/ดาวน์โหลด/พิมพ์ ห้ามเพิ่ม-ลบ-แก้ไข)</option>
               <option value="full">ผู้ดูแลระบบ (จัดการได้ทุกเมนู)</option>
@@ -2210,6 +2210,25 @@
             <option value="false">ระงับการใช้งานชั่วคราว (Active = false)</option>
           </select>
         </div>
+        <!-- ===== ส่วนอัปโหลดลายเซ็นรายบุคคล (เฉพาะ issuer/full) ===== -->
+        <div id="userSignatureSection" style="display:none; margin-top:0.5rem;">
+          <div style="background:#fef9c3; border:1px solid #fde68a; border-radius:8px; padding:0.6rem 0.85rem; margin-bottom:0.6rem; font-size:0.82rem; color:#92400e;">
+            <strong>ลายเซ็นรายบุคคล:</strong> อัปโหลดรูปลายเซ็นของผู้ใช้งานนี้ เพื่อแสดงในใบเสร็จแทนลายเซ็นกลาง
+          </div>
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <label class="btn btn-outline btn-sm" style="margin:0;">
+              อัปโหลดรูปลายเซ็น (PNG/JPG)
+              <input type="file" id="modalUserSignatureFile" accept="image/png, image/jpeg" style="display:none;" onchange="handleUserSignatureUpload(event)" />
+            </label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearUserSignature()">ลบลายเซ็น</button>
+          </div>
+          <div id="userSignaturePreview" style="margin-top:0.5rem; display:none;">
+            <p style="font-size:0.8rem; color:#555; margin-bottom:0.3rem;">ตัวอย่างลายเซ็นปัจจุบัน:</p>
+            <img id="userSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; border:1px solid #e5e7eb; border-radius:6px; padding:4px; background:#fff;" />
+          </div>
+          <input type="hidden" id="modalUserSignatureDataUrl" value="" />
+        </div>
+
         <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
           <button type="button" class="btn btn-outline" onclick="closeUserModal()">ยกเลิก</button>
           <button type="submit" class="btn btn-primary">บันทึกข้อมูลผู้ใช้งาน</button>
@@ -3645,6 +3664,37 @@
       } else if (permEl.value === "full") {
         permEl.value = "issuer";
       }
+      toggleUserSignatureVisibility();
+    }
+
+    function toggleUserSignatureVisibility() {
+      const perm = document.getElementById("modalUserPermission").value;
+      const role = document.getElementById("modalUserRole").value;
+      const effectivePerm = role === "admin" ? "full" : perm;
+      const section = document.getElementById("userSignatureSection");
+      section.style.display = (effectivePerm === "issuer" || effectivePerm === "full") ? "block" : "none";
+    }
+
+    function handleUserSignatureUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        document.getElementById("modalUserSignatureDataUrl").value = dataUrl;
+        const previewImg = document.getElementById("userSignaturePreviewImg");
+        previewImg.src = dataUrl;
+        document.getElementById("userSignaturePreview").style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearUserSignature() {
+      document.getElementById("modalUserSignatureDataUrl").value = "";
+      document.getElementById("userSignaturePreviewImg").src = "";
+      document.getElementById("userSignaturePreview").style.display = "none";
+      document.getElementById("modalUserSignatureFile").value = "";
+      showToast("ลบลายเซ็นรายบุคคลเรียบร้อยแล้ว");
     }
 
     function openUserModal(editUserId = null) {
@@ -3665,6 +3715,17 @@
         document.getElementById("modalUserRole").value = u.role || "user";
         document.getElementById("modalUserPermission").value = u.permission_level || (u.role === "admin" ? "full" : "issuer");
         document.getElementById("modalUserActive").value = String(u.active !== false);
+        // Signature preview for edit
+        if (u.signatureDataUrl) {
+          document.getElementById("modalUserSignatureDataUrl").value = u.signatureDataUrl;
+          document.getElementById("userSignaturePreviewImg").src = u.signatureDataUrl;
+          document.getElementById("userSignaturePreview").style.display = "block";
+        } else {
+          document.getElementById("modalUserSignatureDataUrl").value = "";
+          document.getElementById("userSignaturePreviewImg").src = "";
+          document.getElementById("userSignaturePreview").style.display = "none";
+        }
+        document.getElementById("modalUserSignatureFile").value = "";
       } else {
         document.getElementById("userModalTitle").textContent = "เพิ่มผู้เข้าใช้งานใหม่ในระบบ";
         document.getElementById("modalUserEditMode").value = "add";
@@ -3679,7 +3740,13 @@
         document.getElementById("modalUserRole").value = "user";
         document.getElementById("modalUserPermission").value = "issuer";
         document.getElementById("modalUserActive").value = "true";
+        // Clear signature for new user
+        document.getElementById("modalUserSignatureDataUrl").value = "";
+        document.getElementById("userSignaturePreviewImg").src = "";
+        document.getElementById("userSignaturePreview").style.display = "none";
+        document.getElementById("modalUserSignatureFile").value = "";
       }
+      toggleUserSignatureVisibility();
       modal.classList.add("open");
       setTimeout(() => document.getElementById("modalUserUsername").focus(), 60);
     }
@@ -3701,6 +3768,7 @@
       const role = document.getElementById("modalUserRole").value;
       const permission_level = role === "admin" ? "full" : document.getElementById("modalUserPermission").value;
       const active = document.getElementById("modalUserActive").value === "true";
+      const signatureDataUrl = document.getElementById("modalUserSignatureDataUrl").value || "";
 
       if (!username || !password) {
         showToast("กรุณากรอกทั้งชื่อผู้ใช้งาน (Username) และรหัสผ่าน (Password)", true);
@@ -3727,6 +3795,7 @@
         staff_code,
         position,
         active,
+        signatureDataUrl,
         updated_at: new Date().toISOString()
       };
 
@@ -4964,7 +5033,8 @@
         totalAmount,
         issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
         issuerStaffCode: (currentUser && currentUser.staff_code) || "",
-        issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ"
+        issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
+        issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || ""
       };
     }
 
@@ -5398,9 +5468,10 @@
               <div class="receipt-sign-line signature-row">
                 <span class="receipt-sign-label-short">(ลงชื่อ)</span>
                 <span class="receipt-sign-fill">
-                  ${(office.showSignature !== false && (office.customSignatureDataUrl || EMBEDDED_ASSETS.signature))
-                    ? `<img class="receipt-signature-img" src="${office.customSignatureDataUrl || EMBEDDED_ASSETS.signature}" alt="ลายเซ็นผู้รับเงิน" />`
-                    : ""}
+                  ${(() => {
+                    const sigUrl = r.issuerSignatureDataUrl || (office.showSignature !== false && (office.customSignatureDataUrl || EMBEDDED_ASSETS.signature)) || "";
+                    return sigUrl ? `<img class="receipt-signature-img" src="${sigUrl}" alt="ลายเซ็นผู้รับเงิน" />` : "";
+                  })()}
                 </span>
                 <span class="receipt-sign-right-label">ผู้รับเงิน</span>
               </div>
