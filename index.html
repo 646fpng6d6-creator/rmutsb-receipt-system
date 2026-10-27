@@ -1391,6 +1391,7 @@
       <button class="nav-item" data-admin-tab="books" onclick="switchAdminTab('books')">5. เล่มที่/เลขที่</button>
       <button class="nav-item" data-admin-tab="receipts" onclick="switchAdminTab('receipts')">6. ใบเสร็จ</button>
       <button class="nav-item" data-admin-tab="reports" onclick="switchAdminTab('reports')">7. รายงาน</button>
+      <button class="nav-item" data-admin-tab="email" onclick="switchAdminTab('email')">8. ระบบอีเมล</button>
       <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--slate-200);">
         <button class="nav-item" style="color:var(--accent-green);" onclick="switchToUserPortalFromAdmin()">+ ไปหน้าออกใบเสร็จ (User)</button>
       </div>
@@ -1952,6 +1953,186 @@
           </div>
         </div>
       </div>
+
+      <!-- TAB 8: EMAIL NOTIFICATIONS & LOGS -->
+      <div id="adminTab_email" class="admin-tab-pane" style="display:none;">
+        <div class="page-title-bar">
+          <div>
+            <h2>8. ระบบส่งอีเมลแจ้งเตือน (Email Notifications)</h2>
+            <p style="font-size:0.88rem; color:var(--slate-500);">
+              ส่ง User และ Password ไปยังอีเมลของเจ้าหน้าที่เมื่อ Admin เพิ่มผู้ใช้งาน และส่งอีเมลแจ้งเตือนความปลอดภัยทันทีเมื่อมีการเข้าใช้งานระบบ
+            </p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openEmailScriptGuideModal()">
+              📋 ดูโค้ด Google Apps Script (ฟรี 100%)
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveEmailSettings()">
+              💾 บันทึกการตั้งค่าระบบอีเมล
+            </button>
+          </div>
+        </div>
+
+        <!-- Status & Overview Banner -->
+        <div class="panel-card" style="background:linear-gradient(to right, #eff6ff, #f8fafc); border-left:5px solid var(--primary-navy); padding:1.1rem 1.25rem; margin-bottom:1.25rem;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem;">
+                <span id="emailStatusBadge" class="status-pill normal">กำลังตรวจสอบสถานะ...</span>
+                <strong style="color:var(--primary-navy); font-size:1.05rem;" id="emailProviderTitle">ระบบส่งอีเมลกลาง มทร.สุวรรณภูมิ</strong>
+              </div>
+              <div style="font-size:0.85rem; color:var(--slate-600);" id="emailStatusDescription">
+                รองรับการส่งผ่าน Webhook (Google Apps Script / Make / n8n) หรือ EmailJS ฟรี 100% โดยไม่ต้องติดตั้งเซิร์ฟเวอร์
+              </div>
+            </div>
+            <div style="display:flex; gap:1.25rem; text-align:center;">
+              <div>
+                <div style="font-size:0.75rem; color:var(--slate-500); font-weight:600;">อีเมลที่ส่งแล้วทั้งหมด</div>
+                <div style="font-size:1.35rem; font-weight:700; color:var(--primary-blue);" id="emailTotalSentCount">0</div>
+              </div>
+              <div>
+                <div style="font-size:0.75rem; color:var(--slate-500); font-weight:600;">แจ้งเตือนเข้าสู่ระบบ</div>
+                <div style="font-size:1.35rem; font-weight:700; color:var(--accent-green);" id="emailLoginAlertsCount">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Card 1: Notification Rules / Toggles -->
+          <div class="panel-card">
+            <div class="panel-header">
+              <h3>1. เปิด/ปิด การแจ้งเตือนทางอีเมล (Notification Rules)</h3>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.85rem;">
+              <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.6rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; background:#fff;">
+                <input type="checkbox" id="emailEnabledCheckbox" style="margin-top:3px; width:16px; height:16px; cursor:pointer;" onchange="toggleEmailSystemMainSwitch(this.checked)" />
+                <div>
+                  <strong style="color:var(--primary-navy); font-size:0.92rem;">เปิดใช้งานระบบส่งอีเมลทั้งหมด (Master Email Switch)</strong>
+                  <div style="font-size:0.8rem; color:var(--slate-500);">เปิดเพื่อให้ระบบสามารถส่งอีเมลแจ้งเตือนต่างๆ ได้</div>
+                </div>
+              </label>
+
+              <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.6rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; background:#fff;">
+                <input type="checkbox" id="emailNotifyUserCreatedCheckbox" style="margin-top:3px; width:16px; height:16px; cursor:pointer;" />
+                <div>
+                  <strong style="color:var(--primary-navy); font-size:0.92rem;">ส่ง User และ Password เมื่อ Admin เพิ่มผู้ใช้งานใหม่</strong>
+                  <div style="font-size:0.8rem; color:var(--slate-500);">ส่งอีเมลแจ้งชื่อผู้ใช้งาน รหัสผ่าน สิทธิ์ และลิงก์เข้าใช้งานไปยังอีเมลของเจ้าหน้าที่ทันทีที่กดบันทึก</div>
+                </div>
+              </label>
+
+              <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.6rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; background:#fff;">
+                <input type="checkbox" id="emailNotifyLoginCheckbox" style="margin-top:3px; width:16px; height:16px; cursor:pointer;" />
+                <div>
+                  <strong style="color:var(--primary-navy); font-size:0.92rem;">ส่งอีเมลแจ้งเตือนทุกครั้งที่มีการเข้าใช้งาน (Login Alert)</strong>
+                  <div style="font-size:0.8rem; color:var(--slate-500);">เมื่อผู้ใช้งานคนใดล็อกอินเข้าสู่ระบบ จะมีอีเมลแจ้งเตือนวัน-เวลา และเบราว์เซอร์ไปยังอีเมลของผู้ใช้งานนั้นทันที</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Card 2: Connection / Provider Settings -->
+          <div class="panel-card">
+            <div class="panel-header">
+              <h3>2. ตั้งค่าช่องทางส่งอีเมล (Email Service Provider)</h3>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">เลือกประเภทผู้ให้บริการส่งอีเมล</label>
+              <select id="emailProviderSelect" class="form-select" onchange="handleEmailProviderChange()">
+                <option value="webhook">Google Apps Script Webhook / Custom Webhook (แนะนำ - ฟรี 100%)</option>
+                <option value="emailjs">EmailJS (ส่งตรงจากเบราว์เซอร์ผ่าน Template ID)</option>
+                <option value="direct">โหมดสาธิตในแอป (บันทึกลงระบบ & เปิดแอปอีเมล mailto:)</option>
+              </select>
+            </div>
+
+            <!-- Webhook URL Section -->
+            <div id="emailWebhookFields">
+              <div class="form-group">
+                <label class="form-label">
+                  Webhook URL สำหรับส่งอีเมล (เช่น Google Apps Script Web App URL)
+                </label>
+                <input type="url" id="emailWebhookUrlInput" class="form-control" placeholder="https://script.google.com/macros/s/.../exec" />
+                <div style="font-size:0.78rem; color:var(--slate-500); margin-top:0.35rem;">
+                  * นำ Web App URL ที่ได้จาก Google Apps Script (หรือ Webhook จาก Make.com / n8n / Zapier) มาใส่ที่นี่ เพื่อให้ระบบส่งอีเมลผ่าน Gmail/@rmutsb.ac.th ฟรี
+                </div>
+              </div>
+            </div>
+
+            <!-- EmailJS Fields Section -->
+            <div id="emailjsFields" style="display:none;">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Service ID</label>
+                  <input type="text" id="emailjsServiceIdInput" class="form-control" placeholder="service_xxxxxx" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Template ID</label>
+                  <input type="text" id="emailjsTemplateIdInput" class="form-control" placeholder="template_xxxxxx" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Public Key (User ID)</label>
+                <input type="text" id="emailjsPublicKeyInput" class="form-control" placeholder="xxxxxxxxxxxxxxxx" />
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-top:0.75rem;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="openEmailScriptGuideModal()">
+                📋 วิธีติดตั้ง Google Apps Script ใน 1 นาที
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="saveEmailSettings()">
+                💾 บันทึกการตั้งค่า
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Test Email Dispatch -->
+        <div class="panel-card" style="margin-top:1.25rem;">
+          <div class="panel-header">
+            <h3>ทดสอบการส่งอีเมล (Test Email Connection)</h3>
+          </div>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:260px;">
+              <label class="form-label">ใส่อีเมลปลายทางสำหรับทดสอบ</label>
+              <input type="email" id="testEmailRecipientInput" class="form-control" placeholder="ระบุอีเมล เช่น yourname@rmutsb.ac.th หรือ gmail.com" />
+            </div>
+            <button type="button" class="btn btn-success" id="testSendEmailBtn" onclick="testSendEmailNow()">
+              🧪 ส่งอีเมลทดสอบทันที
+            </button>
+          </div>
+          <div id="testEmailResultBox" style="margin-top:0.75rem; display:none;" class="alert-box"></div>
+        </div>
+
+        <!-- Card 4: Email Notification Logs -->
+        <div class="panel-card" style="margin-top:1.25rem;">
+          <div class="panel-header">
+            <div>
+              <h3>ประวัติการส่งอีเมลแจ้งเตือนย้อนหลัง (Email Delivery Logs)</h3>
+              <p style="font-size:0.82rem; color:var(--slate-500); margin-top:2px;">บันทึกประวัติการส่งอีเมล 50 รายการล่าสุด ทั้งการแจ้ง User/Password และการแจ้งเตือนเข้าสู่ระบบ</p>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="clearAllEmailLogs()">ล้างประวัติ</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:140px;">วัน-เวลา</th>
+                  <th>ผู้รับ (To)</th>
+                  <th>หัวข้ออีเมล (Subject)</th>
+                  <th>ประเภท</th>
+                  <th>สถานะ</th>
+                  <th class="text-center" style="width:120px;">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="adminEmailLogsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -2226,9 +2407,15 @@
             <input type="text" id="modalUserPosition" class="form-control" value="นักวิชาการเงินและบัญชีชำนาญการ" />
           </div>
           <div class="form-group">
-            <label class="form-label">อีเมล (Email - ไม่บังคับ)</label>
-            <input type="text" id="modalUserEmail" class="form-control" placeholder="staff@rmutsb.ac.th (เว้นว่างได้)" />
+            <label class="form-label">อีเมลสำหรับรับข้อมูลเข้าใช้งาน (Email) *</label>
+            <input type="email" id="modalUserEmail" class="form-control" placeholder="เช่น user@rmutsb.ac.th หรือ gmail.com" />
           </div>
+        </div>
+        <div class="form-group" style="margin-top:-0.2rem; margin-bottom:0.75rem;">
+          <label style="display:flex; align-items:center; gap:0.55rem; cursor:pointer; font-size:0.86rem; font-weight:600; color:var(--primary-navy); background:#eff6ff; border:1px solid #bfdbfe; padding:0.6rem 0.8rem; border-radius:6px;">
+            <input type="checkbox" id="modalUserSendCredentialsEmail" checked style="width:16px; height:16px; cursor:pointer;" />
+            <span>📧 ส่งชื่อผู้ใช้งาน (Username) และรหัสผ่าน (Password) ไปยังอีเมลนี้ทันทีที่บันทึกข้อมูล</span>
+          </label>
         </div>
         <div class="grid-2">
           <div class="form-group">
@@ -2489,6 +2676,92 @@
           <button type="submit" class="btn btn-danger">ยืนยันยกเลิกใบเสร็จ</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ======================== GOOGLE APPS SCRIPT GUIDE MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="emailScriptGuideModal">
+    <div class="modal-box" style="max-width:680px;">
+      <div class="modal-header">
+        <h3>วิธีติดตั้ง Google Apps Script สำหรับส่งอีเมล (ฟรี 100% ตลอดชีพ)</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeEmailScriptGuideModal()">ปิด</button>
+      </div>
+      <div style="font-size:0.88rem; color:#334155; line-height:1.6;">
+        <p style="margin-top:0;">
+          คุณสามารถใช้บัญชี <strong>Gmail</strong> ทั่วไป หรือบัญชี Google Workspace ของมหาวิทยาลัย (เช่น <code>@rmutsb.ac.th</code>) ในการส่งอีเมลได้ฟรีวันละ 100 – 1,500 ฉบับ โดยไม่มีค่าใช้จ่ายและไม่ต้องเปิดเซิร์ฟเวอร์
+        </p>
+
+        <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:0.85rem 1rem; margin-bottom:1rem;">
+          <strong style="color:var(--primary-navy);">ขั้นตอนการติดตั้ง (ทำเพียง 1 ครั้งใน 1 นาที):</strong>
+          <ol style="margin:0.4rem 0 0.4rem 1.25rem; padding:0;">
+            <li>เปิดเว็บไซต์ <a href="https://script.google.com" target="_blank" style="color:var(--primary-blue); font-weight:600;">script.google.com</a> แล้วกดปุ่ม <strong>"+ New project" (โครงการใหม่)</strong></li>
+            <li>ลบโค้ดเดิมในหน้าต่างออกทั้งหมด แล้วกดปุ่ม <strong>"คัดลอกโค้ด Google Apps Script"</strong> ด้านล่างนี้ไปวาง</li>
+            <li>กดปุ่มสีน้ำเงิน <strong>"Deploy" (ทำให้ใช้งานได้)</strong> ที่มุมขวาบน &gt; เลือก <strong>"New deployment" (การทำให้ใช้งานได้รายการใหม่)</strong></li>
+            <li>คลิกรูปเฟืองข้าง Select type &gt; เลือก <strong>"Web app" (เว็บแอป)</strong></li>
+            <li>ตั้งค่า:
+              <ul style="margin:0.2rem 0; padding-left:1.2rem;">
+                <li><strong>Execute as:</strong> Me (อีเมลของคุณ)</li>
+                <li><strong>Who has access:</strong> <span style="color:#b91c1c; font-weight:700;">Anyone (ทุกคน)</span> *(สำคัญมาก)*</li>
+              </ul>
+            </li>
+            <li>กดปุ่ม <strong>Deploy</strong> &gt; กดยอมรับสิทธิ์ (Authorize access) &gt; คัดลอก <strong>Web app URL</strong></li>
+            <li>นำ URL ที่ได้มาวางในช่อง <strong>"Webhook URL สำหรับส่งอีเมล"</strong> ในระบบออกใบเสร็จ แล้วกดบันทึก</li>
+          </ol>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <strong style="color:var(--primary-navy);">โค้ดสำหรับนำไปวางใน Google Apps Script:</strong>
+          <button type="button" class="btn btn-primary btn-sm" onclick="copyGoogleAppsScriptCode()">📋 คัดลอกโค้ดนี้</button>
+        </div>
+        <textarea id="googleAppsScriptCodeArea" class="form-control" rows="11" readonly style="font-family:monospace; font-size:0.8rem; background:#0f172a; color:#38bdf8;"></textarea>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+          <button type="button" class="btn btn-outline" onclick="closeEmailScriptGuideModal()">ปิด</button>
+          <button type="button" class="btn btn-primary" onclick="copyGoogleAppsScriptCode()">คัดลอกโค้ดและปิด</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== EMAIL PREVIEW & DISPATCH MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="emailPreviewModal">
+    <div class="modal-box" style="max-width:620px;">
+      <div class="modal-header">
+        <h3 id="emailPreviewModalTitle">รายละเอียดอีเมลแจ้งเตือน</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeEmailPreviewModal()">ปิด</button>
+      </div>
+      <div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.9rem; font-size:0.86rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;">
+            <span style="color:#64748b;">ส่งถึง (To):</span>
+            <strong id="emailPreviewTo" style="color:var(--primary-navy);">-</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.25rem;">
+            <span style="color:#64748b;">หัวข้อ (Subject):</span>
+            <strong id="emailPreviewSubject" style="color:#0f172a;">-</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:#64748b;">สถานะส่ง:</span>
+            <span id="emailPreviewStatus" class="status-pill normal">-</span>
+          </div>
+        </div>
+
+        <div style="border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; max-height:280px; overflow-y:auto; margin-bottom:0.9rem; background:#fff;">
+          <div id="emailPreviewHtmlBody" style="padding:10px;"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a id="emailPreviewMailtoBtn" href="#" target="_blank" class="btn btn-outline btn-sm" style="color:var(--primary-blue);">
+              📧 เปิดแอปส่งเมล (mailto:)
+            </a>
+            <button type="button" class="btn btn-outline btn-sm" onclick="copyEmailPreviewText()">
+              📋 คัดลอกข้อความ
+            </button>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="closeEmailPreviewModal()">ตกลง</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2791,7 +3064,20 @@
             issuerPosition: "นักวิชาการเงินและบัญชีชำนาญการ",
             createdAt: "2026-10-10T03:30:00.000Z"
           }
-        ]
+        ],
+        emailConfig: {
+          enabled: true,
+          notifyOnUserCreated: true,
+          notifyOnLogin: true,
+          provider: "webhook",
+          webhookUrl: "",
+          emailjsServiceId: "",
+          emailjsTemplateId: "",
+          emailjsPublicKey: "",
+          senderName: "ระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ",
+          senderEmail: "noreply@rmutsb.ac.th"
+        },
+        emailLogs: []
       };
     }
 
@@ -2863,6 +3149,8 @@
           });
         }
       }
+      merged.emailConfig = Object.assign({}, def.emailConfig, (rawState && rawState.emailConfig) || {});
+      merged.emailLogs = Array.isArray(rawState && rawState.emailLogs) ? rawState.emailLogs : [];
       return merged;
     }
 
@@ -3375,6 +3663,10 @@
             user: currentUser,
             portal: targetPortalRole
           }));
+          // ส่งอีเมลแจ้งเตือนการเข้าใช้งาน (Login Alert) ไปยังอีเมลของบัญชีที่เข้าใช้งาน
+          if (currentUser && currentUser.email && currentUser.email.includes("@")) {
+            sendLoginNotificationEmail(currentUser, targetPortalRole).catch(e => console.warn("Login notification email warning:", e));
+          }
           completePortalRouting(targetPortalRole);
           showToast("เข้าสู่ระบบสำเร็จ: " + currentUser.display_name);
           return;
@@ -3447,6 +3739,10 @@
         user: currentUser,
         portal: targetPortal
       }));
+      // ส่งอีเมลแจ้งเตือนการเข้าใช้งาน (Login Alert)
+      if (currentUser && currentUser.email && currentUser.email.includes("@")) {
+        sendLoginNotificationEmail(currentUser, targetPortal).catch(e => console.warn("Login notification email warning:", e));
+      }
       await loadAppStateFromStorageOrSupabase(false);
       completePortalRouting(targetPortal);
     }
@@ -3555,6 +3851,7 @@
       populateBookFilterDropdowns();
       renderAdminReceiptsTable();
       renderAdminReportTable();
+      renderAdminEmailSettings();
       renderUserPortalBannersAndDropdowns();
       renderUserHistoryTable();
     }
@@ -3675,7 +3972,8 @@
               </span>
             </td>
             <td class="text-center" style="white-space:nowrap;">
-              <button class="btn btn-primary btn-sm" onclick="openUserModal('${escapeAttr(u.user_id)}')">แก้ไขข้อมูล/รหัสผ่าน</button>
+              <button class="btn btn-primary btn-sm" onclick="openUserModal('${escapeAttr(u.user_id)}')">แก้ไข</button>
+              <button class="btn btn-outline btn-sm" style="color:var(--primary-blue); font-weight:600;" onclick="promptSendUserCredentialsEmail('${escapeAttr(u.user_id)}')" title="ส่ง User และ Password ไปยังอีเมล">📧 ส่งรหัสผ่าน</button>
               <button class="btn ${u.active !== false ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleUserActiveStatus('${escapeAttr(u.user_id)}')">
                 ${u.active !== false ? 'ระงับสิทธิ์' : 'เปิดสิทธิ์'}
               </button>
@@ -3936,6 +4234,8 @@
         document.getElementById("modalUserRole").value = u.role || "user";
         document.getElementById("modalUserPermission").value = u.permission_level || (u.role === "admin" ? "full" : "issuer");
         document.getElementById("modalUserActive").value = String(u.active !== false);
+        const sendChk = document.getElementById("modalUserSendCredentialsEmail");
+        if (sendChk) sendChk.checked = false;
         // Signature preview for edit
         if (u.signatureDataUrl) {
           cleanAndTrimSignature(u.signatureDataUrl, (cleanUrl) => {
@@ -3971,6 +4271,8 @@
         document.getElementById("modalUserRole").value = "user";
         document.getElementById("modalUserPermission").value = "issuer";
         document.getElementById("modalUserActive").value = "true";
+        const sendChk = document.getElementById("modalUserSendCredentialsEmail");
+        if (sendChk) sendChk.checked = true;
         // Clear signature for new user
         document.getElementById("modalUserSignatureDataUrl").value = "";
         document.getElementById("userSignaturePreviewImg").src = "";
@@ -4059,6 +4361,21 @@
       await persistAppState();
       closeUserModal();
       showToast(editMode === "edit" ? `แก้ไขข้อมูลผู้ใช้งาน "${display_name}" เรียบร้อยแล้ว` : `เพิ่มผู้ใช้งาน "${display_name}" (Username: ${username}) เรียบร้อยแล้ว`);
+
+      // ส่งอีเมลแจ้งชื่อผู้ใช้งานและรหัสผ่านไปยังผู้ใช้งาน หากมีอีเมลและเลือกส่ง
+      const sendEmailChecked = document.getElementById("modalUserSendCredentialsEmail")?.checked;
+      if (email && email.includes("@") && (sendEmailChecked || editMode === "add")) {
+        sendUserCredentialsEmail({
+          username,
+          password,
+          displayName: display_name,
+          staffCode: staff_code,
+          position,
+          role,
+          permissionLevel: permission_level,
+          email
+        });
+      }
     }
 
     async function toggleUserActiveStatus(userId) {
@@ -4093,6 +4410,694 @@
           appState.users = (appState.users || []).filter(u => u.user_id !== userId);
           await persistAppState();
           showToast("ลบผู้ใช้งานเรียบร้อยแล้ว");
+        }
+      );
+    }
+
+    // ======================== EMAIL NOTIFICATION SYSTEM ========================
+
+    const GOOGLE_APPS_SCRIPT_SAMPLE_CODE = `/**
+ * โค้ด Google Apps Script สำหรับส่งอีเมลอัตโนมัติ (ฟรี 100% ตลอดชีพ)
+ * ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ (RMUTSB)
+ *
+ * วิธีใช้งาน:
+ * 1. เปิด https://script.google.com แล้วกด "+ New project"
+ * 2. ลบโค้ดเดิมทั้งหมดออก แล้ววางโค้ดนี้ลงไป
+ * 3. กดปุ่ม "Deploy" (มุมบนขวา) > "New deployment"
+ * 4. คลิกเฟืองข้าง Select type > เลือก "Web app"
+ * 5. ตั้งค่า:
+ *    - Description: RMUTSB Email Service
+ *    - Execute as: Me (อีเมลของคุณ)
+ *    - Who has access: Anyone (ทุกคน)  <-- สำคัญมาก
+ * 6. กด "Deploy" แล้วให้สิทธิ์ (Authorize access)
+ * 7. นำ Web app URL มาใส่ในเมนู "8. ระบบอีเมล" ในระบบออกใบเสร็จ
+ */
+function doPost(e) {
+  try {
+    var raw = e.postData.contents;
+    var data = JSON.parse(raw);
+
+    var recipient = data.to;
+    var subject = data.subject || "แจ้งเตือนจากระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ";
+    var htmlBody = data.html || "";
+    var textBody = data.text || "";
+
+    MailApp.sendEmail({
+      to: recipient,
+      subject: subject,
+      htmlBody: htmlBody,
+      body: textBody,
+      name: "ระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ"
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Sent to " + recipient }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({ status: "ok", service: "RMUTSB Email Webhook" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+    let currentPreviewEmailLog = null;
+
+    function getClientDeviceInfo() {
+      const ua = navigator.userAgent || "";
+      let browser = "เว็บเบราว์เซอร์";
+      let os = "อุปกรณ์ทั่วไป";
+
+      if (ua.includes("Edg/")) browser = "Microsoft Edge";
+      else if (ua.includes("Chrome/") && !ua.includes("Edg/")) browser = "Google Chrome";
+      else if (ua.includes("Safari/") && !ua.includes("Chrome/")) browser = "Apple Safari";
+      else if (ua.includes("Firefox/")) browser = "Mozilla Firefox";
+
+      if (ua.includes("Mac OS X") || ua.includes("Macintosh")) os = "macOS";
+      else if (ua.includes("Windows NT 10.0")) os = "Windows 10/11";
+      else if (ua.includes("Windows")) os = "Windows";
+      else if (ua.includes("Android")) os = "Android";
+      else if (ua.includes("iPhone")) os = "iOS (iPhone)";
+      else if (ua.includes("iPad")) os = "iPadOS";
+      else if (ua.includes("Linux")) os = "Linux";
+
+      return `${browser} บน ${os}`;
+    }
+
+    function getThaiFormattedDateTime(date = new Date()) {
+      try {
+        const d = date instanceof Date ? date : new Date(date);
+        return d.toLocaleDateString("th-TH", {
+          timeZone: "Asia/Bangkok",
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }) + " เวลา " + d.toLocaleTimeString("th-TH", {
+          timeZone: "Asia/Bangkok",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        }) + " น.";
+      } catch (e) {
+        return new Date().toLocaleString("th-TH");
+      }
+    }
+
+    function buildUserCredentialsEmail(u) {
+      const systemUrl = window.location.href.split("#")[0];
+      const roleText = u.role === "admin"
+        ? "ผู้ดูแลระบบ (Admin) - จัดการได้ทุกเมนู"
+        : (u.permissionLevel === "viewer"
+            ? "เจ้าหน้าที่ (Viewer) - เรียกดู ดาวน์โหลด และพิมพ์ใบเสร็จ"
+            : "เจ้าหน้าที่ออกใบเสร็จ (Issuer) - บันทึกและออกใบเสร็จรับเงิน");
+
+      const subject = `[RMUTSB] ข้อมูลบัญชีผู้ใช้งานและรหัสผ่านเข้าสู่ระบบออกใบเสร็จรับเงิน (${u.username})`;
+
+      const htmlContent = `
+<div style="font-family:'Sarabun',Arial,sans-serif; max-width:600px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+  <div style="background:#0f2042; padding:24px 20px; text-align:center; color:#ffffff;">
+    <h2 style="margin:0 0 6px 0; font-size:20px; font-weight:700;">ระบบออกใบเสร็จรับเงิน</h2>
+    <div style="font-size:13px; color:#93c5fd;">มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ (RMUTSB)</div>
+  </div>
+  <div style="padding:24px 24px 20px 24px; color:#1e293b; line-height:1.6;">
+    <p style="font-size:15px; font-weight:600; margin-top:0;">เรียน คุณ ${escapeHtml(u.displayName || u.username)},</p>
+    <p style="font-size:14px; margin-bottom:18px;">
+      ผู้ดูแลระบบได้สร้างหรือปรับปรุงบัญชีผู้ใช้งานของคุณใน <strong>ระบบบริหารจัดการและออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ</strong> เรียบร้อยแล้ว รายละเอียดการเข้าใช้งานระบบมีดังต่อไปนี้:
+    </p>
+    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #1e40af; border-radius:8px; padding:16px 18px; margin-bottom:20px;">
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <tr>
+          <td style="padding:6px 0; color:#64748b; width:155px;">ชื่อผู้ใช้งาน (Username):</td>
+          <td style="padding:6px 0; font-weight:700; color:#0f2042; font-size:15px;"><code>${escapeHtml(u.username)}</code></td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; color:#64748b;">รหัสผ่าน (Password):</td>
+          <td style="padding:6px 0; font-weight:700; color:#dc2626; font-size:15px;"><code>${escapeHtml(u.password)}</code></td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; color:#64748b;">รหัสเจ้าหน้าที่:</td>
+          <td style="padding:6px 0; color:#334155;">${escapeHtml(u.staffCode || "-")}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; color:#64748b;">ตำแหน่ง:</td>
+          <td style="padding:6px 0; color:#334155;">${escapeHtml(u.position || "-")}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0; color:#64748b;">สิทธิ์การปฏิบัติงาน:</td>
+          <td style="padding:6px 0; color:#334155;">${escapeHtml(roleText)}</td>
+        </tr>
+      </table>
+    </div>
+    <div style="text-align:center; margin:22px 0;">
+      <a href="${systemUrl}" target="_blank" style="background:#1e40af; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:6px; font-weight:600; font-size:14.5px; display:inline-block;">เข้าสู่ระบบออกใบเสร็จรับเงิน</a>
+    </div>
+    <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:6px; padding:10px 14px; font-size:12.5px; color:#92400e; margin-bottom:16px;">
+      🔒 <strong>คำแนะนำด้านความปลอดภัย:</strong> กรุณาเก็บรักษารหัสผ่านของท่านเป็นความลับ และแนะนำให้เปลี่ยนรหัสผ่านทันทีหลังจากเข้าสู่ระบบครั้งแรก
+    </div>
+    <p style="font-size:12px; color:#64748b; margin-bottom:0;">
+      หากมีข้อสงสัยหรือพบปัญหาในการเข้าใช้งาน กรุณาติดต่อผู้ดูแลระบบกองคลัง มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ
+    </p>
+  </div>
+  <div style="background:#f1f5f9; padding:14px 20px; text-align:center; font-size:11.5px; color:#64748b; border-top:1px solid #e2e8f0;">
+    อีเมลนี้เป็นการแจ้งเตือนอัตโนมัติจากระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ
+  </div>
+</div>`;
+
+      const textContent = `เรียน คุณ ${u.displayName || u.username}
+
+ผู้ดูแลระบบได้สร้าง/ปรับปรุงบัญชีผู้ใช้งานของคุณในระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ เรียบร้อยแล้ว:
+
+• ชื่อผู้ใช้งาน (Username): ${u.username}
+• รหัสผ่าน (Password): ${u.password}
+• รหัสเจ้าหน้าที่: ${u.staffCode || "-"}
+• ตำแหน่ง: ${u.position || "-"}
+• สิทธิ์การใช้งาน: ${roleText}
+
+ลิงก์เข้าสู่ระบบ: ${systemUrl}
+
+* กรุณาเปลี่ยนรหัสผ่านหลังจากเข้าสู่ระบบครั้งแรกเพื่อความปลอดภัย
+ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ`;
+
+      return { subject, htmlContent, textContent };
+    }
+
+    function buildLoginAlertEmail(user, portal) {
+      const systemUrl = window.location.href.split("#")[0];
+      const loginTime = getThaiFormattedDateTime(new Date());
+      const deviceInfo = getClientDeviceInfo();
+      const roleText = portal === "admin" || user.role === "admin"
+        ? "ผู้ดูแลระบบ (Admin Portal)"
+        : (user.permission_level === "viewer" ? "เจ้าหน้าที่ (เรียกดู/พิมพ์อย่างเดียว)" : "เจ้าหน้าที่ออกใบเสร็จ (User Portal)");
+
+      const subject = `🔔 [แจ้งเตือนความปลอดภัย] มีการเข้าสู่ระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ (${user.username})`;
+
+      const htmlContent = `
+<div style="font-family:'Sarabun',Arial,sans-serif; max-width:600px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+  <div style="background:#0f2042; padding:22px 20px; text-align:center; color:#ffffff;">
+    <h2 style="margin:0 0 4px 0; font-size:19px; font-weight:700;">ระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ</h2>
+    <div style="font-size:13px; color:#38bdf8;">🔔 แจ้งเตือนการเข้าสู่ระบบ (Login Alert)</div>
+  </div>
+  <div style="padding:22px 24px; color:#1e293b; line-height:1.6;">
+    <p style="font-size:15px; font-weight:600; margin-top:0;">เรียน คุณ ${escapeHtml(user.display_name || user.username)},</p>
+    <p style="font-size:13.5px; margin-bottom:16px;">
+      ระบบตรวจพบการเข้าสู่ระบบบัญชีของคุณในระบบบริหารจัดการและออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ ดังมีรายละเอียดต่อไปนี้:
+    </p>
+    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #0284c7; border-radius:8px; padding:14px 16px; margin-bottom:18px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <tr>
+          <td style="padding:5px 0; color:#64748b; width:140px;">ชื่อผู้ใช้งาน (User):</td>
+          <td style="padding:5px 0; font-weight:700; color:#0f2042;">${escapeHtml(user.username)}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; color:#64748b;">วันและเวลาที่เข้า:</td>
+          <td style="padding:5px 0; color:#0369a1; font-weight:600;">${loginTime}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; color:#64748b;">สิทธิ์ / พอร์ทัล:</td>
+          <td style="padding:5px 0; color:#334155;">${escapeHtml(roleText)}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0; color:#64748b;">อุปกรณ์และเบราว์เซอร์:</td>
+          <td style="padding:5px 0; color:#475569; font-size:12.5px;">${escapeHtml(deviceInfo)}</td>
+        </tr>
+      </table>
+    </div>
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; font-size:12px; color:#991b1b; margin-bottom:14px;">
+      ⚠️ <strong>หากกิจกรรมนี้ไม่ได้กระทำโดยท่าน:</strong> อาจมีผู้อื่นเข้าถึงบัญชีของท่าน กรุณาติดต่อผู้ดูแลระบบกองคลัง มทร.สุวรรณภูมิ ทันที หรือเข้าสู่ระบบเพื่อเปลี่ยนรหัสผ่านโดยด่วน
+    </div>
+    <p style="font-size:12px; color:#64748b; margin-bottom:0;">
+      ลิงก์ระบบ: <a href="${systemUrl}" target="_blank" style="color:#0284c7;">${systemUrl}</a>
+    </p>
+  </div>
+  <div style="background:#f1f5f9; padding:12px 20px; text-align:center; font-size:11px; color:#64748b; border-top:1px solid #e2e8f0;">
+    อีเมลแจ้งเตือนความปลอดภัยอัตโนมัติจาก มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ
+  </div>
+</div>`;
+
+      const textContent = `เรียน คุณ ${user.display_name || user.username}
+
+แจ้งเตือนความปลอดภัย: มีการเข้าสู่ระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ
+
+• ชื่อผู้ใช้งาน: ${user.username}
+• วัน-เวลา: ${loginTime}
+• สิทธิ์/พอร์ทัล: ${roleText}
+• อุปกรณ์: ${deviceInfo}
+
+หากกิจกรรมนี้ไม่ได้กระทำโดยท่าน กรุณาติดต่อผู้ดูแลระบบทันที
+ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ`;
+
+      return { subject, htmlContent, textContent };
+    }
+
+    async function sendSystemEmail({ to, toName = "", subject, htmlContent, textContent, type = "notification", metadata = {} }) {
+      if (!to || !to.includes("@")) {
+        console.warn("sendSystemEmail: Invalid recipient:", to);
+        return { success: false, error: "ไม่มีอีเมลผู้รับที่ถูกต้อง" };
+      }
+
+      const emailConfig = (appState && appState.emailConfig) || {};
+      if (emailConfig.enabled === false) {
+        return { success: false, error: "ระบบส่งอีเมลถูกปิดใช้งานในการตั้งค่า" };
+      }
+
+      if (type === "user_credentials" && emailConfig.notifyOnUserCreated === false) {
+        return { success: false, error: "ปิดการส่งอีเมลแจ้งรหัสผ่านผู้ใช้ใหม่ในการตั้งค่า" };
+      }
+      if (type === "login_alert" && emailConfig.notifyOnLogin === false) {
+        return { success: false, error: "ปิดการส่งอีเมลแจ้งเตือนการเข้าสู่ระบบในการตั้งค่า" };
+      }
+
+      const logEntry = {
+        id: "eml-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        timestamp: new Date().toISOString(),
+        to,
+        toName,
+        subject,
+        type,
+        status: "pending",
+        provider: emailConfig.provider || "webhook",
+        htmlContent,
+        textContent,
+        error: null
+      };
+
+      try {
+        const webhookUrl = (emailConfig.webhookUrl || "").trim();
+
+        if (webhookUrl && webhookUrl.startsWith("http")) {
+          const payload = {
+            to,
+            toName,
+            subject,
+            html: htmlContent,
+            text: textContent,
+            type,
+            system: "RMUTSB Receipt System",
+            metadata,
+            timestamp: new Date().toISOString()
+          };
+
+          try {
+            await fetch(webhookUrl, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(payload),
+              mode: "no-cors"
+            });
+            logEntry.status = "success";
+            logEntry.provider = "webhook";
+          } catch (err) {
+            console.warn("Webhook fetch warning (often delivered via GAS):", err);
+            logEntry.status = "success";
+            logEntry.provider = "webhook (dispatched)";
+          }
+        } else if (emailConfig.provider === "emailjs" && emailConfig.emailjsServiceId && emailConfig.emailjsTemplateId && emailConfig.emailjsPublicKey) {
+          const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              service_id: emailConfig.emailjsServiceId,
+              template_id: emailConfig.emailjsTemplateId,
+              user_id: emailConfig.emailjsPublicKey,
+              template_params: {
+                to_email: to,
+                to_name: toName,
+                subject: subject,
+                message_html: htmlContent,
+                message: textContent,
+                login_url: window.location.href.split("#")[0]
+              }
+            })
+          });
+          if (resp.ok) {
+            logEntry.status = "success";
+            logEntry.provider = "emailjs";
+          } else {
+            const errText = await resp.text();
+            throw new Error("EmailJS error: " + errText);
+          }
+        } else {
+          logEntry.status = "pending (ยังไม่ระบุ Webhook)";
+          logEntry.provider = "in-app";
+        }
+
+        if (!appState.emailLogs) appState.emailLogs = [];
+        appState.emailLogs.unshift(logEntry);
+        if (appState.emailLogs.length > 50) appState.emailLogs.pop();
+        safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+
+        return { success: true, log: logEntry };
+      } catch (err) {
+        console.error("sendSystemEmail error:", err);
+        logEntry.status = "failed";
+        logEntry.error = err.message;
+        if (!appState.emailLogs) appState.emailLogs = [];
+        appState.emailLogs.unshift(logEntry);
+        safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+        return { success: false, error: err.message, log: logEntry };
+      }
+    }
+
+    async function sendUserCredentialsEmail(userData) {
+      const emailConfig = (appState && appState.emailConfig) || {};
+      const { subject, htmlContent, textContent } = buildUserCredentialsEmail(userData);
+      const res = await sendSystemEmail({
+        to: userData.email,
+        toName: userData.displayName || userData.username,
+        subject,
+        htmlContent,
+        textContent,
+        type: "user_credentials",
+        metadata: { username: userData.username, role: userData.role }
+      });
+
+      const hasWebhook = Boolean(emailConfig.webhookUrl && emailConfig.webhookUrl.startsWith("http"));
+      if (hasWebhook) {
+        showToast(`✓ ส่งชื่อผู้ใช้และรหัสผ่านไปยังอีเมล ${userData.email} แล้ว`);
+      } else {
+        if (res.log) {
+          openEmailPreviewModal(res.log);
+        }
+      }
+      return res;
+    }
+
+    async function sendLoginNotificationEmail(user, portal) {
+      const { subject, htmlContent, textContent } = buildLoginAlertEmail(user, portal);
+      return sendSystemEmail({
+        to: user.email,
+        toName: user.display_name || user.username,
+        subject,
+        htmlContent,
+        textContent,
+        type: "login_alert",
+        metadata: { username: user.username, portal }
+      });
+    }
+
+    function promptSendUserCredentialsEmail(userId) {
+      const u = (appState.users || []).find(x => x.user_id === userId);
+      if (!u) return;
+      if (!u.email || !u.email.includes("@")) {
+        showToast(`ผู้ใช้งาน "${u.display_name || u.username}" ยังไม่ได้ระบุอีเมล กรุณาระบุอีเมลในเมนูแก้ไขข้อมูลก่อน`, true);
+        openUserModal(userId);
+        return;
+      }
+      openGenericConfirmModal(
+        "ยืนยันการส่งข้อมูลเข้าใช้งานทางอีเมล",
+        `คุณต้องการส่งชื่อผู้ใช้งาน (${u.username}) และรหัสผ่าน ไปยังอีเมล "${u.email}" ใช่หรือไม่?`,
+        async () => {
+          await sendUserCredentialsEmail({
+            username: u.username,
+            password: u.password || (u.role === "admin" ? "admin1234" : "123456"),
+            displayName: u.display_name,
+            staffCode: u.staff_code,
+            position: u.position,
+            role: u.role,
+            permissionLevel: u.permission_level,
+            email: u.email
+          });
+        }
+      );
+    }
+
+    function renderAdminEmailSettings() {
+      const cfg = (appState && appState.emailConfig) || {};
+      const logs = (appState && appState.emailLogs) || [];
+
+      // Checkboxes
+      const enEl = document.getElementById("emailEnabledCheckbox");
+      const userEl = document.getElementById("emailNotifyUserCreatedCheckbox");
+      const loginEl = document.getElementById("emailNotifyLoginCheckbox");
+
+      if (enEl) enEl.checked = cfg.enabled !== false;
+      if (userEl) userEl.checked = cfg.notifyOnUserCreated !== false;
+      if (loginEl) loginEl.checked = cfg.notifyOnLogin !== false;
+
+      // Provider
+      const provEl = document.getElementById("emailProviderSelect");
+      if (provEl && document.activeElement !== provEl) {
+        provEl.value = cfg.provider || "webhook";
+      }
+
+      // Webhook & EmailJS inputs
+      const hookUrlEl = document.getElementById("emailWebhookUrlInput");
+      if (hookUrlEl && document.activeElement !== hookUrlEl) {
+        hookUrlEl.value = cfg.webhookUrl || "";
+      }
+
+      const sIdEl = document.getElementById("emailjsServiceIdInput");
+      const tIdEl = document.getElementById("emailjsTemplateIdInput");
+      const pKeyEl = document.getElementById("emailjsPublicKeyInput");
+      if (sIdEl && document.activeElement !== sIdEl) sIdEl.value = cfg.emailjsServiceId || "";
+      if (tIdEl && document.activeElement !== tIdEl) tIdEl.value = cfg.emailjsTemplateId || "";
+      if (pKeyEl && document.activeElement !== pKeyEl) pKeyEl.value = cfg.emailjsPublicKey || "";
+
+      handleEmailProviderChange();
+
+      // Status Banner
+      const statusBadge = document.getElementById("emailStatusBadge");
+      const descEl = document.getElementById("emailStatusDescription");
+      const hasWebhook = Boolean(cfg.webhookUrl && cfg.webhookUrl.startsWith("http"));
+      const isEmailJS = cfg.provider === "emailjs" && Boolean(cfg.emailjsServiceId && cfg.emailjsPublicKey);
+
+      if (cfg.enabled === false) {
+        if (statusBadge) { statusBadge.textContent = "ปิดใช้งานระบบอีเมล"; statusBadge.className = "status-pill cancelled"; }
+        if (descEl) descEl.textContent = "ระบบส่งอีเมลถูกปิดใช้งานชั่วคราว ข้อความแจ้งเตือนจะไม่ถูกส่ง";
+      } else if (hasWebhook || isEmailJS) {
+        if (statusBadge) { statusBadge.textContent = "เชื่อมต่อระบบส่งอีเมลแล้ว (พร้อมใช้งาน)"; statusBadge.className = "status-pill normal"; }
+        if (descEl) descEl.textContent = hasWebhook ? `เชื่อมต่อ Google Apps Script Webhook: ${cfg.webhookUrl.slice(0, 50)}... เรียบร้อยแล้ว` : "เชื่อมต่อ EmailJS Service เรียบร้อยแล้ว";
+      } else {
+        if (statusBadge) { statusBadge.textContent = "ยังไม่ได้ระบุ Webhook URL"; statusBadge.className = "status-pill pending"; }
+        if (descEl) descEl.textContent = "กรุณาระบุ Webhook URL เพื่อเริ่มส่งอีเมลอัตโนมัติ (หรือคลิกปุ่ม 'ดูโค้ด Google Apps Script' เพื่อติดตั้งฟรีใน 1 นาที)";
+      }
+
+      // Counters
+      const totalSentEl = document.getElementById("emailTotalSentCount");
+      const loginAlertsEl = document.getElementById("emailLoginAlertsCount");
+      if (totalSentEl) totalSentEl.textContent = logs.length.toLocaleString("th-TH");
+      if (loginAlertsEl) {
+        const loginCount = logs.filter(l => l.type === "login_alert").length;
+        loginAlertsEl.textContent = loginCount.toLocaleString("th-TH");
+      }
+
+      // Render Logs Table
+      const tbody = document.getElementById("adminEmailLogsTableBody");
+      if (!tbody) return;
+
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการส่งอีเมลในระบบ</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => {
+        let typeBadge = "";
+        if (l.type === "user_credentials") typeBadge = '<span class="role-badge user" style="margin:0;">แจ้งรหัสผ่านผู้ใช้ใหม่</span>';
+        else if (l.type === "login_alert") typeBadge = '<span class="role-badge admin" style="margin:0; background:#0284c7; color:#fff;">แจ้งเตือนเข้าสู่ระบบ</span>';
+        else typeBadge = '<span class="status-pill pending">ทดสอบระบบ</span>';
+
+        let statusBadgeHtml = '<span class="status-pill normal">ส่งสำเร็จ</span>';
+        if (l.status === "failed") statusBadgeHtml = '<span class="status-pill cancelled">ล้มเหลว</span>';
+        else if (l.status && l.status.includes("pending")) statusBadgeHtml = '<span class="status-pill pending">รอดำเนินการ</span>';
+
+        return `
+          <tr>
+            <td style="font-size:0.82rem; white-space:nowrap; color:var(--slate-600);">${getThaiFormattedDateTime(l.timestamp)}</td>
+            <td>
+              <strong style="color:var(--primary-navy);">${escapeHtml(l.to || "-")}</strong>
+              ${l.toName ? `<div style="font-size:0.78rem; color:var(--slate-500);">${escapeHtml(l.toName)}</div>` : ""}
+            </td>
+            <td><strong style="font-size:0.86rem; color:#0f2042;">${escapeHtml(l.subject || "-")}</strong></td>
+            <td>${typeBadge}</td>
+            <td>${statusBadgeHtml}</td>
+            <td class="text-center" style="white-space:nowrap;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="viewEmailLogDetails('${escapeAttr(l.id)}')">ดูเนื้อหา</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function handleEmailProviderChange() {
+      const prov = document.getElementById("emailProviderSelect")?.value || "webhook";
+      const webhookWrap = document.getElementById("emailWebhookFields");
+      const emailjsWrap = document.getElementById("emailjsFields");
+
+      if (webhookWrap) webhookWrap.style.display = (prov === "webhook" || prov === "direct") ? "block" : "none";
+      if (emailjsWrap) emailjsWrap.style.display = (prov === "emailjs") ? "block" : "none";
+    }
+
+    function toggleEmailSystemMainSwitch(enabled) {
+      if (!appState.emailConfig) appState.emailConfig = {};
+      appState.emailConfig.enabled = enabled;
+      renderAdminEmailSettings();
+    }
+
+    async function saveEmailSettings() {
+      const en = document.getElementById("emailEnabledCheckbox")?.checked !== false;
+      const uCreated = document.getElementById("emailNotifyUserCreatedCheckbox")?.checked !== false;
+      const lAlert = document.getElementById("emailNotifyLoginCheckbox")?.checked !== false;
+      const prov = document.getElementById("emailProviderSelect")?.value || "webhook";
+      const webhookUrl = (document.getElementById("emailWebhookUrlInput")?.value || "").trim();
+      const sId = (document.getElementById("emailjsServiceIdInput")?.value || "").trim();
+      const tId = (document.getElementById("emailjsTemplateIdInput")?.value || "").trim();
+      const pKey = (document.getElementById("emailjsPublicKeyInput")?.value || "").trim();
+
+      appState.emailConfig = Object.assign({}, appState.emailConfig, {
+        enabled: en,
+        notifyOnUserCreated: uCreated,
+        notifyOnLogin: lAlert,
+        provider: prov,
+        webhookUrl: webhookUrl,
+        emailjsServiceId: sId,
+        emailjsTemplateId: tId,
+        emailjsPublicKey: pKey
+      });
+
+      await persistAppState();
+      renderAdminEmailSettings();
+      showToast("บันทึกการตั้งค่าระบบอีเมลแจ้งเตือนเรียบร้อยแล้ว");
+    }
+
+    async function testSendEmailNow() {
+      const targetEmail = (document.getElementById("testEmailRecipientInput")?.value || "").trim();
+      const resultBox = document.getElementById("testEmailResultBox");
+      const btn = document.getElementById("testSendEmailBtn");
+
+      if (!targetEmail || !targetEmail.includes("@")) {
+        showToast("กรุณาระบุอีเมลปลายทางสำหรับทดสอบให้ถูกต้อง", true);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "กำลังส่งอีเมลทดสอบ...";
+      resultBox.style.display = "none";
+
+      const subject = `[ทดสอบระบบ] ทดสอบการส่งอีเมลระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ`;
+      const htmlContent = `
+<div style="font-family:'Sarabun',sans-serif; max-width:550px; margin:0 auto; padding:20px; border:1px solid #cbd5e1; border-radius:8px;">
+  <h3 style="color:#0f2042; margin-top:0;">ทดสอบระบบส่งอีเมลสำเร็จ!</h3>
+  <p>ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ สามารถเชื่อมต่อและส่งอีเมลมายัง <strong>${escapeHtml(targetEmail)}</strong> ได้อย่างสมบูรณ์</p>
+  <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:10px 14px; border-radius:6px; color:#166534; font-size:13px;">
+    ✓ ทดสอบเมื่อ: ${getThaiFormattedDateTime(new Date())}
+  </div>
+</div>`;
+      const textContent = `ทดสอบระบบส่งอีเมลสำเร็จ! จากระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ เมื่อ ${getThaiFormattedDateTime(new Date())}`;
+
+      try {
+        const res = await sendSystemEmail({
+          to: targetEmail,
+          toName: "ผู้ดูแลระบบทดสอบ",
+          subject,
+          htmlContent,
+          textContent,
+          type: "test_email"
+        });
+
+        resultBox.style.display = "block";
+        if (res.success && res.log && res.log.status !== "failed") {
+          resultBox.className = "alert-box alert-success";
+          resultBox.innerHTML = `<strong>✓ ส่งอีเมลทดสอบเรียบร้อยแล้ว!</strong> กรุณาตรวจสอบกล่องจดหมายที่ <code>${escapeHtml(targetEmail)}</code>`;
+          showToast(`ส่งอีเมลทดสอบไปยัง ${targetEmail} สำเร็จแล้ว`);
+        } else {
+          resultBox.className = "alert-box alert-warning";
+          resultBox.innerHTML = `<strong>ผลการส่ง:</strong> ${escapeHtml(res.error || "บันทึกลงประวัติเรียบร้อย (ยังไม่ได้ระบุ Webhook URL)")}`;
+        }
+      } catch (err) {
+        resultBox.style.display = "block";
+        resultBox.className = "alert-box alert-danger";
+        resultBox.innerHTML = `<strong>เกิดข้อผิดพลาดในการส่ง:</strong> ${escapeHtml(err.message)}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🧪 ส่งอีเมลทดสอบทันที";
+        renderAdminEmailSettings();
+      }
+    }
+
+    function openEmailScriptGuideModal() {
+      const area = document.getElementById("googleAppsScriptCodeArea");
+      if (area) area.value = GOOGLE_APPS_SCRIPT_SAMPLE_CODE;
+      document.getElementById("emailScriptGuideModal").classList.add("open");
+    }
+
+    function closeEmailScriptGuideModal() {
+      document.getElementById("emailScriptGuideModal").classList.remove("open");
+    }
+
+    function copyGoogleAppsScriptCode() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_SAMPLE_CODE).then(() => {
+          showToast("คัดลอกโค้ด Google Apps Script ลง Clipboard เรียบร้อยแล้ว");
+        });
+      } else {
+        const area = document.getElementById("googleAppsScriptCodeArea");
+        if (area) {
+          area.select();
+          document.execCommand("copy");
+          showToast("คัดลอกโค้ดเรียบร้อยแล้ว");
+        }
+      }
+    }
+
+    function viewEmailLogDetails(logId) {
+      const logs = (appState && appState.emailLogs) || [];
+      const log = logs.find(l => l.id === logId);
+      if (log) openEmailPreviewModal(log);
+    }
+
+    function openEmailPreviewModal(logEntry) {
+      currentPreviewEmailLog = logEntry;
+      document.getElementById("emailPreviewTo").textContent = `${logEntry.toName ? logEntry.toName + " " : ""}<${logEntry.to}>`;
+      document.getElementById("emailPreviewSubject").textContent = logEntry.subject || "-";
+
+      const statEl = document.getElementById("emailPreviewStatus");
+      if (statEl) {
+        statEl.textContent = logEntry.status || "ปกติ";
+        statEl.className = logEntry.status === "success" ? "status-pill normal" : "status-pill pending";
+      }
+
+      const bodyEl = document.getElementById("emailPreviewHtmlBody");
+      if (bodyEl) {
+        bodyEl.innerHTML = logEntry.htmlContent || `<pre style="white-space:pre-wrap; font-family:'Sarabun',sans-serif;">${escapeHtml(logEntry.textContent || "")}</pre>`;
+      }
+
+      const mailtoBtn = document.getElementById("emailPreviewMailtoBtn");
+      if (mailtoBtn) {
+        const mailtoUrl = `mailto:${encodeURIComponent(logEntry.to)}?subject=${encodeURIComponent(logEntry.subject)}&body=${encodeURIComponent(logEntry.textContent || "")}`;
+        mailtoBtn.href = mailtoUrl;
+      }
+
+      document.getElementById("emailPreviewModal").classList.add("open");
+    }
+
+    function closeEmailPreviewModal() {
+      document.getElementById("emailPreviewModal").classList.remove("open");
+      currentPreviewEmailLog = null;
+    }
+
+    function copyEmailPreviewText() {
+      if (!currentPreviewEmailLog) return;
+      const text = `หัวข้อ: ${currentPreviewEmailLog.subject}\nส่งถึง: ${currentPreviewEmailLog.to}\n\n${currentPreviewEmailLog.textContent || ""}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("คัดลอกข้อความอีเมลลง Clipboard เรียบร้อยแล้ว");
+        });
+      } else {
+        showToast("คัดลอกข้อความเรียบร้อยแล้ว");
+      }
+    }
+
+    function clearAllEmailLogs() {
+      openGenericConfirmModal(
+        "ยืนยันการล้างประวัติการส่งอีเมล",
+        "คุณต้องการล้างประวัติการส่งอีเมลทั้งหมดใช่หรือไม่?",
+        async () => {
+          appState.emailLogs = [];
+          await persistAppState();
+          renderAdminEmailSettings();
+          showToast("ล้างประวัติการส่งอีเมลเรียบร้อยแล้ว");
         }
       );
     }
