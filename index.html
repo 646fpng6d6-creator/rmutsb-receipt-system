@@ -1555,6 +1555,18 @@
               </select>
             </div>
             <div class="form-group">
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>ปรับขนาดรูปลายเซ็นเริ่มต้นบนใบเสร็จ (Scale)</span>
+                <strong id="officeSignatureScaleVal" style="color:var(--primary-blue);">100%</strong>
+              </label>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-weight:bold;" onclick="stepOfficeSignatureScale(-10)" title="ลดขนาด">-</button>
+                <input type="range" id="officeSignatureScaleInput" class="form-range" min="40" max="250" step="5" value="100" style="flex:1; cursor:pointer;" oninput="updateOfficeSignatureScale(this.value)" />
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-weight:bold;" onclick="stepOfficeSignatureScale(10)" title="เพิ่มขนาด">+</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="updateOfficeSignatureScale(100)">100%</button>
+              </div>
+            </div>
+            <div class="form-group">
               <label class="form-label">ตำแหน่งผู้รับเงิน (บรรทัดที่ 1)</label>
               <input type="text" id="defaultPositionInput" class="form-control" placeholder="นักวิชาการเงินและบัญชีชำนาญการ" />
             </div>
@@ -2224,7 +2236,24 @@
           </div>
           <div id="userSignaturePreview" style="margin-top:0.5rem; display:none;">
             <p style="font-size:0.8rem; color:#555; margin-bottom:0.3rem;">ตัวอย่างลายเซ็นปัจจุบัน:</p>
-            <img id="userSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; border:1px solid #e5e7eb; border-radius:6px; padding:4px; background:#fff;" />
+            <div style="display:flex; align-items:center; justify-content:center; min-height:85px; max-height:140px; border:1px solid #e5e7eb; border-radius:6px; padding:10px; background:#fff; overflow:hidden;">
+              <img id="userSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; object-fit:contain; transition:transform 0.15s ease;" />
+            </div>
+            <div style="margin-top:0.75rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.6rem 0.8rem;">
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                <span style="font-weight:600; color:#334155;">ปรับขนาดรูปลายเซ็นบนใบเสร็จ (ให้ใหญ่ขึ้นหรือเล็กลง):</span>
+                <strong id="modalUserSignatureScaleVal" style="color:var(--primary-blue); font-size:0.95rem;">100%</strong>
+              </label>
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 9px; font-weight:bold;" onclick="stepUserSignatureScale(-10)" title="ลดขนาดลายเซ็น">-</button>
+                <input type="range" id="modalUserSignatureScale" min="40" max="250" step="5" value="100" style="flex:1; cursor:pointer;" oninput="updateUserSignatureScalePreview(this.value)" />
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 9px; font-weight:bold;" onclick="stepUserSignatureScale(10)" title="เพิ่มขนาดลายเซ็น">+</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="updateUserSignatureScalePreview(100)">100%</button>
+              </div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:0.3rem;">
+                * สามารถปรับได้ตั้งแต่ 40% (เล็กลง) ถึง 250% (ใหญ่ขึ้น) เพื่อให้พอดีกับช่องลงชื่อท้ายใบเสร็จ
+              </div>
+            </div>
           </div>
           <input type="hidden" id="modalUserSignatureDataUrl" value="" />
         </div>
@@ -2423,7 +2452,16 @@
         <strong style="font-size:1.05rem;" id="printModalTitle">ตัวอย่างใบเสร็จรับเงิน (ขนาด A5 แนวตั้ง: หน้า 1 ต้นฉบับ และ หน้า 2 สำเนา)</strong>
         <div style="font-size:0.82rem; color:#cbd5e1;">รองรับการพิมพ์ลงกระดาษ A5 แนวตั้ง หรือเลือก Destination เป็น "Save as PDF" เพื่อบันทึกไฟล์ PDF</div>
       </div>
-      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+        <!-- ตัวปรับขนาดรูปลายเซ็นในหน้าพิมพ์ -->
+        <div style="display:inline-flex; align-items:center; gap:0.4rem; background:#1e293b; border:1px solid #475569; padding:4px 10px; border-radius:6px; color:#e2e8f0; font-size:0.82rem;">
+          <span style="white-space:nowrap; color:#94a3b8;">ขนาดลายเซ็น:</span>
+          <button type="button" class="btn btn-outline btn-sm" style="padding:1px 8px; font-weight:bold; background:#0f172a; color:#fff; border-color:#64748b; line-height:1.2;" onclick="adjustPrintSignatureScale(-10)" title="ลดขนาดลายเซ็น">-</button>
+          <span id="printSigScaleDisplay" style="font-weight:bold; min-width:40px; text-align:center; color:#38bdf8;">100%</span>
+          <button type="button" class="btn btn-outline btn-sm" style="padding:1px 8px; font-weight:bold; background:#0f172a; color:#fff; border-color:#64748b; line-height:1.2;" onclick="adjustPrintSignatureScale(10)" title="เพิ่มขนาดลายเซ็น">+</button>
+          <input type="range" id="printSigScaleSlider" min="40" max="250" step="5" value="100" style="width:85px; cursor:pointer;" oninput="setPrintSignatureScale(this.value)" title="เลื่อนปรับขนาดลายเซ็น (40% - 250%)" />
+          <button type="button" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:0.72rem; background:#0f172a; color:#94a3b8; border-color:#64748b;" onclick="setPrintSignatureScale(100)" title="รีเซ็ตเป็น 100%">100%</button>
+        </div>
         <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('both')">แสดง ต้นฉบับ + สำเนา (2 หน้า)</button>
         <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('original')">เฉพาะต้นฉบับ</button>
         <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('copy')">เฉพาะสำเนา</button>
@@ -3685,8 +3723,27 @@
         const previewImg = document.getElementById("userSignaturePreviewImg");
         previewImg.src = dataUrl;
         document.getElementById("userSignaturePreview").style.display = "block";
+        const curScale = parseInt(document.getElementById("modalUserSignatureScale").value, 10) || 100;
+        updateUserSignatureScalePreview(curScale);
       };
       reader.readAsDataURL(file);
+    }
+
+    function updateUserSignatureScalePreview(val) {
+      val = Math.max(40, Math.min(250, parseInt(val, 10) || 100));
+      const rangeEl = document.getElementById("modalUserSignatureScale");
+      if (rangeEl) rangeEl.value = val;
+      const valEl = document.getElementById("modalUserSignatureScaleVal");
+      if (valEl) valEl.textContent = val + "%";
+      const previewImg = document.getElementById("userSignaturePreviewImg");
+      if (previewImg) {
+        previewImg.style.transform = `scale(${val / 100})`;
+      }
+    }
+
+    function stepUserSignatureScale(delta) {
+      const cur = parseInt(document.getElementById("modalUserSignatureScale").value, 10) || 100;
+      updateUserSignatureScalePreview(cur + delta);
     }
 
     function clearUserSignature() {
@@ -3694,6 +3751,7 @@
       document.getElementById("userSignaturePreviewImg").src = "";
       document.getElementById("userSignaturePreview").style.display = "none";
       document.getElementById("modalUserSignatureFile").value = "";
+      updateUserSignatureScalePreview(100);
       showToast("ลบลายเซ็นรายบุคคลเรียบร้อยแล้ว");
     }
 
@@ -3720,10 +3778,12 @@
           document.getElementById("modalUserSignatureDataUrl").value = u.signatureDataUrl;
           document.getElementById("userSignaturePreviewImg").src = u.signatureDataUrl;
           document.getElementById("userSignaturePreview").style.display = "block";
+          updateUserSignatureScalePreview(u.signatureScale || 100);
         } else {
           document.getElementById("modalUserSignatureDataUrl").value = "";
           document.getElementById("userSignaturePreviewImg").src = "";
           document.getElementById("userSignaturePreview").style.display = "none";
+          updateUserSignatureScalePreview(100);
         }
         document.getElementById("modalUserSignatureFile").value = "";
       } else {
@@ -3745,6 +3805,7 @@
         document.getElementById("userSignaturePreviewImg").src = "";
         document.getElementById("userSignaturePreview").style.display = "none";
         document.getElementById("modalUserSignatureFile").value = "";
+        updateUserSignatureScalePreview(100);
       }
       toggleUserSignatureVisibility();
       modal.classList.add("open");
@@ -3769,6 +3830,7 @@
       const permission_level = role === "admin" ? "full" : document.getElementById("modalUserPermission").value;
       const active = document.getElementById("modalUserActive").value === "true";
       const signatureDataUrl = document.getElementById("modalUserSignatureDataUrl").value || "";
+      const signatureScale = parseInt(document.getElementById("modalUserSignatureScale").value, 10) || 100;
 
       if (!username || !password) {
         showToast("กรุณากรอกทั้งชื่อผู้ใช้งาน (Username) และรหัสผ่าน (Password)", true);
@@ -3796,6 +3858,7 @@
         position,
         active,
         signatureDataUrl,
+        signatureScale,
         updated_at: new Date().toISOString()
       };
 
@@ -3812,6 +3875,11 @@
           adminUsername: username,
           adminPassword: password
         });
+      }
+
+      if (currentUser && (currentUser.user_id === user_id || currentUser.username === username)) {
+        currentUser = Object.assign({}, currentUser, profileRecord);
+        safeSetItem("rmutsb_active_user_session", JSON.stringify({ user: currentUser, portal: currentUser.role === "admin" ? "admin" : "user" }));
       }
 
       appState.users = users;
@@ -3883,6 +3951,13 @@
       if (actPosEl && document.activeElement !== actPosEl) {
         actPosEl.value = (appState.officeInfo && appState.officeInfo.defaultActingPosition) ?? "รักษาการในตำแหน่งผู้อำนวยการกองคลัง";
       }
+      const sigScaleEl = document.getElementById("officeSignatureScaleInput");
+      const sigScaleValEl = document.getElementById("officeSignatureScaleVal");
+      if (sigScaleEl && document.activeElement !== sigScaleEl) {
+        const sc = (appState.officeInfo && appState.officeInfo.signatureScale) || 100;
+        sigScaleEl.value = sc;
+        if (sigScaleValEl) sigScaleValEl.textContent = sc + "%";
+      }
 
       renderSimpleMasterList("titles", "masterTitlesBody");
       renderSimpleMasterList("paymentItems", "masterPaymentItemsBody");
@@ -3934,11 +4009,25 @@
       `).join("");
     }
 
+    function updateOfficeSignatureScale(val) {
+      val = Math.max(40, Math.min(250, parseInt(val, 10) || 100));
+      const input = document.getElementById("officeSignatureScaleInput");
+      if (input) input.value = val;
+      const disp = document.getElementById("officeSignatureScaleVal");
+      if (disp) disp.textContent = val + "%";
+    }
+
+    function stepOfficeSignatureScale(delta) {
+      const cur = parseInt(document.getElementById("officeSignatureScaleInput").value, 10) || 100;
+      updateOfficeSignatureScale(cur + delta);
+    }
+
     async function saveOfficeSettings() {
       const subTitle = document.getElementById("headerSubTitleInput").value.trim();
       const addr = document.getElementById("officeAddressInput").value.trim();
       const signer = document.getElementById("defaultSignerNameInput").value.trim();
       const showSig = document.getElementById("showSignatureSelect").value === "true";
+      const sigScale = parseInt(document.getElementById("officeSignatureScaleInput")?.value, 10) || 100;
       const pos = document.getElementById("defaultPositionInput").value.trim();
       const actPos = document.getElementById("defaultActingPositionInput").value.trim();
       appState.officeInfo = Object.assign({}, appState.officeInfo, {
@@ -3946,6 +4035,7 @@
         officeAddress: addr,
         defaultSignerName: signer,
         showSignature: showSig,
+        signatureScale: sigScale,
         defaultPosition: pos,
         defaultActingPosition: actPos
       });
@@ -5034,7 +5124,8 @@
         issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
         issuerStaffCode: (currentUser && currentUser.staff_code) || "",
         issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
-        issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || ""
+        issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
+        issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
       };
     }
 
@@ -5470,7 +5561,16 @@
                 <span class="receipt-sign-fill">
                   ${(() => {
                     const sigUrl = r.issuerSignatureDataUrl || (office.showSignature !== false && (office.customSignatureDataUrl || EMBEDDED_ASSETS.signature)) || "";
-                    return sigUrl ? `<img class="receipt-signature-img" src="${sigUrl}" alt="ลายเซ็นผู้รับเงิน" />` : "";
+                    if (!sigUrl) return "";
+                    let userScale = null;
+                    if (r.issuerStaffCode || r.issuerName) {
+                      const u = (appState.users || []).find(x => (r.issuerStaffCode && x.staff_code === r.issuerStaffCode) || (r.issuerName && x.display_name === r.issuerName));
+                      if (u && u.signatureScale) userScale = u.signatureScale;
+                    }
+                    const scale = r.issuerSignatureScale || userScale || (currentUser && currentUser.signatureScale) || (office && office.signatureScale) || 100;
+                    const h = (8.8 * (scale / 100)).toFixed(2);
+                    const w = (36 * (scale / 100)).toFixed(2);
+                    return `<img class="receipt-signature-img" src="${sigUrl}" alt="ลายเซ็นผู้รับเงิน" style="height:${h}mm; max-width:${w}mm;" />`;
                   })()}
                 </span>
                 <span class="receipt-sign-right-label">ผู้รับเงิน</span>
@@ -5512,7 +5612,60 @@
       });
 
       container.innerHTML = pagesHtml.join("");
+
+      // Update print signature scale toolbar controls
+      const firstR = receiptsArray && receiptsArray[0];
+      const office = appState.officeInfo || {};
+      let userScale = null;
+      if (firstR && (firstR.issuerStaffCode || firstR.issuerName)) {
+        const u = (appState.users || []).find(x => (firstR.issuerStaffCode && x.staff_code === firstR.issuerStaffCode) || (firstR.issuerName && x.display_name === firstR.issuerName));
+        if (u && u.signatureScale) userScale = u.signatureScale;
+      }
+      const initialScale = (firstR && firstR.issuerSignatureScale) || userScale || (currentUser && currentUser.signatureScale) || (office && office.signatureScale) || 100;
+      const disp = document.getElementById("printSigScaleDisplay");
+      if (disp) disp.textContent = initialScale + "%";
+      const slider = document.getElementById("printSigScaleSlider");
+      if (slider) slider.value = initialScale;
+
       document.getElementById("printReceiptModal").classList.add("open");
+    }
+
+    function setPrintSignatureScale(val) {
+      val = Math.max(40, Math.min(250, parseInt(val, 10) || 100));
+      const disp = document.getElementById("printSigScaleDisplay");
+      if (disp) disp.textContent = val + "%";
+      const slider = document.getElementById("printSigScaleSlider");
+      if (slider) slider.value = val;
+
+      const baseH = 8.8; // mm
+      const baseW = 36;  // mm
+      const h = (baseH * (val / 100)).toFixed(2);
+      const w = (baseW * (val / 100)).toFixed(2);
+      document.querySelectorAll("#printPagesContainer .receipt-signature-img").forEach(img => {
+        img.style.height = h + "mm";
+        img.style.maxWidth = w + "mm";
+      });
+
+      if (Array.isArray(currentPrintReceipts)) {
+        currentPrintReceipts.forEach(r => {
+          r.issuerSignatureScale = val;
+        });
+      }
+
+      if (currentUser) {
+        currentUser.signatureScale = val;
+        const u = (appState.users || []).find(x => x.user_id === currentUser.user_id);
+        if (u) {
+          u.signatureScale = val;
+          safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+        }
+      }
+    }
+
+    function adjustPrintSignatureScale(delta) {
+      const slider = document.getElementById("printSigScaleSlider");
+      const current = slider ? (parseInt(slider.value, 10) || 100) : 100;
+      setPrintSignatureScale(current + delta);
     }
 
     // ======================== SUPABASE CONFIG MODAL HANDLERS ========================
