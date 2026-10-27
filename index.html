@@ -1314,6 +1314,14 @@
             <button type="submit" class="btn btn-success btn-lg" id="userLoginBtn">เข้าสู่ระบบเจ้าหน้าที่ (User)</button>
           </div>
         </form>
+        <div style="margin-top:0.95rem; padding:0.65rem 0.95rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.83rem; color:#166534; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <strong>💡 บัญชีเจ้าหน้าที่สำหรับทดสอบระบบ:</strong>
+            <span style="margin-left:0.35rem;">Username: <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">staff01</code> (หรือรหัส <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">STF001</code>)</span>
+            <span style="margin-left:0.45rem;">รหัสผ่าน: <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">123456</code></span>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" style="font-size:0.76rem; padding:3px 10px; background:#ffffff; color:#166534; border-color:#86efac;" onclick="fillDemoUserLogin('staff01', '123456')">กรอกข้อมูลทดสอบอัตโนมัติ</button>
+        </div>
       </div>
     </div>
   </main>
@@ -1345,6 +1353,14 @@
           </div>
         </div>
       </form>
+      <div style="margin-top:1rem; padding:0.65rem 0.95rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; font-size:0.83rem; color:#1e40af; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+          <strong>💡 บัญชีผู้ดูแลระบบเริ่มต้น:</strong>
+          <span style="margin-left:0.35rem;">Username: <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:600; color:#1e3a8a;">Admin</code></span>
+          <span style="margin-left:0.45rem;">รหัสผ่าน: <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:600; color:#1e3a8a;">admin1234</code></span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="font-size:0.76rem; padding:3px 10px; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="fillDefaultAdminLogin()">กรอกข้อมูลทดสอบอัตโนมัติ</button>
+      </div>
 
     </div>
   </div>
@@ -3298,6 +3314,7 @@
           await loadAppStateFromStorageOrSupabase(false);
           setupRealtimeAndPolling();
           restoreSavedUserSession();
+          checkAndHandleUrlLoginParams();
           return;
         } catch (err) {
           console.error("Supabase init error:", err);
@@ -3309,6 +3326,49 @@
       txt.textContent = "โหมดฐานข้อมูลในระบบเว็บ (พร้อมใช้งานทันที / ตั้งค่า Supabase ได้)";
       setupRealtimeAndPolling();
       restoreSavedUserSession();
+      checkAndHandleUrlLoginParams();
+    }
+
+    function checkAndHandleUrlLoginParams() {
+      try {
+        const search = window.location.search;
+        if (!search) return;
+        const params = new URLSearchParams(search);
+        const portal = params.get("portal");
+        const u = params.get("u") || params.get("user") || params.get("username");
+        if (!portal && !u) return;
+
+        // If user is already logged in with this username, do not re-prompt
+        if (currentUser && u && (
+          (currentUser.username || "").toLowerCase() === u.toLowerCase() ||
+          (currentUser.staff_code || "").toLowerCase() === u.toLowerCase() ||
+          (currentUser.email || "").toLowerCase() === u.toLowerCase()
+        )) {
+          return;
+        }
+
+        if (portal === "admin") {
+          openAdminLoginModal();
+          if (u) {
+            const inp = document.getElementById("adminEmailInput");
+            if (inp) inp.value = u;
+            const passInp = document.getElementById("adminPasswordInput");
+            if (passInp) setTimeout(() => passInp.focus(), 120);
+            showToast(`เตรียมเข้าสู่ระบบสำหรับ Admin: ${u} (กรุณากรอกรหัสผ่าน)`);
+          }
+        } else {
+          selectLandingRole("user");
+          if (u) {
+            const inp = document.getElementById("userEmailInput");
+            if (inp) inp.value = u;
+            const passInp = document.getElementById("userPasswordInput");
+            if (passInp) setTimeout(() => passInp.focus(), 120);
+            showToast(`เตรียมเข้าสู่ระบบสำหรับเจ้าหน้าที่: ${u} (กรุณากรอกรหัสผ่าน)`);
+          }
+        }
+      } catch (e) {
+        console.warn("URL login params error:", e);
+      }
     }
 
     function restoreSavedUserSession() {
@@ -3362,6 +3422,19 @@
 
             if (changed || forceToast) {
               refreshAllVisibleViewsPreservingForms();
+            }
+          } else if (!error && !stateRow) {
+            // First time initialization in Supabase app_state
+            try {
+              await supabaseClient
+                .from("app_state")
+                .upsert({
+                  id: "main",
+                  data: appState,
+                  updated_at: new Date().toISOString()
+                });
+            } catch (seedErr) {
+              console.warn("Supabase initial seed warning:", seedErr);
             }
           }
           updateSyncTimestamp();
@@ -3555,15 +3628,22 @@
 
     function fillDefaultAdminLogin() {
       const adminUser = (appState.users || []).find(u => u.role === "admin" && u.active !== false);
-      document.getElementById("adminEmailInput").value = (adminUser && adminUser.username) || (appState.admin && appState.admin.adminUsername) || "Admin";
-      document.getElementById("adminPasswordInput").value = (adminUser && adminUser.password) || (appState.admin && appState.admin.adminPassword) || "admin1234";
+      const u = (adminUser && adminUser.username) || (appState.admin && appState.admin.adminUsername) || "Admin";
+      const p = (adminUser && adminUser.password) || (appState.admin && appState.admin.adminPassword) || "admin1234";
+      document.getElementById("adminEmailInput").value = u;
+      document.getElementById("adminPasswordInput").value = p;
+      const errEl = document.getElementById("adminLoginError");
+      if (errEl) errEl.style.display = "none";
+      showToast("กรอกข้อมูลผู้ดูแลระบบ Admin เรียบร้อยแล้ว สามารถกดเข้าสู่ระบบได้ทันที");
     }
 
-    function fillDemoUserLogin(username, password) {
+    function fillDemoUserLogin(username = "staff01", password = "123456") {
       selectLandingRole("user");
       document.getElementById("userEmailInput").value = username;
       document.getElementById("userPasswordInput").value = password;
-      showToast("กรอกชื่อผู้ใช้ " + username + " แล้ว กดปุ่ม 'เข้าสู่ระบบเจ้าหน้าที่ (User)' ได้เลย");
+      const errEl = document.getElementById("userLoginError");
+      if (errEl) errEl.style.display = "none";
+      showToast("กรอกชื่อผู้ใช้ " + username + " เรียบร้อยแล้ว สามารถกดเข้าสู่ระบบได้ทันที");
     }
 
     function selectLandingRole(role) {
@@ -3605,7 +3685,7 @@
 
       errEl.style.display = "none";
       const loginId = (emailEl.value || "").trim();
-      const password = passEl.value || "";
+      const password = (passEl.value || "").trim();
 
       btnEl.disabled = true;
 
@@ -3617,8 +3697,12 @@
         const users = appState.users || [];
         const loginLower = loginId.toLowerCase();
 
-        // 1. Check in-app managed users (supports Username, Staff Code, or Email)
-        let matchedProfile = users.find(u => {
+        // Admin fallback credentials from config
+        const cfgAdminUser = ((appState.admin && appState.admin.adminUsername) || "Admin").trim();
+        const cfgAdminPass = ((appState.admin && appState.admin.adminPassword) || "admin1234").trim();
+
+        // 1. Search candidate profiles matching Username, Staff Code, or Email
+        let candidateProfiles = users.filter(u => {
           const uName = (u.username || "").trim().toLowerCase();
           const uEmail = (u.email || "").trim().toLowerCase();
           const uCode = (u.staff_code || "").trim().toLowerCase();
@@ -3628,11 +3712,8 @@
         });
 
         // Also check quick admin credentials if logging into Admin
-        const cfgAdminUser = ((appState.admin && appState.admin.adminUsername) || "Admin").trim();
-        const cfgAdminPass = (appState.admin && appState.admin.adminPassword) || "admin1234";
-
-        if (!matchedProfile && isAdminPortal && loginLower === cfgAdminUser.toLowerCase() && password === cfgAdminPass) {
-          matchedProfile = users.find(u => u.role === "admin") || {
+        if (candidateProfiles.length === 0 && isAdminPortal && loginLower === cfgAdminUser.toLowerCase()) {
+          candidateProfiles.push(users.find(u => u.role === "admin") || {
             user_id: "admin-rmutsb-001",
             username: cfgAdminUser,
             password: cfgAdminPass,
@@ -3643,36 +3724,69 @@
             staff_code: "ADM001",
             position: "นักวิชาการเงินและบัญชีชำนาญการ",
             active: true
-          };
+          });
         }
 
-        if (matchedProfile) {
-          const expectedPass = matchedProfile.password || (matchedProfile.role === "admin" ? cfgAdminPass : "123456");
-          if (password !== expectedPass) {
-            throw new Error("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง");
-          }
-          if (matchedProfile.active === false) {
-            throw new Error("บัญชีผู้ใช้งานนี้ถูกระงับการใช้งาน (active = false) ไม่สามารถเข้าสู่ระบบได้");
-          }
-          if (targetPortalRole === "admin" && matchedProfile.role !== "admin") {
-            throw new Error("บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานส่วนผู้ดูแลระบบ (เฉพาะ role = admin เท่านั้น)");
+        if (candidateProfiles.length > 0) {
+          // Check if password matches any candidate profile (support exact or case-insensitive)
+          let matchedProfile = candidateProfiles.find(u => {
+            const exp = ((u.password || (u.role === "admin" ? cfgAdminPass : "123456"))).trim();
+            return exp === password || exp.toLowerCase() === password.toLowerCase();
+          });
+
+          if (matchedProfile) {
+            if (matchedProfile.active === false) {
+              throw new Error("บัญชีผู้ใช้งานนี้ถูกระงับการใช้งาน (active = false) ไม่สามารถเข้าสู่ระบบได้ กรุณาติดต่อผู้ดูแลระบบ");
+            }
+            if (targetPortalRole === "admin" && matchedProfile.role !== "admin") {
+              throw new Error("บัญชีนี้มีสิทธิ์เป็นเจ้าหน้าที่ (User) ไม่สามารถเข้าใช้งานส่วนผู้ดูแลระบบ (Admin) ได้");
+            }
+
+            currentUser = Object.assign({}, matchedProfile);
+            safeSetItem("rmutsb_active_user_session", JSON.stringify({
+              user: currentUser,
+              portal: targetPortalRole
+            }));
+            // ส่งอีเมลแจ้งเตือนการเข้าใช้งาน (Login Alert) ไปยังอีเมลของบัญชีที่เข้าใช้งาน
+            if (currentUser && currentUser.email && currentUser.email.includes("@")) {
+              sendLoginNotificationEmail(currentUser, targetPortalRole).catch(e => console.warn("Login notification email warning:", e));
+            }
+            completePortalRouting(targetPortalRole);
+            showToast("เข้าสู่ระบบสำเร็จ: " + currentUser.display_name);
+            return;
           }
 
-          currentUser = Object.assign({}, matchedProfile);
-          safeSetItem("rmutsb_active_user_session", JSON.stringify({
-            user: currentUser,
-            portal: targetPortalRole
-          }));
-          // ส่งอีเมลแจ้งเตือนการเข้าใช้งาน (Login Alert) ไปยังอีเมลของบัญชีที่เข้าใช้งาน
-          if (currentUser && currentUser.email && currentUser.email.includes("@")) {
-            sendLoginNotificationEmail(currentUser, targetPortalRole).catch(e => console.warn("Login notification email warning:", e));
+          // Matched user candidate exists, but password was incorrect!
+          const target = candidateProfiles[0];
+          // Check if user accidentally swapped password and username
+          const isSwapped = candidateProfiles.some(u => {
+            const exp = (u.password || "123456").trim().toLowerCase();
+            return exp === loginLower;
+          });
+          if (isSwapped) {
+            throw new Error(`⚠️ ดูเหมือนท่านอาจกรอกชื่อผู้ใช้และรหัสผ่านสลับช่องกัน กรุณาลองนำ "${loginId}" ไปกรอกที่ช่องรหัสผ่าน`);
           }
-          completePortalRouting(targetPortalRole);
-          showToast("เข้าสู่ระบบสำเร็จ: " + currentUser.display_name);
-          return;
+
+          const defaultHint = (target.password === "123456" || !target.password)
+            ? " (รหัสผ่านเริ่มต้นของเจ้าหน้าที่คือ: 123456)"
+            : " (กรุณาตรวจสอบรหัสผ่านที่ได้รับในอีเมลแจ้งข้อมูลเข้าใช้งาน หรือติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน)";
+
+          throw new Error(`❌ รหัสผ่านไม่ถูกต้องสำหรับบัญชี "${target.display_name || target.username}" (ชื่อผู้ใช้งาน: ${target.username}, รหัสเจ้าหน้าที่: ${target.staff_code || '-'}) ${defaultHint}`);
         }
 
-        // 2. Secondary fallback: If Supabase Auth is configured and user typed an email
+        // 2. Check if user swapped username and password completely
+        const swappedMatch = users.find(u => {
+          const exp = (u.password || (u.role === "admin" ? cfgAdminPass : "123456")).trim().toLowerCase();
+          const passLower = password.toLowerCase();
+          const uName = (u.username || "").trim().toLowerCase();
+          const uCode = (u.staff_code || "").trim().toLowerCase();
+          return exp === loginLower && (uName === passLower || uCode === passLower);
+        });
+        if (swappedMatch) {
+          throw new Error(`⚠️ ดูเหมือนท่านกรอกรหัสผ่านในช่องชื่อผู้ใช้ และกรอกชื่อผู้ใช้ในช่องรหัสผ่าน กรุณาสลับตำแหน่งช่องข้อมูล`);
+        }
+
+        // 3. Secondary fallback: If Supabase Auth is configured and user typed an email
         if (isSupabaseMode() && loginId.includes("@")) {
           const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: loginId,
@@ -3684,7 +3798,7 @@
           }
         }
 
-        throw new Error("ไม่พบชื่อผู้ใช้งานนี้ หรือรหัสผ่านไม่ถูกต้อง");
+        throw new Error(`❌ ไม่พบบัญชีผู้ใช้งาน หรือรหัสเจ้าหน้าที่ "${loginId}" ในระบบ (กรุณาตรวจสอบชื่อผู้ใช้งานในอีเมลที่ได้รับแจ้ง หรือติดต่อผู้ดูแลระบบ)`);
       } catch (err) {
         errEl.textContent = err.message || "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
         errEl.style.display = "block";
@@ -4359,6 +4473,25 @@
 
       appState.users = users;
       await persistAppState();
+      if (isSupabaseMode()) {
+        try {
+          await supabaseClient.from("profiles").upsert({
+            user_id: profileRecord.user_id,
+            username: profileRecord.username,
+            password: profileRecord.password,
+            email: profileRecord.email,
+            role: profileRecord.role,
+            permission_level: profileRecord.permission_level,
+            display_name: profileRecord.display_name,
+            staff_code: profileRecord.staff_code,
+            position: profileRecord.position,
+            active: profileRecord.active,
+            updated_at: profileRecord.updated_at
+          });
+        } catch (profErr) {
+          console.warn("Supabase profiles upsert warning:", profErr);
+        }
+      }
       closeUserModal();
       showToast(editMode === "edit" ? `แก้ไขข้อมูลผู้ใช้งาน "${display_name}" เรียบร้อยแล้ว` : `เพิ่มผู้ใช้งาน "${display_name}" (Username: ${username}) เรียบร้อยแล้ว`);
 
@@ -4506,7 +4639,9 @@ function doGet(e) {
     }
 
     function buildUserCredentialsEmail(u) {
-      const systemUrl = window.location.href.split("#")[0];
+      const baseUrl = window.location.href.split("#")[0].split("?")[0];
+      const targetPortal = (u.role === "admin") ? "admin" : "user";
+      const loginUrl = `${baseUrl}?portal=${targetPortal}&u=${encodeURIComponent(u.username)}`;
       const roleText = u.role === "admin"
         ? "ผู้ดูแลระบบ (Admin) - จัดการได้ทุกเมนู"
         : (u.permissionLevel === "viewer"
@@ -4530,15 +4665,15 @@ function doGet(e) {
       <table style="width:100%; border-collapse:collapse; font-size:14px;">
         <tr>
           <td style="padding:6px 0; color:#64748b; width:155px;">ชื่อผู้ใช้งาน (Username):</td>
-          <td style="padding:6px 0; font-weight:700; color:#0f2042; font-size:15px;"><code>${escapeHtml(u.username)}</code></td>
+          <td style="padding:6px 0; font-weight:700; color:#0f2042; font-size:15px;"><code style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:4px; font-size:15px;">${escapeHtml(u.username)}</code></td>
         </tr>
         <tr>
           <td style="padding:6px 0; color:#64748b;">รหัสผ่าน (Password):</td>
-          <td style="padding:6px 0; font-weight:700; color:#dc2626; font-size:15px;"><code>${escapeHtml(u.password)}</code></td>
+          <td style="padding:6px 0; font-weight:700; color:#dc2626; font-size:15px;"><code style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:4px; font-size:15px;">${escapeHtml(u.password)}</code></td>
         </tr>
         <tr>
           <td style="padding:6px 0; color:#64748b;">รหัสเจ้าหน้าที่:</td>
-          <td style="padding:6px 0; color:#334155;">${escapeHtml(u.staffCode || "-")}</td>
+          <td style="padding:6px 0; color:#334155;"><strong>${escapeHtml(u.staffCode || "-")}</strong></td>
         </tr>
         <tr>
           <td style="padding:6px 0; color:#64748b;">ตำแหน่ง:</td>
@@ -4551,7 +4686,8 @@ function doGet(e) {
       </table>
     </div>
     <div style="text-align:center; margin:22px 0;">
-      <a href="${systemUrl}" target="_blank" style="background:#1e40af; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:6px; font-weight:600; font-size:14.5px; display:inline-block;">เข้าสู่ระบบออกใบเสร็จรับเงิน</a>
+      <a href="${loginUrl}" target="_blank" style="background:#1e40af; color:#ffffff; padding:12px 28px; text-decoration:none; border-radius:6px; font-weight:600; font-size:14.5px; display:inline-block; box-shadow:0 3px 6px rgba(30,64,175,0.25);">🚀 เข้าสู่ระบบออกใบเสร็จรับเงิน (คลิกลิงก์นี้)</a>
+      <div style="font-size:12px; color:#64748b; margin-top:8px;">💡 เมื่อคลิกลิงก์ ระบบจะเปิดหน้าเข้าสู่ระบบและกรอกชื่อผู้ใช้งาน <strong>${escapeHtml(u.username)}</strong> ให้ท่านโดยอัตโนมัติ</div>
     </div>
     <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:6px; padding:10px 14px; font-size:12.5px; color:#92400e; margin-bottom:16px;">
       🔒 <strong>คำแนะนำด้านความปลอดภัย:</strong> กรุณาเก็บรักษารหัสผ่านของท่านเป็นความลับ และแนะนำให้เปลี่ยนรหัสผ่านทันทีหลังจากเข้าสู่ระบบครั้งแรก
@@ -4575,7 +4711,8 @@ function doGet(e) {
 • ตำแหน่ง: ${u.position || "-"}
 • สิทธิ์การใช้งาน: ${roleText}
 
-ลิงก์เข้าสู่ระบบ: ${systemUrl}
+ลิงก์เข้าสู่ระบบ (พร้อมกรอกชื่อผู้ใช้อัตโนมัติ):
+${loginUrl}
 
 * กรุณาเปลี่ยนรหัสผ่านหลังจากเข้าสู่ระบบครั้งแรกเพื่อความปลอดภัย
 ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ`;
