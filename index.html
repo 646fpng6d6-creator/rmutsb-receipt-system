@@ -1065,23 +1065,37 @@
     }
 
     .receipt-sign-line.signature-row {
-      min-height: 10.5mm;
+      height: 5.5mm;
+      min-height: 5.5mm;
+      max-height: 5.5mm;
       align-items: flex-end;
       margin-bottom: 1.2mm;
+      position: relative;
     }
 
     .receipt-sign-line.signature-row .receipt-sign-fill {
+      position: relative;
+      height: 4.8mm;
+      min-height: 4.8mm;
+      max-height: 4.8mm;
       padding-right: 0;
-      padding-bottom: 0.3mm;
+      padding-bottom: 0;
+      border-bottom: 1px dotted #222;
+      overflow: visible;
     }
 
     .receipt-signature-img {
-      height: 8.8mm;
-      max-width: 36mm;
+      position: absolute;
+      left: 50%;
+      bottom: -1mm;
+      transform: translateX(-50%);
       object-fit: contain;
+      object-position: bottom center;
       display: block;
-      margin: 0 auto 0.2mm auto;
       pointer-events: none;
+      background: transparent !important;
+      mix-blend-mode: multiply;
+      z-index: 2;
     }
 
     .receipt-signer-fullname-row {
@@ -1191,6 +1205,11 @@
       .a5-receipt-page:last-child {
         page-break-after: auto !important;
         break-after: auto !important;
+      }
+      .receipt-signature-img {
+        mix-blend-mode: multiply !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
   </style>
@@ -1564,6 +1583,19 @@
                 <input type="range" id="officeSignatureScaleInput" class="form-range" min="40" max="250" step="5" value="100" style="flex:1; cursor:pointer;" oninput="updateOfficeSignatureScale(this.value)" />
                 <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-weight:bold;" onclick="stepOfficeSignatureScale(10)" title="เพิ่มขนาด">+</button>
                 <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="updateOfficeSignatureScale(100)">100%</button>
+              </div>
+              <div id="officeSignaturePreviewWrap" style="background:#fff; border:1px dashed #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-top:0.4rem;">
+                <div style="font-size:0.75rem; color:#64748b; margin-bottom:0.3rem; font-weight:600;">จำลองตำแหน่งบนเส้นประใบเสร็จจริง (ลายเซ็นติดเส้นประ ไม่ลอย ไม่บังตัวหนังสือ):</div>
+                <div style="max-width:290px; margin:0 auto; padding:4px 0; font-family:'Sarabun',sans-serif;">
+                  <div style="display:flex; align-items:flex-end; height:32px; position:relative;">
+                    <span style="font-size:11px; white-space:nowrap; margin-right:4px;">(ลงชื่อ)</span>
+                    <div style="flex:1; border-bottom:1px dotted #333; height:20px; position:relative; overflow:visible;">
+                      <img id="officeSignatureLinePreviewImg" src="" alt="ลายเซ็นกลาง" style="position:absolute; left:50%; bottom:-2px; transform:translateX(-50%); object-fit:contain; object-position:bottom center; mix-blend-mode:multiply; pointer-events:none; background:transparent;" />
+                    </div>
+                    <span style="font-size:11px; white-space:nowrap; margin-left:4px;">ผู้รับเงิน</span>
+                  </div>
+                  <div id="officeSignatureLinePreviewName" style="text-align:center; font-size:10.5px; color:#334155; margin-top:2px;">(ชื่อ-สกุล ผู้รับเงิน)</div>
+                </div>
               </div>
             </div>
             <div class="form-group">
@@ -2237,7 +2269,7 @@
           <div id="userSignaturePreview" style="margin-top:0.5rem; display:none;">
             <p style="font-size:0.8rem; color:#555; margin-bottom:0.3rem;">ตัวอย่างลายเซ็นปัจจุบัน:</p>
             <div style="display:flex; align-items:center; justify-content:center; min-height:85px; max-height:140px; border:1px solid #e5e7eb; border-radius:6px; padding:10px; background:#fff; overflow:hidden;">
-              <img id="userSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; object-fit:contain; transition:transform 0.15s ease;" />
+              <img id="userSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; object-fit:contain; mix-blend-mode:multiply; transition:transform 0.15s ease;" />
             </div>
             <div style="margin-top:0.75rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.6rem 0.8rem;">
               <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
@@ -2251,7 +2283,22 @@
                 <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="updateUserSignatureScalePreview(100)">100%</button>
               </div>
               <div style="font-size:0.75rem; color:#64748b; margin-top:0.3rem;">
-                * สามารถปรับได้ตั้งแต่ 40% (เล็กลง) ถึง 250% (ใหญ่ขึ้น) เพื่อให้พอดีกับช่องลงชื่อท้ายใบเสร็จ
+                * สามารถปรับได้ตั้งแต่ 40% (เล็กลง) ถึง 250% (ใหญ่ขึ้น) โดยตำแหน่งข้อความอื่นๆ บนใบเสร็จจะไม่ขยับ
+              </div>
+
+              <!-- จำลองตำแหน่งบนเส้นประจริงท้ายใบเสร็จ -->
+              <div style="margin-top:0.6rem; background:#ffffff; border:1px dashed #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem;">
+                <div style="font-size:0.75rem; color:#64748b; margin-bottom:0.3rem; font-weight:600;">จำลองตำแหน่งบนเส้นประใบเสร็จจริง (ลายเซ็นติดเส้นประ ไม่ลอย ไม่บังตัวหนังสือ):</div>
+                <div style="max-width:290px; margin:0 auto; padding:4px 0; font-family:'Sarabun',sans-serif;">
+                  <div style="display:flex; align-items:flex-end; height:32px; position:relative;">
+                    <span style="font-size:11px; white-space:nowrap; margin-right:4px;">(ลงชื่อ)</span>
+                    <div style="flex:1; border-bottom:1px dotted #333; height:20px; position:relative; overflow:visible;">
+                      <img id="userSignatureLinePreviewImg" src="" alt="ลายเซ็น" style="position:absolute; left:50%; bottom:-2px; transform:translateX(-50%); object-fit:contain; object-position:bottom center; mix-blend-mode:multiply; pointer-events:none; background:transparent;" />
+                    </div>
+                    <span style="font-size:11px; white-space:nowrap; margin-left:4px;">ผู้รับเงิน</span>
+                  </div>
+                  <div id="userSignatureLinePreviewName" style="text-align:center; font-size:10.5px; color:#334155; margin-top:2px;">(ชื่อ-สกุล)</div>
+                </div>
               </div>
             </div>
           </div>
@@ -3713,18 +3760,118 @@
       section.style.display = (effectivePerm === "issuer" || effectivePerm === "full") ? "block" : "none";
     }
 
+    // Cache for cleaned & trimmed signature images
+    const _signatureTrimCache = new Map();
+
+    function cleanAndTrimSignature(dataUrl, callback) {
+      if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
+        if (typeof callback === "function") callback(dataUrl);
+        return;
+      }
+      if (_signatureTrimCache.has(dataUrl)) {
+        if (typeof callback === "function") callback(_signatureTrimCache.get(dataUrl));
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const cvs = document.createElement("canvas");
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          if (!w || !h) {
+            _signatureTrimCache.set(dataUrl, dataUrl);
+            if (typeof callback === "function") callback(dataUrl);
+            return;
+          }
+          cvs.width = w;
+          cvs.height = h;
+          const ctx = cvs.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0);
+
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const d = imgData.data;
+          let minX = w, minY = h, maxX = -1, maxY = -1;
+
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const idx = (y * w + x) * 4;
+              const r = d[idx];
+              const g = d[idx + 1];
+              const b = d[idx + 2];
+              const a = d[idx + 3];
+
+              // Background is either alpha near 0 OR near-white paper (lum > 220)
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              const isWhitePaper = (lum > 218 && Math.abs(r - g) < 30 && Math.abs(g - b) < 30);
+              const isTransparent = a < 25;
+
+              if (isTransparent || isWhitePaper) {
+                d[idx + 3] = 0; // turn background pixel 100% transparent
+              } else {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+
+          if (maxX < minX || maxY < minY) {
+            // No strokes detected, keep original
+            _signatureTrimCache.set(dataUrl, dataUrl);
+            if (typeof callback === "function") callback(dataUrl);
+            return;
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          // Crop tightly to bounding box with 1px margin
+          const cropX = Math.max(0, minX - 1);
+          const cropY = Math.max(0, minY - 1);
+          const cropW = Math.min(w - cropX, (maxX - minX + 1) + 2);
+          const cropH = Math.min(h - cropY, (maxY - minY + 1) + 2);
+
+          const cropCvs = document.createElement("canvas");
+          cropCvs.width = cropW;
+          cropCvs.height = cropH;
+          const cropCtx = cropCvs.getContext("2d");
+          cropCtx.drawImage(cvs, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+          const cleanDataUrl = cropCvs.toDataURL("image/png");
+          _signatureTrimCache.set(dataUrl, cleanDataUrl);
+          if (typeof callback === "function") callback(cleanDataUrl);
+        } catch (e) {
+          console.warn("cleanAndTrimSignature error:", e);
+          _signatureTrimCache.set(dataUrl, dataUrl);
+          if (typeof callback === "function") callback(dataUrl);
+        }
+      };
+      img.onerror = () => {
+        _signatureTrimCache.set(dataUrl, dataUrl);
+        if (typeof callback === "function") callback(dataUrl);
+      };
+      img.src = dataUrl;
+    }
+
     function handleUserSignatureUpload(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const dataUrl = ev.target.result;
-        document.getElementById("modalUserSignatureDataUrl").value = dataUrl;
-        const previewImg = document.getElementById("userSignaturePreviewImg");
-        previewImg.src = dataUrl;
-        document.getElementById("userSignaturePreview").style.display = "block";
-        const curScale = parseInt(document.getElementById("modalUserSignatureScale").value, 10) || 100;
-        updateUserSignatureScalePreview(curScale);
+        const rawDataUrl = ev.target.result;
+        cleanAndTrimSignature(rawDataUrl, (cleanDataUrl) => {
+          const finalUrl = cleanDataUrl || rawDataUrl;
+          document.getElementById("modalUserSignatureDataUrl").value = finalUrl;
+          const previewImg = document.getElementById("userSignaturePreviewImg");
+          if (previewImg) previewImg.src = finalUrl;
+          const lineImg = document.getElementById("userSignatureLinePreviewImg");
+          if (lineImg) lineImg.src = finalUrl;
+          document.getElementById("userSignaturePreview").style.display = "block";
+          const curScale = parseInt(document.getElementById("modalUserSignatureScale").value, 10) || 100;
+          updateUserSignatureScalePreview(curScale);
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -3739,6 +3886,20 @@
       if (previewImg) {
         previewImg.style.transform = `scale(${val / 100})`;
       }
+      const lineImg = document.getElementById("userSignatureLinePreviewImg");
+      if (lineImg) {
+        const baseH = 26; // px
+        const baseW = 105; // px
+        const h = Math.round(baseH * (val / 100));
+        const w = Math.round(baseW * (val / 100));
+        lineImg.style.height = h + "px";
+        lineImg.style.maxWidth = w + "px";
+      }
+      const lineName = document.getElementById("userSignatureLinePreviewName");
+      if (lineName) {
+        const dispName = document.getElementById("modalUserDisplayName")?.value.trim();
+        lineName.textContent = dispName ? `(${dispName})` : "(ชื่อ-สกุล)";
+      }
     }
 
     function stepUserSignatureScale(delta) {
@@ -3749,6 +3910,8 @@
     function clearUserSignature() {
       document.getElementById("modalUserSignatureDataUrl").value = "";
       document.getElementById("userSignaturePreviewImg").src = "";
+      const lineImg = document.getElementById("userSignatureLinePreviewImg");
+      if (lineImg) lineImg.src = "";
       document.getElementById("userSignaturePreview").style.display = "none";
       document.getElementById("modalUserSignatureFile").value = "";
       updateUserSignatureScalePreview(100);
@@ -3775,13 +3938,21 @@
         document.getElementById("modalUserActive").value = String(u.active !== false);
         // Signature preview for edit
         if (u.signatureDataUrl) {
-          document.getElementById("modalUserSignatureDataUrl").value = u.signatureDataUrl;
-          document.getElementById("userSignaturePreviewImg").src = u.signatureDataUrl;
-          document.getElementById("userSignaturePreview").style.display = "block";
-          updateUserSignatureScalePreview(u.signatureScale || 100);
+          cleanAndTrimSignature(u.signatureDataUrl, (cleanUrl) => {
+            const finalUrl = cleanUrl || u.signatureDataUrl;
+            document.getElementById("modalUserSignatureDataUrl").value = finalUrl;
+            const pImg = document.getElementById("userSignaturePreviewImg");
+            if (pImg) pImg.src = finalUrl;
+            const lImg = document.getElementById("userSignatureLinePreviewImg");
+            if (lImg) lImg.src = finalUrl;
+            document.getElementById("userSignaturePreview").style.display = "block";
+            updateUserSignatureScalePreview(u.signatureScale || 100);
+          });
         } else {
           document.getElementById("modalUserSignatureDataUrl").value = "";
           document.getElementById("userSignaturePreviewImg").src = "";
+          const lImg = document.getElementById("userSignatureLinePreviewImg");
+          if (lImg) lImg.src = "";
           document.getElementById("userSignaturePreview").style.display = "none";
           updateUserSignatureScalePreview(100);
         }
@@ -3803,6 +3974,8 @@
         // Clear signature for new user
         document.getElementById("modalUserSignatureDataUrl").value = "";
         document.getElementById("userSignaturePreviewImg").src = "";
+        const lImg = document.getElementById("userSignatureLinePreviewImg");
+        if (lImg) lImg.src = "";
         document.getElementById("userSignaturePreview").style.display = "none";
         document.getElementById("modalUserSignatureFile").value = "";
         updateUserSignatureScalePreview(100);
@@ -3953,10 +4126,24 @@
       }
       const sigScaleEl = document.getElementById("officeSignatureScaleInput");
       const sigScaleValEl = document.getElementById("officeSignatureScaleVal");
+      const offSigImg = document.getElementById("officeSignatureLinePreviewImg");
+      const offSigName = document.getElementById("officeSignatureLinePreviewName");
+      const sc = (appState.officeInfo && appState.officeInfo.signatureScale) || 100;
       if (sigScaleEl && document.activeElement !== sigScaleEl) {
-        const sc = (appState.officeInfo && appState.officeInfo.signatureScale) || 100;
         sigScaleEl.value = sc;
         if (sigScaleValEl) sigScaleValEl.textContent = sc + "%";
+      }
+      if (offSigImg) {
+        const sigSrc = (appState.officeInfo && appState.officeInfo.customSignatureDataUrl) || EMBEDDED_ASSETS.signature;
+        cleanAndTrimSignature(sigSrc, clean => {
+          if (offSigImg) offSigImg.src = clean || sigSrc;
+        });
+        offSigImg.style.height = Math.round(26 * (sc / 100)) + "px";
+        offSigImg.style.maxWidth = Math.round(105 * (sc / 100)) + "px";
+      }
+      if (offSigName) {
+        const sName = (appState.officeInfo && appState.officeInfo.defaultSignerName) || "นางสาวอภิญญา สกุลพราหมณ์";
+        offSigName.textContent = `(${sName})`;
       }
 
       renderSimpleMasterList("titles", "masterTitlesBody");
@@ -4015,6 +4202,11 @@
       if (input) input.value = val;
       const disp = document.getElementById("officeSignatureScaleVal");
       if (disp) disp.textContent = val + "%";
+      const offSigImg = document.getElementById("officeSignatureLinePreviewImg");
+      if (offSigImg) {
+        offSigImg.style.height = Math.round(26 * (val / 100)) + "px";
+        offSigImg.style.maxWidth = Math.round(105 * (val / 100)) + "px";
+      }
     }
 
     function stepOfficeSignatureScale(delta) {
@@ -4047,13 +4239,19 @@
       const file = event.target.files && event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = async (ev) => {
-        appState.officeInfo = Object.assign({}, appState.officeInfo, {
-          customSignatureDataUrl: ev.target.result,
-          showSignature: true
+      reader.onload = (ev) => {
+        const rawUrl = ev.target.result;
+        cleanAndTrimSignature(rawUrl, async (cleanUrl) => {
+          const finalUrl = cleanUrl || rawUrl;
+          appState.officeInfo = Object.assign({}, appState.officeInfo, {
+            customSignatureDataUrl: finalUrl,
+            showSignature: true
+          });
+          await persistAppState();
+          const offSigImg = document.getElementById("officeSignatureLinePreviewImg");
+          if (offSigImg) offSigImg.src = finalUrl;
+          showToast("อัปโหลดรูปลายเซ็นผู้รับเงินใหม่ (ตัดขอบและโปร่งใสเรียบร้อย) แล้ว");
         });
-        await persistAppState();
-        showToast("อัปโหลดรูปลายเซ็นผู้รับเงินใหม่เรียบร้อยแล้ว");
       };
       reader.readAsDataURL(file);
     }
@@ -4063,6 +4261,8 @@
         delete appState.officeInfo.customSignatureDataUrl;
       }
       await persistAppState();
+      const offSigImg = document.getElementById("officeSignatureLinePreviewImg");
+      if (offSigImg) offSigImg.src = EMBEDDED_ASSETS.signature;
       showToast("คืนค่ารูปลายเซ็นเริ่มต้นเรียบร้อยแล้ว");
     }
 
@@ -5570,7 +5770,8 @@
                     const scale = r.issuerSignatureScale || userScale || (currentUser && currentUser.signatureScale) || (office && office.signatureScale) || 100;
                     const h = (8.8 * (scale / 100)).toFixed(2);
                     const w = (36 * (scale / 100)).toFixed(2);
-                    return `<img class="receipt-signature-img" src="${sigUrl}" alt="ลายเซ็นผู้รับเงิน" style="height:${h}mm; max-width:${w}mm;" />`;
+                    const effectiveSigUrl = _signatureTrimCache.get(sigUrl) || sigUrl;
+                    return `<img class="receipt-signature-img" src="${effectiveSigUrl}" alt="ลายเซ็นผู้รับเงิน" style="height:${h}mm; max-width:${w}mm;" />`;
                   })()}
                 </span>
                 <span class="receipt-sign-right-label">ผู้รับเงิน</span>
@@ -5612,6 +5813,17 @@
       });
 
       container.innerHTML = pagesHtml.join("");
+
+      // Ensure signature images are clean, trimmed and transparent on the dotted line
+      document.querySelectorAll("#printPagesContainer .receipt-signature-img").forEach(img => {
+        if (img.src && img.src.startsWith("data:image/")) {
+          cleanAndTrimSignature(img.src, cleanSrc => {
+            if (cleanSrc && img.src !== cleanSrc) {
+              img.src = cleanSrc;
+            }
+          });
+        }
+      });
 
       // Update print signature scale toolbar controls
       const firstR = receiptsArray && receiptsArray[0];
