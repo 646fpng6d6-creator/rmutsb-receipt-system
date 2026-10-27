@@ -11,7 +11,9 @@
  */
 
 const DEFAULT_SUPABASE_URL = "https://vuhihimohaheveiwfyyb.supabase.co";
-const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg";
+// กำหนด Publishable Key จากหน้าต่างด้านขวาเป็นค่าเริ่มต้นหลักของระบบส่วนกลาง
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_k3Y5miInDeiBdVhYrnG4I3g_Uq_pHXJv";
+const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg";
 
 (function initRMUTSBSupabaseConfig() {
   function getSaved(k) {
@@ -24,12 +26,19 @@ const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
     try { localStorage.removeItem(k); } catch (e) {}
   }
 
+  // หากเครื่องใดเคยจำคีย์แบบเก่าไว้ ให้ล้างออกเพื่อให้ทุกเครื่องใช้คีย์กลางชุดเดียวกันโดยอัตโนมัติ
+  const savedSavedKey = getSaved("rmutsb_supabase_anon_key");
+  if (savedSavedKey && savedSavedKey === LEGACY_SUPABASE_ANON_KEY) {
+    removeSaved("rmutsb_supabase_anon_key");
+  }
+
   const savedUrl = getSaved("rmutsb_supabase_url") || DEFAULT_SUPABASE_URL;
   const savedKey = getSaved("rmutsb_supabase_anon_key") || DEFAULT_SUPABASE_ANON_KEY;
 
   window.RMUTSB_SUPABASE_CONFIG = {
     url: savedUrl.trim(),
     anonKey: savedKey.trim(),
+    legacyAnonKey: LEGACY_SUPABASE_ANON_KEY,
     pollingIntervalMs: 3000, // ดึงข้อมูลอัปเดตอัตโนมัติทุก 3 วินาทีควบคู่กับ Supabase Realtime
     isConfigured: function () {
       return Boolean(this.url && this.anonKey && this.url.startsWith("http"));

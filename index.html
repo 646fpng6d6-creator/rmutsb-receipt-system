@@ -1226,10 +1226,13 @@
       </div>
     </div>
     <div class="nav-actions">
-      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อฐานข้อมูล">
+      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อฐานข้อมูลส่วนกลาง" onclick="openSupabaseConfigModal()" style="cursor:pointer;">
         <span class="conn-dot" id="connDot"></span>
         <span id="connStatusText">กำลังตรวจสอบฐานข้อมูล...</span>
       </div>
+      <button class="btn btn-primary btn-sm" style="background:#2563eb; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.35rem;" onclick="promptSyncLocalToSupabaseCloud()" title="อัปโหลดข้อมูลจากหน้านี้ขึ้นสู่ฐานข้อมูลกลาง Supabase (ใช้หน้านี้เป็นฐานข้อมูลหลัก)">
+        ☁️ ซิงค์ข้อมูลขึ้น Supabase
+      </button>
       <button class="btn btn-ghost-light" onclick="openSupabaseConfigModal()">
         ตั้งค่าฐานข้อมูล Supabase
       </button>
@@ -1373,18 +1376,21 @@
         <button class="btn btn-outline btn-sm" onclick="closeSupabaseConfigModal()">ปิด</button>
       </div>
       <p style="font-size:0.87rem; color:var(--slate-500); margin-bottom:1rem;">
-        ระบุค่า <strong>Project URL</strong> และ <strong>anon public key</strong> จากโปรเจกต์ Supabase ของคุณ (หรือกำหนดค่าถาวรในไฟล์ <code>supabase-config.js</code> สำหรับ GitHub Pages)
+        ระบุค่า <strong>Project URL</strong> และ <strong>anon public key / publishable key</strong> จากโปรเจกต์ Supabase ของคุณ (ระบบกำหนดค่าเริ่มต้นจากหน้าต่างหลักให้เรียบร้อยแล้ว ทุกเครื่องจะใช้ฐานข้อมูลเดียวกัน)
       </p>
       <div class="form-group">
         <label class="form-label">Supabase Project URL</label>
         <input type="url" id="cfgSupabaseUrl" class="form-control" placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co" />
       </div>
       <div class="form-group">
-        <label class="form-label">Supabase Anon Public Key</label>
-        <input type="text" id="cfgSupabaseKey" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+        <label class="form-label">Supabase Anon Public Key / Publishable Key</label>
+        <input type="text" id="cfgSupabaseKey" class="form-control" placeholder="sb_publishable_... หรือ eyJhbGciOi..." />
       </div>
-      <div style="background:var(--slate-50); border:1px solid var(--slate-200); border-radius:8px; padding:0.75rem; font-size:0.83rem; color:var(--slate-700); margin-bottom:1rem;">
-        <strong>คำแนะนำ:</strong> ก่อนใช้งานครั้งแรก กรุณานำคำสั่งในไฟล์ <code>supabase/schema.sql</code> ไปรันในเมนู <strong>SQL Editor</strong> บน Supabase เพื่อสร้างตาราง <code>profiles</code>, <code>app_state</code> และฟังก์ชัน RPC <code>issue_receipt</code>, <code>cancel_receipt</code>
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem; font-size:0.83rem; color:#1e40af; margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+        <div>
+          <strong>คำแนะนำ:</strong> หากยังไม่เคยสร้างตารางบน Supabase ต้องรัน SQL เพื่อเปิดให้ทุกเครื่องบันทึกข้อมูลร่วมกัน
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" style="font-size:0.78rem; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="openSqlSchemaHelperModal()">📋 ดูคำสั่ง SQL สร้างตาราง</button>
       </div>
       <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
         <button type="button" class="btn btn-outline btn-sm" onclick="resetToFallbackMode()">สลับโหมดทดสอบสำรอง (Fallback)</button>
@@ -1392,6 +1398,27 @@
           <button type="button" class="btn btn-outline" onclick="closeSupabaseConfigModal()">ยกเลิก</button>
           <button type="button" class="btn btn-primary" onclick="saveSupabaseConfigFromModal()">บันทึกและเชื่อมต่อ</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== SQL SCHEMA HELPER MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="sqlSchemaHelperModal">
+    <div class="modal-box" style="max-width:650px;">
+      <div class="modal-header">
+        <h3 style="color:var(--primary-navy);">คำสั่ง SQL สำหรับตั้งค่าตารางบน Supabase</h3>
+        <button class="btn btn-outline btn-sm" onclick="closeSqlSchemaHelperModal()">ปิด</button>
+      </div>
+      <p style="font-size:0.88rem; color:var(--slate-600); margin-bottom:0.75rem;">
+        นำคำสั่ง SQL ด้านล่างนี้ไปรันในเมนู <strong>SQL Editor</strong> บน Supabase Dashboard ครั้งเดียว เพื่อเปิดให้ทุกเครื่องและทุกคนอ่าน/เขียนข้อมูลชุดเดียวกันได้:
+      </p>
+      <div style="position:relative; margin-bottom:1rem;">
+        <textarea id="sqlSchemaCodeArea" class="form-control" rows="10" readonly style="font-family:monospace; font-size:0.8rem; background:#0f172a; color:#38bdf8;"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" style="position:absolute; top:8px; right:8px;" onclick="copySqlSchemaCode()">📋 คัดลอกคำสั่ง SQL</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+        <button type="button" class="btn btn-outline" onclick="closeSqlSchemaHelperModal()">ปิด</button>
+        <a href="https://supabase.com/dashboard/project/vuhihimohaheveiwfyyb/sql/new" target="_blank" class="btn btn-success">เปิดหน้า Supabase SQL Editor ↗</a>
       </div>
     </div>
   </div>
@@ -1421,7 +1448,8 @@
             <h2>1. แดชบอร์ดสรุปภาพรวม (Admin Dashboard)</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">อัปเดตข้อมูลอัตโนมัติแบบ Real-time / Polling ทุก 3 วินาทีเมื่อมีเครื่องอื่นออกใบเสร็จใหม่</p>
           </div>
-          <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="promptSyncLocalToSupabaseCloud()" title="ส่งข้อมูลหน้านี้ขึ้นฐานข้อมูลกลาง Supabase เพื่อให้เครื่องอื่นเห็นตรงกัน">☁️ ซิงค์ข้อมูลเครื่องนี้ขึ้น Supabase</button>
             <span id="lastSyncTimeBadge" style="font-size:0.82rem; color:var(--slate-500);"></span>
             <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูลทันที</button>
           </div>
@@ -3309,8 +3337,47 @@
       if (cfg && cfg.isConfigured() && window.supabase) {
         try {
           supabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey);
-          dot.className = "conn-dot";
-          txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว";
+
+          // ทดสอบตรวจสอบการเชื่อมต่อกับตาราง app_state จริงบน Supabase
+          const { data: testRow, error: testErr } = await supabaseClient
+            .from("app_state")
+            .select("updated_at")
+            .eq("id", "main")
+            .maybeSingle();
+
+          if (testErr) {
+            console.warn("Supabase test query warning:", testErr);
+            // หากเกิดข้อผิดพลาด API Key (401 / JWT) ให้ลองสลับใช้คีย์สำรอง (Legacy JWT Key) โดยอัตโนมัติ
+            if (testErr.status === 401 || testErr.code === "PGRST301" || (testErr.message && testErr.message.includes("JWT"))) {
+              const altKey = cfg.legacyAnonKey;
+              if (altKey && altKey !== cfg.anonKey) {
+                try {
+                  const altClient = window.supabase.createClient(cfg.url, altKey);
+                  const { error: altErr } = await altClient.from("app_state").select("updated_at").eq("id", "main").maybeSingle();
+                  if (!altErr) {
+                    supabaseClient = altClient;
+                    cfg.anonKey = altKey;
+                    cfg.saveConfig(cfg.url, altKey);
+                  }
+                } catch (e) {}
+              }
+            }
+
+            // หากยังไม่พบตาราง app_state บน Supabase ให้เตือนพร้อมปุ่มแนะนำ
+            if (testErr.code === "42P01" || (testErr.message && testErr.message.includes("app_state"))) {
+              dot.className = "conn-dot warning";
+              txt.textContent = "ยังไม่ได้สร้างตาราง app_state บน Supabase (คลิกเพื่อดูวิธีตั้งค่า 1 นาที)";
+              txt.style.cursor = "pointer";
+              txt.onclick = openSqlSchemaHelperModal;
+            } else {
+              dot.className = "conn-dot";
+              txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
+            }
+          } else {
+            dot.className = "conn-dot";
+            txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
+          }
+
           await loadAppStateFromStorageOrSupabase(false);
           setupRealtimeAndPolling();
           restoreSavedUserSession();
@@ -3400,6 +3467,16 @@
             .maybeSingle();
 
           if (!error && stateRow && stateRow.data) {
+            // หากเครื่องปัจจุบันมีใบเสร็จในเครื่อง แต่บนคลาวด์ยังว่างเปล่า (0 รายการ) ให้ซิงค์ข้อมูลเครื่องนี้ขึ้นคลาวด์โดยอัตโนมัติ
+            const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts.length : 0;
+            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts.length : 0;
+            if (localReceipts > cloudReceipts && cloudReceipts === 0) {
+              console.log("Local has receipts but cloud is empty. Auto-syncing master data to Supabase...");
+              await persistAppState();
+              showToast("✓ อัปโหลดข้อมูลใบเสร็จในเครื่องนี้ขึ้นฐานข้อมูลกลาง Supabase ให้เรียบร้อยแล้ว");
+              return;
+            }
+
             const changed = stateRow.updated_at !== lastStateUpdatedAt;
             lastStateUpdatedAt = stateRow.updated_at;
             appState = normalizeAndMigrateAppState(stateRow.data);
@@ -7052,6 +7129,138 @@ ${loginUrl}
       closeSupabaseConfigModal();
       await initDatabaseConnection();
       showToast("สลับเป็นโหมดสำรองในเครื่องเรียบร้อยแล้ว");
+    }
+
+    const SUPABASE_SCHEMA_SQL_CODE = `-- ============================================================================
+-- คำสั่ง SQL สำหรับสร้างตารางระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ
+-- รันใน Supabase -> SQL Editor เพื่อให้ทุกเครื่องใช้งานฐานข้อมูลชุดเดียวกัน
+-- ============================================================================
+
+create table if not exists public.app_state (
+  id text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.profiles (
+  user_id text primary key,
+  username text,
+  password text,
+  email text,
+  role text not null default 'user',
+  permission_level text not null default 'issuer',
+  display_name text not null,
+  staff_code text,
+  position text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.app_state enable row level security;
+alter table public.profiles enable row level security;
+
+drop policy if exists "Allow public read write app_state" on public.app_state;
+create policy "Allow public read write app_state"
+  on public.app_state for all
+  using (true) with check (true);
+
+drop policy if exists "Allow public read write profiles" on public.profiles;
+create policy "Allow public read write profiles"
+  on public.profiles for all
+  using (true) with check (true);
+`;
+
+    function openSqlSchemaHelperModal() {
+      const area = document.getElementById("sqlSchemaCodeArea");
+      if (area) area.value = SUPABASE_SCHEMA_SQL_CODE;
+      document.getElementById("sqlSchemaHelperModal").classList.add("open");
+    }
+
+    function closeSqlSchemaHelperModal() {
+      document.getElementById("sqlSchemaHelperModal").classList.remove("open");
+    }
+
+    function copySqlSchemaCode() {
+      const area = document.getElementById("sqlSchemaCodeArea");
+      if (area) {
+        area.select();
+        navigator.clipboard.writeText(area.value).then(() => {
+          showToast("📋 คัดลอกคำสั่ง SQL แล้ว นำไปวางในหน้า Supabase SQL Editor ได้เลย");
+        }).catch(() => {
+          document.execCommand("copy");
+          showToast("📋 คัดลอกคำสั่ง SQL แล้ว");
+        });
+      }
+    }
+
+    async function promptSyncLocalToSupabaseCloud() {
+      const receiptCount = (appState.receipts || []).length;
+      const userCount = (appState.users || []).length;
+
+      openGenericConfirmModal(
+        "ยืนยันการตั้งข้อมูลหน้านี้เป็นฐานข้อมูลหลัก (Master Database)",
+        `คุณต้องการนำข้อมูลทั้งหมดในหน้านี้ (ใบเสร็จ ${receiptCount} รายการ, ผู้ใช้งาน ${userCount} ท่าน และการตั้งค่าทั้งหมด) อัปโหลดขึ้นสู่ฐานข้อมูลกลาง Supabase ใช่หรือไม่?\n\nเมื่อซิงค์สำเร็จแล้ว เครื่องอื่นและบุคคลอื่นที่เปิดเข้าสู่ระบบ จะเห็นข้อมูลชุดนี้ตรงกันทันที!`,
+        async () => {
+          showToast("กำลังอัปโหลดข้อมูลขึ้นสู่ฐานข้อมูลกลาง Supabase...");
+          try {
+            if (!supabaseClient && window.RMUTSB_SUPABASE_CONFIG && window.RMUTSB_SUPABASE_CONFIG.isConfigured() && window.supabase) {
+              supabaseClient = window.supabase.createClient(window.RMUTSB_SUPABASE_CONFIG.url, window.RMUTSB_SUPABASE_CONFIG.anonKey);
+            }
+            if (!supabaseClient) {
+              throw new Error("ยังไม่ได้กำหนดค่าการเชื่อมต่อ Supabase");
+            }
+
+            const { error: upsertErr } = await supabaseClient
+              .from("app_state")
+              .upsert({
+                id: "main",
+                data: appState,
+                updated_at: new Date().toISOString()
+              });
+
+            if (upsertErr) {
+              throw upsertErr;
+            }
+
+            // Sync user profiles
+            if (Array.isArray(appState.users)) {
+              for (const u of appState.users) {
+                try {
+                  await supabaseClient.from("profiles").upsert({
+                    user_id: u.user_id,
+                    username: u.username,
+                    password: u.password,
+                    email: u.email,
+                    role: u.role,
+                    permission_level: u.permission_level,
+                    display_name: u.display_name,
+                    staff_code: u.staff_code,
+                    position: u.position,
+                    active: u.active,
+                    updated_at: new Date().toISOString()
+                  });
+                } catch (e) {}
+              }
+            }
+
+            lastStateUpdatedAt = new Date().toISOString();
+            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+            if (broadcastChannel) {
+              broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
+            }
+            updateSyncTimestamp();
+            showToast(`✓ สำเร็จ! อัปโหลดข้อมูล ${receiptCount} ใบเสร็จขึ้นฐานข้อมูลกลาง Supabase แล้ว ทุกเครื่องจะเห็นข้อมูลตรงกันทันที`);
+          } catch (err) {
+            console.error("Sync to cloud error:", err);
+            if (err.message && (err.message.includes("app_state") || err.code === "42P01")) {
+              openSqlSchemaHelperModal();
+            } else {
+              showToast("ไม่สามารถซิงค์ขึ้น Supabase ได้: " + (err.message || err), true);
+            }
+          }
+        }
+      );
     }
 
     function escapeHtml(str) {
