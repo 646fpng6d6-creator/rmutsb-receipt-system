@@ -135,6 +135,11 @@
       box-shadow: 0 0 6px #fbbf24;
     }
 
+    .conn-dot.warning {
+      background: #f97316;
+      box-shadow: 0 0 6px #f97316;
+    }
+
     .user-pill {
       display: inline-flex;
       align-items: center;
@@ -3335,56 +3340,62 @@
       }
 
       if (cfg && cfg.isConfigured() && window.supabase) {
-        try {
-          supabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey);
+        // รวบรวมคีย์ทั้งหมดที่ต้องลอง (คีย์ปัจจุบัน + คีย์สำรอง) ไม่ซ้ำกัน
+        const keysToTry = [cfg.anonKey];
+        if (Array.isArray(cfg.keyCandidates)) {
+          cfg.keyCandidates.forEach(k => { if (k && !keysToTry.includes(k)) keysToTry.push(k); });
+        }
 
-          // ทดสอบตรวจสอบการเชื่อมต่อกับตาราง app_state จริงบน Supabase
-          const { data: testRow, error: testErr } = await supabaseClient
-            .from("app_state")
-            .select("updated_at")
-            .eq("id", "main")
-            .maybeSingle();
+        let connected = false;
+        for (const tryKey of keysToTry) {
+          try {
+            const client = window.supabase.createClient(cfg.url, tryKey);
+            const { data: testRow, error: testErr } = await client
+              .from("app_state")
+              .select("updated_at")
+              .eq("id", "main")
+              .maybeSingle();
 
-          if (testErr) {
-            console.warn("Supabase test query warning:", testErr);
-            // หากเกิดข้อผิดพลาด API Key (401 / JWT) ให้ลองสลับใช้คีย์สำรอง (Legacy JWT Key) โดยอัตโนมัติ
-            if (testErr.status === 401 || testErr.code === "PGRST301" || (testErr.message && testErr.message.includes("JWT"))) {
-              const altKey = cfg.legacyAnonKey;
-              if (altKey && altKey !== cfg.anonKey) {
-                try {
-                  const altClient = window.supabase.createClient(cfg.url, altKey);
-                  const { error: altErr } = await altClient.from("app_state").select("updated_at").eq("id", "main").maybeSingle();
-                  if (!altErr) {
-                    supabaseClient = altClient;
-                    cfg.anonKey = altKey;
-                    cfg.saveConfig(cfg.url, altKey);
-                  }
-                } catch (e) {}
-              }
-            }
-
-            // หากยังไม่พบตาราง app_state บน Supabase ให้เตือนพร้อมปุ่มแนะนำ
-            if (testErr.code === "42P01" || (testErr.message && testErr.message.includes("app_state"))) {
-              dot.className = "conn-dot warning";
-              txt.textContent = "ยังไม่ได้สร้างตาราง app_state บน Supabase (คลิกเพื่อดูวิธีตั้งค่า 1 นาที)";
-              txt.style.cursor = "pointer";
-              txt.onclick = openSqlSchemaHelperModal;
-            } else {
+            if (!testErr) {
+              // เชื่อมต่อสำเร็จด้วยคีย์นี้
+              supabaseClient = client;
+              cfg.anonKey = tryKey;
+              if (cfg.markWorkingKey) cfg.markWorkingKey(tryKey);
               dot.className = "conn-dot";
               txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
+              connected = true;
+              break;
             }
-          } else {
-            dot.className = "conn-dot";
-            txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
-          }
 
-          await loadAppStateFromStorageOrSupabase(false);
+            // ตาราง app_state ยังไม่มี → เชื่อมต่อ API สำเร็จแต่ต้องรัน SQL ก่อน
+            if (testErr.code === "42P01" || (testErr.message && testErr.message.includes("relation") && testErr.message.includes("does not exist"))) {
+              supabaseClient = client;
+              cfg.anonKey = tryKey;
+              if (cfg.markWorkingKey) cfg.markWorkingKey(tryKey);
+              dot.className = "conn-dot warning";
+              txt.textContent = "เชื่อมต่อ Supabase แล้ว แต่ยังไม่ได้สร้างตาราง (คลิกเพื่อดูวิธีตั้งค่า)";
+              txt.style.cursor = "pointer";
+              txt.onclick = openSqlSchemaHelperModal;
+              connected = true;
+              break;
+            }
+
+            console.warn("Key attempt failed:", tryKey.substring(0, 20) + "...", testErr.message || testErr);
+          } catch (e) {
+            console.warn("Key attempt exception:", tryKey.substring(0, 20) + "...", e);
+          }
+        }
+
+        if (connected) {
+          try {
+            await loadAppStateFromStorageOrSupabase(false);
+          } catch (loadErr) {
+            console.warn("Load state after connect:", loadErr);
+          }
           setupRealtimeAndPolling();
           restoreSavedUserSession();
           checkAndHandleUrlLoginParams();
           return;
-        } catch (err) {
-          console.error("Supabase init error:", err);
         }
       }
 
@@ -7204,11 +7215,17 @@ create policy "Allow public read write profiles"
         async () => {
           showToast("กำลังอัปโหลดข้อมูลขึ้นสู่ฐานข้อมูลกลาง Supabase...");
           try {
-            if (!supabaseClient && window.RMUTSB_SUPABASE_CONFIG && window.RMUTSB_SUPABASE_CONFIG.isConfigured() && window.supabase) {
-              supabaseClient = window.supabase.createClient(window.RMUTSB_SUPABASE_CONFIG.url, window.RMUTSB_SUPABASE_CONFIG.anonKey);
-            }
+            // ตรวจสอบให้แน่ใจว่ามี supabaseClient ที่ใช้งานได้
             if (!supabaseClient) {
-              throw new Error("ยังไม่ได้กำหนดค่าการเชื่อมต่อ Supabase");
+              const cfg = window.RMUTSB_SUPABASE_CONFIG;
+              if (!cfg || !cfg.isConfigured() || !window.supabase) {
+                throw new Error("ยังไม่ได้กำหนดค่าการเชื่อมต่อ Supabase กรุณาตั้งค่าก่อน");
+              }
+              // สร้าง client ใหม่ด้วย reinit
+              await initDatabaseConnection();
+              if (!supabaseClient) {
+                throw new Error("ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ Project URL และ Key");
+              }
             }
 
             const { error: upsertErr } = await supabaseClient
@@ -7249,11 +7266,16 @@ create policy "Allow public read write profiles"
             if (broadcastChannel) {
               broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
             }
+            const dot = document.getElementById("connDot");
+            const txt = document.getElementById("connStatusText");
+            if (dot) dot.className = "conn-dot";
+            if (txt) txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
             updateSyncTimestamp();
             showToast(`✓ สำเร็จ! อัปโหลดข้อมูล ${receiptCount} ใบเสร็จขึ้นฐานข้อมูลกลาง Supabase แล้ว ทุกเครื่องจะเห็นข้อมูลตรงกันทันที`);
           } catch (err) {
             console.error("Sync to cloud error:", err);
-            if (err.message && (err.message.includes("app_state") || err.code === "42P01")) {
+            if (err.code === "42P01" || (err.message && (err.message.includes("app_state") || err.message.includes("does not exist")))) {
+              showToast("ยังไม่ได้สร้างตารางบน Supabase กรุณารัน SQL ก่อน (ดูคำสั่งในหน้าถัดไป)", true);
               openSqlSchemaHelperModal();
             } else {
               showToast("ไม่สามารถซิงค์ขึ้น Supabase ได้: " + (err.message || err), true);
