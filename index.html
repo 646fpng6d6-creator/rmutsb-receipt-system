@@ -2295,7 +2295,6 @@
               <div class="form-group">
                 <label class="form-label">ประเภทผู้ชำระ *</label>
                 <select id="rcpPayerTypeInput" class="form-select" onchange="handlePayerTypeChange()">
-                  <option value="นักศึกษา">นักศึกษา</option>
                   <option value="บุคคลทั่วไป">บุคคลทั่วไป</option>
                   <option value="หน่วยงาน">หน่วยงาน / นิติบุคคล</option>
                 </select>
@@ -2355,16 +2354,16 @@
             <!-- Details Line 1 & Line 2 -->
             <div class="grid-3">
               <div class="form-group">
-                <label class="form-label">ที่อยู่ / หน่วยงาน (หรือ คณะ สำหรับนักศึกษา) บรรทัดที่ 1</label>
-                <input type="text" id="rcpDetailLine1Input" class="form-control" placeholder="เช่น วิศวกรรมศาสตร์และสถาปัตยกรรมศาสตร์" />
+                <label class="form-label">ที่อยู่ / หน่วยงาน (บรรทัดที่ 1)</label>
+                <input type="text" id="rcpDetailLine1Input" class="form-control" placeholder="เช่น กองคลัง มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ หรือที่อยู่" />
               </div>
               <div class="form-group">
-                <label class="form-label">รหัสนักศึกษา / รหัสอ้างอิง (ถ้ามี)</label>
-                <input type="text" id="rcpStudentCodeInput" class="form-control" placeholder="เช่น 167401234567" />
+                <label class="form-label">รหัสอ้างอิง / เลขผู้เสียภาษี (ถ้ามี)</label>
+                <input type="text" id="rcpStudentCodeInput" class="form-control" placeholder="เช่น เลขประจำตัวผู้เสียภาษี หรือเลขอ้างอิง" />
               </div>
               <div class="form-group">
-                <label class="form-label">รายละเอียดบรรทัดที่ 2 (เช่น สาขาวิชา / ระดับ / หมายเหตุ)</label>
-                <input type="text" id="rcpDetailLine2Input" class="form-control" placeholder="เช่น สาขาวิชาวิศวกรรมเครื่องกล ระดับปริญญาตรี (ปกติ)" />
+                <label class="form-label">รายละเอียดบรรทัดที่ 2 (เช่น สาขา / หมายเหตุ)</label>
+                <input type="text" id="rcpDetailLine2Input" class="form-control" placeholder="เช่น สำนักงานใหญ่ หรือหมายเหตุเพิ่มเติม" />
               </div>
             </div>
 
@@ -2753,7 +2752,7 @@
             <input type="text" id="editRcpDetail1" class="form-control" />
           </div>
           <div class="form-group">
-            <label class="form-label">รหัสนักศึกษา / อ้างอิง</label>
+            <label class="form-label">รหัสอ้างอิง / เลขผู้เสียภาษี (ถ้ามี)</label>
             <input type="text" id="editRcpStudentCode" class="form-control" />
           </div>
           <div class="form-group">
@@ -3441,7 +3440,7 @@
             time: "10:30",
             bookNo: "AN704001",
             no: "0052",
-            payerType: "นักศึกษา",
+            payerType: "บุคคลทั่วไป",
             paymentMethod: "เงินสด",
             payerBank: "",
             universityBank: "",
@@ -6988,6 +6987,9 @@ ${loginUrl}
       if (payerType === "หน่วยงาน") {
         titleSel.value = "__NONE__";
         handleTitleSelectChange();
+      } else if (titleSel.value === "__NONE__") {
+        titleSel.value = "นาย";
+        handleTitleSelectChange();
       }
     }
 
@@ -7518,7 +7520,7 @@ ${loginUrl}
         }
       }
 
-      const isStudentFormat = (r.payerType === "นักศึกษา") || Boolean(r.studentCode);
+      const isStudentFormat = r.payerType === "นักศึกษา";
 
       const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
       let pfx = "";
@@ -7592,7 +7594,7 @@ ${loginUrl}
             ` : `
               <div class="receipt-field-line">
                 <span class="receipt-field-label">ที่อยู่ / หน่วยงาน</span>
-                <span class="receipt-field-fill">${escapeHtml(r.detailLine1 || "")} ${r.studentCode ? `(รหัส: ${escapeHtml(r.studentCode)})` : ""}</span>
+                <span class="receipt-field-fill">${escapeHtml(r.detailLine1 || "")} ${r.studentCode ? `(อ้างอิง: ${escapeHtml(r.studentCode)})` : ""}</span>
               </div>
             `}
 
