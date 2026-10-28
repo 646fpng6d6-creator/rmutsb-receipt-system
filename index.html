@@ -2993,6 +2993,7 @@
     let currentUser = null;
     let lastStateUpdatedAt = null;
     let broadcastChannel = null;
+    let isPersistingState = false;
 
     function getDefaultAppState() {
       return {
@@ -3012,64 +3013,269 @@
           adminUsername: "Admin",
           adminPassword: "admin1234"
         },
-        users: [
-          {
-            user_id: "admin-rmutsb-001",
-            username: "Admin",
-            password: "admin1234",
-            email: "admin@rmutsb.ac.th",
-            role: "admin",
-            permission_level: "full",
-            display_name: "ผู้ดูแลระบบการเงิน มทร.สุวรรณภูมิ",
-            staff_code: "ADM001",
-            position: "นักวิชาการเงินและบัญชีชำนาญการ",
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+        users: [ {
+                    "role": "admin",
+                    "email": "admin@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "admin-rmutsb-001",
+                    "password": "Rmus1234",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "Admin",
+                    "created_at": "2026-10-16T02:10:27.137Z",
+                    "staff_code": "ADM001",
+                    "updated_at": "2026-10-19T02:35:54.632Z",
+                    "display_name": "ผู้ดูแลระบบการเงิน มทร.สุวรรณภูมิ",
+                    "permission_level": "full"
           },
           {
-            user_id: "staff-rmutsb-001",
-            username: "STF000",
-            password: "user1234",
-            email: "parinya@rmutsb.ac.th",
-            role: "user",
-            permission_level: "issuer",
-            display_name: "นางสาวอภิญญา สกุลพราหมณ์",
-            staff_code: "STF000",
-            position: "นักวิชาการเงินและบัญชีชำนาญการ",
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+                    "role": "user",
+                    "email": "parinya@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "staff-rmutsb-001",
+                    "password": "user1234",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "STF000",
+                    "created_at": "2026-10-16T02:10:27.137Z",
+                    "staff_code": "STF000",
+                    "updated_at": "2026-10-19T02:36:20.365Z",
+                    "display_name": "นางสาวอภิญญา สกุลพราหมณ์",
+                    "permission_level": "issuer"
           },
           {
-            user_id: "usr-1793152030089",
-            username: "stf001",
-            password: "user001",
-            email: "rungtiwa.j@rmutsb.ac.th",
-            role: "user",
-            permission_level: "issuer",
-            display_name: "นางสาวรุ่งทิวา จินดา",
-            staff_code: "STF001",
-            position: "นักวิชาการเงินและบัญชี",
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+                    "role": "user",
+                    "email": "rungtiwa.j@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793152030089",
+                    "password": "user001",
+                    "position": "นักวิชาการเงินและบัญชี",
+                    "username": "stf001",
+                    "created_at": "2026-10-28T01:47:38.336Z",
+                    "staff_code": "STF001",
+                    "updated_at": "2026-10-28T01:47:38.336Z",
+                    "display_name": "นางสาวรุ่งทิวา จินดา",
+                    "signatureScale": 130,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
           },
           {
-            user_id: "usr-1793152505576",
-            username: "stf002",
-            password: "user002",
-            email: "kantarath.h@rmutsb.ac.th",
-            role: "user",
-            permission_level: "issuer",
-            display_name: "นางสาวคันธรัตน์ หอมสุวรรณ์",
-            staff_code: "STF002",
-            position: "นักวิชาการเงินและบัญชีชำนาญการ",
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+                    "role": "user",
+                    "email": "kantarath.h@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793152505576",
+                    "password": "user002",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf002",
+                    "created_at": "2026-10-28T01:57:36.62511+00:00",
+                    "staff_code": "STF002",
+                    "updated_at": "2026-10-28T01:57:35.234+00:00",
+                    "display_name": "นางสาวคันธรัตน์ หอมสุวรรณ์",
+                    "permission_level": "issuer"
+          },
+          {
+                    "role": "user",
+                    "email": "wararat.t@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793153803757",
+                    "password": "user003",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf003",
+                    "created_at": "2026-10-28T02:17:40.519Z",
+                    "staff_code": "STF003",
+                    "updated_at": "2026-10-28T02:17:40.519Z",
+                    "display_name": "นางสาววรารัตน์ ไทยประยูร",
+                    "signatureScale": 140,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "phatcharee.a@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793153867305",
+                    "password": "user004",
+                    "position": "นักวิชาการเงินและบัญชี",
+                    "username": "stf004",
+                    "created_at": "2026-10-28T02:20:27.579Z",
+                    "staff_code": "STF004",
+                    "updated_at": "2026-10-28T02:32:02.885Z",
+                    "display_name": "นางสาวพัชรี เอี่ยมถิน",
+                    "signatureScale": 180,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "ruttikan.s@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154035723",
+                    "password": "user005",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf005",
+                    "created_at": "2026-10-28T02:21:27.098Z",
+                    "staff_code": "STF005",
+                    "updated_at": "2026-10-28T02:21:27.098Z",
+                    "display_name": "นางสาวรัตติกาล เส้นขาว",
+                    "signatureScale": 180,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "Kochchphun.b@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154091275",
+                    "password": "user006",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf006",
+                    "created_at": "2026-10-28T02:22:17.723Z",
+                    "staff_code": "STF006",
+                    "updated_at": "2026-10-28T02:22:17.723Z",
+                    "display_name": "นางสาวกชพรรณ บัวคำ",
+                    "signatureScale": 165,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "Jintana.ph@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154141393",
+                    "password": "user007",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf007",
+                    "created_at": "2026-10-28T02:23:12.068Z",
+                    "staff_code": "STF007",
+                    "updated_at": "2026-10-28T02:23:12.068Z",
+                    "display_name": "นางสาวจินตนา โพธิ์ศรี",
+                    "signatureScale": 170,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "jaruwan.j@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154207397",
+                    "password": "user008",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf008",
+                    "created_at": "2026-10-28T02:25:26.066Z",
+                    "staff_code": "STF008",
+                    "updated_at": "2026-10-28T02:25:26.066Z",
+                    "display_name": "นางสาวจารุวรรณ จันทร์รื่นเริง",
+                    "signatureScale": 160,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "wimolpurn.k@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154337963",
+                    "password": "user009",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf009",
+                    "created_at": "2026-10-28T02:26:41.682Z",
+                    "staff_code": "STF009",
+                    "updated_at": "2026-10-28T02:26:41.682Z",
+                    "display_name": "นางสาววิมลพรรณ เกษรอิน",
+                    "signatureScale": 135,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "siriphen.m@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154413788",
+                    "password": "user010",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf010",
+                    "created_at": "2026-10-28T02:27:36.860Z",
+                    "staff_code": "STF010",
+                    "updated_at": "2026-10-28T02:27:36.860Z",
+                    "display_name": "นางสาวศิริเพ็ญ​ สัมมาเกตุ",
+                    "signatureScale": 140,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "Chalinee.k@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154463527",
+                    "password": "user011",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf011",
+                    "created_at": "2026-10-28T02:28:06.653Z",
+                    "staff_code": "STF011",
+                    "updated_at": "2026-10-28T02:28:58.327Z",
+                    "display_name": "นางสาวชาลินี กระจ่างแสง",
+                    "signatureScale": 170,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "Pornvipar.k@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154545923",
+                    "password": "user012",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf012",
+                    "created_at": "2026-10-28T02:29:50.720Z",
+                    "staff_code": "STF012",
+                    "updated_at": "2026-10-28T02:30:01.781Z",
+                    "display_name": "นางสาวพรวิภา กลิ่นทอง",
+                    "signatureScale": 130,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "Pichsinee.p@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154614974",
+                    "password": "user013",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf013",
+                    "created_at": "2026-10-28T02:31:34.221Z",
+                    "staff_code": "STF013",
+                    "updated_at": "2026-10-28T02:31:34.221Z",
+                    "display_name": "นางสาวพิชญ์สิณี พงษ์สวัสดิ์",
+                    "signatureScale": 140,
+                    "permission_level": "issuer",
+                    "signatureDataUrl": ""
+          },
+          {
+                    "role": "user",
+                    "email": "kantima.p@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793154781415",
+                    "password": "user014",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf014",
+                    "created_at": "2026-10-28T02:33:57.96128+00:00",
+                    "staff_code": "STF014",
+                    "updated_at": "2026-10-28T02:33:56.711+00:00",
+                    "display_name": "นางสาวกันทิมา ผิวนวล",
+                    "permission_level": "issuer"
+          },
+          {
+                    "role": "user",
+                    "email": "auditor@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "viewer-rmutsb-001",
+                    "password": "user1234",
+                    "position": "นักวิชาการตรวจสอบภายใน",
+                    "username": "AUD001",
+                    "created_at": "2026-10-28T01:39:13.063559+00:00",
+                    "staff_code": "AUD001",
+                    "updated_at": "2026-10-28T01:39:12.901+00:00",
+                    "display_name": "เจ้าหน้าที่ตรวจสอบการเงิน",
+                    "permission_level": "viewer"
           }
-        ],
+],
         titles: [
           "นาย",
           "นาง",
@@ -3265,7 +3471,7 @@
     let appState = getDefaultAppState();
     const visiblePasswordMap = {};
 
-    function normalizeAndMigrateAppState(rawState) {
+    function normalizeAndMigrateAppState(rawState, dbProfiles = []) {
       const def = getDefaultAppState();
       const merged = Object.assign({}, def, rawState || {});
       merged.officeInfo = Object.assign({}, def.officeInfo, (rawState && rawState.officeInfo) || {});
@@ -3273,7 +3479,30 @@
       if (!merged.admin.adminUsername) merged.admin.adminUsername = "Admin";
       if (!merged.admin.adminPassword) merged.admin.adminPassword = "admin1234";
 
-      let users = Array.isArray(merged.users) && merged.users.length > 0 ? merged.users.map(u => Object.assign({}, u)) : def.users;
+      let users = Array.isArray(merged.users) && merged.users.length > 0 ? merged.users.map(u => Object.assign({}, u)) : def.users.map(u => Object.assign({}, u));
+
+      // ผสานข้อมูลผู้ใช้งานจากตาราง profiles ใน Supabase (ถ้ามี)
+      if (Array.isArray(dbProfiles) && dbProfiles.length > 0) {
+        const userMap = new Map();
+        users.forEach(u => {
+          const key = (u.staff_code || u.username || u.user_id || "").toUpperCase();
+          if (key) userMap.set(key, u);
+        });
+
+        dbProfiles.forEach(p => {
+          const key = (p.staff_code || p.username || p.user_id || "").toUpperCase();
+          if (key && !userMap.has(key)) {
+            users.push(Object.assign({}, p));
+            userMap.set(key, p);
+          } else if (key && userMap.has(key)) {
+            const existing = userMap.get(key);
+            ["email", "password", "position", "display_name", "permission_level", "role", "active", "signatureDataUrl", "signatureScale"].forEach(field => {
+              if (p[field] && !existing[field]) existing[field] = p[field];
+            });
+          }
+        });
+      }
+
       let hasAdmin = false;
       users = users.map((u, idx) => {
         if (u.role === "admin") {
@@ -3287,7 +3516,7 @@
           if (!u.permission_level) u.permission_level = "full";
         } else {
           if (!u.username) {
-            if (u.staff_code && u.staff_code.toUpperCase() === "STF001") u.username = "staff01";
+            if (u.staff_code && u.staff_code.toUpperCase() === "STF001") u.username = "stf001";
             else if (u.staff_code && u.staff_code.toUpperCase() === "AUD001") u.username = "viewer01";
             else if (u.email && u.email.includes("@")) u.username = u.email.split("@")[0];
             else if (u.staff_code) u.username = u.staff_code.toLowerCase();
@@ -3319,20 +3548,35 @@
         });
       }
 
-      // นำบัญชี staff-rmutsb-002 ซ้ำซ้อนเดิมออกจากระบบ (ไม่อนุญาตให้กระทบบัญชี STF002 ที่สร้างขึ้นใหม่)
+      // นำบัญชี staff-rmutsb-002 ซ้ำซ้อนเดิมออกจากระบบ
       users = users.filter(u => u.user_id !== "staff-rmutsb-002");
 
-      // กำจัดบัญชีผู้ใช้งานที่ user_id ซ้ำซ้อน
-      const seenUserIds = new Set();
+      // กำจัดบัญชีผู้ใช้งานที่ staff_code หรือ user_id ซ้ำซ้อน
+      const seenKeys = new Set();
       const dedupedUsers = [];
       for (const u of users) {
         if (!u.user_id) u.user_id = "usr-" + Math.random().toString(36).slice(2, 9);
-        if (!seenUserIds.has(u.user_id)) {
-          seenUserIds.add(u.user_id);
+        const dedupeKey = (u.staff_code || u.username || u.user_id).toUpperCase();
+        if (!seenKeys.has(dedupeKey)) {
+          seenKeys.add(dedupeKey);
           dedupedUsers.push(u);
         }
       }
       users = dedupedUsers;
+
+      // จัดเรียงลำดับ ADM001 -> STF000..STF014.. -> AUD / Others
+      users.sort((a, b) => {
+        const codeA = (a.staff_code || a.username || "").toUpperCase();
+        const codeB = (b.staff_code || b.username || "").toUpperCase();
+        if (codeA.startsWith("ADM") && !codeB.startsWith("ADM")) return -1;
+        if (!codeA.startsWith("ADM") && codeB.startsWith("ADM")) return 1;
+        if (codeA.startsWith("STF") && codeB.startsWith("STF")) {
+          const numA = parseInt(codeA.replace(/\D/g, "") || "0", 10);
+          const numB = parseInt(codeB.replace(/\D/g, "") || "0", 10);
+          return numA - numB;
+        }
+        return codeA.localeCompare(codeB);
+      });
 
       merged.users = users;
       if (Array.isArray(merged.receipts)) {
@@ -3651,21 +3895,26 @@
       } catch (e) {}
     }
 
-    async function loadAppStateFromStorageOrSupabase(forceToast = false) {
+        async function loadAppStateFromStorageOrSupabase(forceToast = false) {
+      if (isPersistingState && !forceToast) {
+        return; // ห้ามดึงข้อมูลเก่ามาเขียนทับ ขณะที่กำลังบันทึกข้อมูลขึ้น Supabase
+      }
+
       if (isSupabaseMode()) {
         try {
-          const { data: stateRow, error } = await supabaseClient
-            .from("app_state")
-            .select("data, updated_at")
-            .eq("id", "main")
-            .maybeSingle();
+          // ดึง app_state และ profiles พร้อมกันเพื่อความครบถ้วน 100%
+          const [stateRes, profRes] = await Promise.allSettled([
+            supabaseClient.from("app_state").select("data, updated_at").eq("id", "main").maybeSingle(),
+            supabaseClient.from("profiles").select("*").order("created_at", { ascending: true })
+          ]);
 
-          if (!error && stateRow && stateRow.data) {
-            // หากเครื่องปัจจุบันมีใบเสร็จในเครื่อง แต่บนคลาวด์ยังว่างเปล่า (0 รายการ) ให้ซิงค์ข้อมูลเครื่องนี้ขึ้นคลาวด์โดยอัตโนมัติ
+          const stateRow = (stateRes.status === "fulfilled" && !stateRes.value.error) ? stateRes.value.data : null;
+          const dbProfiles = (profRes.status === "fulfilled" && !profRes.value.error && Array.isArray(profRes.value.data)) ? profRes.value.data : [];
+
+          if (stateRow && stateRow.data) {
             const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts.length : 0;
             const localReceipts = Array.isArray(appState.receipts) ? appState.receipts.length : 0;
             if (localReceipts > cloudReceipts && cloudReceipts === 0) {
-              console.log("Local has receipts but cloud is empty. Auto-syncing master data to Supabase...");
               await persistAppState();
               showToast("✓ อัปโหลดข้อมูลใบเสร็จในเครื่องนี้ขึ้นฐานข้อมูลกลาง Supabase ให้เรียบร้อยแล้ว");
               return;
@@ -3673,10 +3922,24 @@
 
             const cloudTs = stateRow.updated_at ? new Date(stateRow.updated_at).getTime() : 0;
             const localTs = lastStateUpdatedAt ? new Date(lastStateUpdatedAt).getTime() : 0;
-            const changed = Math.abs(cloudTs - localTs) > 500;
-            lastStateUpdatedAt = stateRow.updated_at;
-            appState = normalizeAndMigrateAppState(stateRow.data);
-            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+            const isCloudNewer = cloudTs > (localTs + 500);
+
+            // หากคลาวด์ใหม่กว่า หรือกดรีเฟรชเอง หรือยังไม่เคยโหลด
+            if (isCloudNewer || forceToast || !lastStateUpdatedAt) {
+              lastStateUpdatedAt = stateRow.updated_at;
+              appState = normalizeAndMigrateAppState(stateRow.data, dbProfiles);
+              safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+              refreshAllVisibleViewsPreservingForms();
+            } else if (dbProfiles.length > 0) {
+              // ตรวจสอบว่าใน profiles มีผู้ใช้ที่ใน appState ยังไม่มีหรือไม่
+              const currentCodes = new Set((appState.users || []).map(u => (u.staff_code || u.username || u.user_id || "").toUpperCase()));
+              const hasNewProfile = dbProfiles.some(p => !currentCodes.has((p.staff_code || p.username || p.user_id || "").toUpperCase()));
+              if (hasNewProfile) {
+                appState = normalizeAndMigrateAppState(appState, dbProfiles);
+                safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+                refreshAllVisibleViewsPreservingForms();
+              }
+            }
 
             if (currentUser && appState.users) {
               const myProf = appState.users.find(
@@ -3692,11 +3955,7 @@
                 currentUser = Object.assign({}, currentUser, myProf);
               }
             }
-
-            if (changed || forceToast) {
-              refreshAllVisibleViewsPreservingForms();
-            }
-          } else if (!error && !stateRow) {
+          } else if (!stateRow) {
             // First time initialization in Supabase app_state
             try {
               await supabaseClient
@@ -3745,37 +4004,45 @@
     }
 
     async function persistAppState(customNewState = null) {
-      if (customNewState) {
-        appState = normalizeAndMigrateAppState(customNewState);
-      } else {
-        appState = normalizeAndMigrateAppState(appState);
+      if (isPersistingState) {
+        await new Promise(r => setTimeout(r, 100));
       }
-      safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-
-      const nowIso = new Date().toISOString();
-      lastStateUpdatedAt = nowIso;
-
-      if (isSupabaseMode()) {
-        try {
-          const { error } = await supabaseClient
-            .from("app_state")
-            .upsert({
-              id: "main",
-              data: appState,
-              updated_at: nowIso
-            });
-          if (error) {
-            console.warn("Supabase app_state sync warning:", error.message);
-          }
-        } catch (e) {
-          console.warn("Supabase persist fallback to localStorage:", e);
+      isPersistingState = true;
+      try {
+        if (customNewState) {
+          appState = normalizeAndMigrateAppState(customNewState);
+        } else {
+          appState = normalizeAndMigrateAppState(appState);
         }
+        safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+
+        const nowIso = new Date().toISOString();
+        lastStateUpdatedAt = nowIso;
+
+        if (isSupabaseMode()) {
+          try {
+            const { error } = await supabaseClient
+              .from("app_state")
+              .upsert({
+                id: "main",
+                data: appState,
+                updated_at: nowIso
+              });
+            if (error) {
+              console.warn("Supabase app_state sync warning:", error.message);
+            }
+          } catch (e) {
+            console.warn("Supabase persist fallback to localStorage:", e);
+          }
+        }
+        if (broadcastChannel) {
+          broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
+        }
+        refreshAllVisibleViewsPreservingForms();
+        updateSyncTimestamp();
+      } finally {
+        isPersistingState = false;
       }
-      if (broadcastChannel) {
-        broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
-      }
-      refreshAllVisibleViewsPreservingForms();
-      updateSyncTimestamp();
     }
 
     function updateSyncTimestamp() {
@@ -4670,7 +4937,15 @@
         document.getElementById("modalUserUsername").value = "";
         document.getElementById("modalUserPassword").value = "123456";
         document.getElementById("modalUserDisplayName").value = "";
-        const nextIdx = (users.length + 1).toString().padStart(3, "0");
+        let maxNum = 0;
+        users.forEach(u => {
+          const match = (u.staff_code || "").match(/STF(\d+)/i);
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (n > maxNum) maxNum = n;
+          }
+        });
+        const nextIdx = (maxNum + 1).toString().padStart(3, "0");
         document.getElementById("modalUserStaffCode").value = "STF" + nextIdx;
         document.getElementById("modalUserEmail").value = "";
         document.getElementById("modalUserPosition").value = (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ";
