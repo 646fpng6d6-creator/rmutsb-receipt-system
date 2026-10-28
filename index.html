@@ -2864,6 +2864,23 @@
           </div>
         </div>
 
+        <div id="emailWebhookNoticeBox" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.85rem 1rem; margin-bottom:0.9rem; font-size:0.84rem; color:#1e40af; line-height:1.5;">
+          <div style="font-weight:700; margin-bottom:0.35rem; display:flex; align-items:center; gap:0.4rem;">
+            <span>💡</span> ทำไมสถานะถึงเป็น "ยังไม่ระบุ Webhook" และอีเมลไม่แจ้งเตือน?
+          </div>
+          <div>
+            เนื่องจากระบบทำงานบนเว็บเบราว์เซอร์ หากต้องการให้อีเมลส่งเข้ากล่องจดหมาย (Inbox) ของผู้รับอัตโนมัติ ต้องนำ <strong>Google Apps Script Webhook (ฟรี 100% ตลอดชีพ)</strong> มาใส่ที่เมนู <strong>"8. ระบบอีเมล"</strong> เพียงครั้งเดียว
+          </div>
+          <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeEmailPreviewModal(); switchAdminTab('email'); openEmailScriptGuideModal();" style="font-size:0.8rem;">
+              🚀 ดูวิธีติดตั้งและคัดลอกโค้ด Google Apps Script (1 นาที)
+            </button>
+            <a id="emailDirectMailtoBtn" href="#" target="_blank" class="btn btn-outline btn-sm" style="background:#fff; color:#1e40af; border-color:#93c5fd; font-size:0.8rem;">
+              ✉️ ส่งผ่านโปรแกรมอีเมลของคุณทันที (Outlook / Mail)
+            </a>
+          </div>
+        </div>
+
         <div style="border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; max-height:280px; overflow-y:auto; margin-bottom:0.9rem; background:#fff;">
           <div id="emailPreviewHtmlBody" style="padding:10px;"></div>
         </div>
@@ -3012,42 +3029,28 @@
           },
           {
             user_id: "staff-rmutsb-001",
-            username: "staff01",
-            password: "user001",
+            username: "STF000",
+            password: "user1234",
             email: "parinya@rmutsb.ac.th",
             role: "user",
             permission_level: "issuer",
             display_name: "นางสาวอภิญญา สกุลพราหมณ์",
-            staff_code: "STF001",
+            staff_code: "STF000",
             position: "นักวิชาการเงินและบัญชีชำนาญการ",
             active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           },
           {
-            user_id: "staff-rmutsb-002",
-            username: "rungtiwa",
+            user_id: "usr-1793152030089",
+            username: "stf001",
             password: "user001",
-            email: "rungtiwa@rmutsb.ac.th",
+            email: "rungtiwa.j@rmutsb.ac.th",
             role: "user",
             permission_level: "issuer",
             display_name: "นางสาวรุ่งทิวา จินดา",
-            staff_code: "STF002",
+            staff_code: "STF001",
             position: "นักวิชาการเงินและบัญชี",
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            user_id: "viewer-rmutsb-001",
-            username: "viewer01",
-            password: "123456",
-            email: "auditor@rmutsb.ac.th",
-            role: "user",
-            permission_level: "viewer",
-            display_name: "เจ้าหน้าที่ตรวจสอบการเงิน",
-            staff_code: "AUD001",
-            position: "นักวิชาการตรวจสอบภายใน",
             active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -3302,24 +3305,8 @@
         });
       }
 
-      // ตรวจสอบบัญชีเจ้าหน้าที่รุ่งทิวา (STF002) หากยังไม่มีให้เพิ่มลงในระบบอัตโนมัติ
-      const hasRungtiwa = users.some(u => (u.username && u.username.toLowerCase() === "rungtiwa") || (u.staff_code && u.staff_code.toUpperCase() === "STF002"));
-      if (!hasRungtiwa) {
-        users.push({
-          user_id: "staff-rmutsb-002",
-          username: "rungtiwa",
-          password: "user001",
-          email: "rungtiwa@rmutsb.ac.th",
-          role: "user",
-          permission_level: "issuer",
-          display_name: "นางสาวรุ่งทิวา จินดา",
-          staff_code: "STF002",
-          position: "นักวิชาการเงินและบัญชี",
-          active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      }
+      // นำบัญชี STF002 ออกจากระบบตามความต้องการของผู้ใช้งาน
+      users = users.filter(u => u.staff_code !== "STF002" && u.user_id !== "staff-rmutsb-002");
 
       merged.users = users;
       if (Array.isArray(merged.receipts)) {
@@ -4797,17 +4784,25 @@
     }
 
     function deleteUserProfile(userId) {
-      if (currentUser && currentUser.user_id === userId) {
+      if (currentUser && (currentUser.user_id === userId || currentUser.staff_code === userId)) {
         showToast("ไม่สามารถลบบัญชีของตนเองที่กำลังใช้งานอยู่ได้", true);
         return;
       }
-      const targetUser = (appState.users || []).find(u => u.user_id === userId);
+      const targetUser = (appState.users || []).find(u => u.user_id === userId || u.staff_code === userId);
       openGenericConfirmModal(
         "ยืนยันการลบผู้ใช้งาน",
         `คุณต้องการลบผู้ใช้งาน "${targetUser ? targetUser.display_name : userId}" ออกจากระบบใช่หรือไม่?`,
         async () => {
-          appState.users = (appState.users || []).filter(u => u.user_id !== userId);
+          appState.users = (appState.users || []).filter(u => u.user_id !== userId && u.staff_code !== userId);
+          if (isSupabaseMode() && supabaseClient) {
+            try {
+              await supabaseClient.from("profiles").delete().eq("user_id", userId);
+            } catch (e) {
+              console.warn("Supabase profiles delete warning:", e);
+            }
+          }
           await persistAppState();
+          renderAdminUsersTable();
           showToast("ลบผู้ใช้งานเรียบร้อยแล้ว");
         }
       );
@@ -5459,6 +5454,17 @@ ${loginUrl}
       if (statEl) {
         statEl.textContent = logEntry.status || "ปกติ";
         statEl.className = logEntry.status === "success" ? "status-pill normal" : "status-pill pending";
+      }
+
+      const noticeBox = document.getElementById("emailWebhookNoticeBox");
+      const directMailtoBtn = document.getElementById("emailDirectMailtoBtn");
+      const isPending = logEntry.status && (logEntry.status.includes("pending") || logEntry.status.includes("ยังไม่ระบุ"));
+      if (noticeBox) {
+        noticeBox.style.display = isPending ? "block" : "none";
+      }
+      if (directMailtoBtn) {
+        const mailtoUrl = `mailto:${encodeURIComponent(logEntry.to)}?subject=${encodeURIComponent(logEntry.subject)}&body=${encodeURIComponent(logEntry.textContent || "")}`;
+        directMailtoBtn.href = mailtoUrl;
       }
 
       const bodyEl = document.getElementById("emailPreviewHtmlBody");
