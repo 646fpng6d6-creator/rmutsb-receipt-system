@@ -1315,7 +1315,7 @@
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">ชื่อผู้ใช้งาน (Username) / รหัสเจ้าหน้าที่ / อีเมล</label>
-              <input type="text" id="userEmailInput" class="form-control" placeholder="เช่น staff01, STF001 หรืออีเมล" required autocomplete="username" />
+              <input type="text" id="userEmailInput" class="form-control" placeholder="กรอกชื่อผู้ใช้งาน, รหัสเจ้าหน้าที่ หรืออีเมล" required autocomplete="username" />
             </div>
             <div class="form-group">
               <label class="form-label">รหัสผ่าน (Password)</label>
@@ -1330,14 +1330,6 @@
             <button type="submit" class="btn btn-success btn-lg" id="userLoginBtn">เข้าสู่ระบบเจ้าหน้าที่ (User)</button>
           </div>
         </form>
-        <div style="margin-top:0.95rem; padding:0.65rem 0.95rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; font-size:0.83rem; color:#166534; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-          <div>
-            <strong>💡 บัญชีเจ้าหน้าที่สำหรับทดสอบระบบ:</strong>
-            <span style="margin-left:0.35rem;">Username: <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">staff01</code> (หรือรหัส <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">STF001</code>)</span>
-            <span style="margin-left:0.45rem;">รหัสผ่าน: <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600; color:#14532d;">123456</code></span>
-          </div>
-          <button type="button" class="btn btn-outline btn-sm" style="font-size:0.76rem; padding:3px 10px; background:#ffffff; color:#166534; border-color:#86efac;" onclick="fillDemoUserLogin('staff01', '123456')">กรอกข้อมูลทดสอบอัตโนมัติ</button>
-        </div>
       </div>
     </div>
   </main>
@@ -1369,15 +1361,6 @@
           </div>
         </div>
       </form>
-      <div style="margin-top:1rem; padding:0.65rem 0.95rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; font-size:0.83rem; color:#1e40af; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-        <div>
-          <strong>💡 บัญชีผู้ดูแลระบบเริ่มต้น:</strong>
-          <span style="margin-left:0.35rem;">Username: <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:600; color:#1e3a8a;">Admin</code></span>
-          <span style="margin-left:0.45rem;">รหัสผ่าน: <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-weight:600; color:#1e3a8a;">admin1234</code></span>
-        </div>
-        <button type="button" class="btn btn-outline btn-sm" style="font-size:0.76rem; padding:3px 10px; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="fillDefaultAdminLogin()">กรอกข้อมูลทดสอบอัตโนมัติ</button>
-      </div>
-
     </div>
   </div>
 
@@ -1596,18 +1579,18 @@
           <div class="panel-header">
             <div>
               <h3>ตั้งค่าบัญชีผู้ดูแลระบบหลัก (Admin Account Settings)</h3>
-              <p style="font-size:0.84rem; color:var(--slate-500);">ค่าเริ่มต้นคือ User: <code>Admin</code> และ Password: <code>admin1234</code> — คุณสามารถเปลี่ยนชื่อผู้ใช้ รหัสผ่าน และข้อมูลผู้ดูแลระบบได้ที่นี่โดยไม่ต้องแก้ไขโค้ด</p>
+              <p style="font-size:0.84rem; color:var(--slate-500);">คุณสามารถเปลี่ยนชื่อผู้ใช้ รหัสผ่าน และข้อมูลผู้ดูแลระบบได้ที่นี่โดยไม่ต้องแก้ไขโค้ด</p>
             </div>
           </div>
           <div class="grid-4">
             <div class="form-group">
               <label class="form-label">User Admin (ชื่อผู้ใช้เข้าสู่ระบบ) *</label>
-              <input type="text" id="quickAdminUsername" class="form-control" placeholder="Admin" />
+              <input type="text" id="quickAdminUsername" class="form-control" placeholder="กรอกชื่อผู้ใช้ Admin" />
             </div>
             <div class="form-group">
               <label class="form-label">Password Admin (รหัสผ่าน) *</label>
               <div style="display:flex; gap:0.35rem;">
-                <input type="password" id="quickAdminPassword" class="form-control" placeholder="admin1234" />
+                <input type="password" id="quickAdminPassword" class="form-control" placeholder="กรอกรหัสผ่าน Admin" />
                 <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('quickAdminPassword', this)">แสดง</button>
               </div>
             </div>
