@@ -1069,6 +1069,11 @@
       min-height: 4.5mm;
     }
 
+    .receipt-sign-fill.no-dotted-line,
+    .receipt-sign-line.position-row .receipt-sign-fill {
+      border-bottom: none !important;
+    }
+
     .receipt-sign-line.signature-row {
       height: 5.5mm;
       min-height: 5.5mm;
@@ -7678,13 +7683,9 @@ ${loginUrl}
                   (${escapeHtml((r.issuerName && r.issuerName !== "ปริญญา" ? r.issuerName : (office.defaultSignerName || "นางสาวอภิญญา สกุลพราหมณ์")).replace(/^\(|\)$/g, ""))})
                 </div>
               </div>
-              <div class="receipt-sign-line">
+              <div class="receipt-sign-line position-row">
                 <span class="receipt-sign-label">(ตำแหน่ง)</span>
-                <span class="receipt-sign-fill">${escapeHtml(r.issuerPosition || office.defaultPosition || "นักวิชาการเงินและบัญชีชำนาญการ")}</span>
-              </div>
-              <div class="receipt-sign-line">
-                <span class="receipt-sign-label"></span>
-                <span class="receipt-sign-fill">${escapeHtml(r.issuerActingPosition || office.defaultActingPosition || "รักษาการในตำแหน่งผู้อำนวยการกองคลัง")}</span>
+                <span class="receipt-sign-fill no-dotted-line">${escapeHtml(r.issuerPosition || office.defaultPosition || "นักวิชาการเงินและบัญชีชำนาญการ")}</span>
               </div>
             </div>
           </div>
