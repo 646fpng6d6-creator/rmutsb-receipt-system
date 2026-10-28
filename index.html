@@ -7382,9 +7382,16 @@ ${loginUrl}
         <div class="receipt-project-block">${escapeHtml(proj)}</div>
       `).join("");
 
-      const transferNoteHtml = r.paymentMethod === "เงินโอน" && (r.universityBank || r.payerBank)
-        ? `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">ชำระโดยเงินโอน ${r.payerBank ? `จาก ${escapeHtml(r.payerBank)}` : ""} ${r.universityBank ? `เข้าบัญชี ${escapeHtml(r.universityBank)}` : ""}</div>`
-        : "";
+      let transferNoteHtml = "";
+      if (r.paymentMethod === "เงินโอน") {
+        if (r.universityBank && r.universityBank.trim()) {
+          const uBank = r.universityBank.trim();
+          const bankStr = uBank.startsWith("บัญชี") ? uBank : `บัญชี ${uBank}`;
+          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน เข้า${bankStr.startsWith(" ") ? "" : " "}${escapeHtml(bankStr)}</div>`;
+        } else {
+          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน</div>`;
+        }
+      }
 
       const isStudentFormat = (r.payerType === "นักศึกษา") || Boolean(r.studentCode);
 
