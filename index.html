@@ -2352,14 +2352,10 @@
             </div>
 
             <!-- Details Line 1 & Line 2 -->
-            <div class="grid-3">
+            <div class="grid-2">
               <div class="form-group">
                 <label class="form-label">ที่อยู่ / หน่วยงาน (บรรทัดที่ 1)</label>
                 <input type="text" id="rcpDetailLine1Input" class="form-control" placeholder="เช่น กองคลัง มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ หรือที่อยู่" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">รหัสอ้างอิง / เลขผู้เสียภาษี (ถ้ามี)</label>
-                <input type="text" id="rcpStudentCodeInput" class="form-control" placeholder="เช่น เลขประจำตัวผู้เสียภาษี หรือเลขอ้างอิง" />
               </div>
               <div class="form-group">
                 <label class="form-label">รายละเอียดบรรทัดที่ 2 (เช่น สาขา / หมายเหตุ)</label>
@@ -2746,14 +2742,10 @@
             </div>
           </div>
         </div>
-        <div class="grid-3">
+        <div class="grid-2">
           <div class="form-group">
             <label class="form-label">ที่อยู่ / หน่วยงาน (บรรทัดที่ 1)</label>
             <input type="text" id="editRcpDetail1" class="form-control" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">รหัสอ้างอิง / เลขผู้เสียภาษี (ถ้ามี)</label>
-            <input type="text" id="editRcpStudentCode" class="form-control" />
           </div>
           <div class="form-group">
             <label class="form-label">รายละเอียดบรรทัดที่ 2 (สาขา/หมายเหตุ)</label>
@@ -6587,7 +6579,9 @@ ${loginUrl}
       }
       toggleEditTransferFields();
       document.getElementById("editRcpDetail1").value = r.detailLine1 || "";
-      document.getElementById("editRcpStudentCode").value = r.studentCode || "";
+      if (document.getElementById("editRcpStudentCode")) {
+        document.getElementById("editRcpStudentCode").value = r.studentCode || "";
+      }
       document.getElementById("editRcpDetail2").value = r.detailLine2 || "";
       document.getElementById("editRcpIssuerName").value = r.issuerName || "";
       document.getElementById("editRcpStatus").value = r.status || "ปกติ";
@@ -6615,7 +6609,7 @@ ${loginUrl}
         transferDate: isTransfer ? (document.getElementById("editRcpTransferDate")?.value || "") : "",
         transferTime: isTransfer ? (document.getElementById("editRcpTransferTime")?.value || "") : "",
         detailLine1: document.getElementById("editRcpDetail1").value.trim(),
-        studentCode: document.getElementById("editRcpStudentCode").value.trim(),
+        studentCode: document.getElementById("editRcpStudentCode") ? document.getElementById("editRcpStudentCode").value.trim() : (receipts[idx].studentCode || ""),
         detailLine2: document.getElementById("editRcpDetail2").value.trim(),
         issuerName: document.getElementById("editRcpIssuerName").value.trim(),
         status: document.getElementById("editRcpStatus").value
@@ -7143,7 +7137,7 @@ ${loginUrl}
       const payerFullName = `${prefixFormatted}${firstName}${lastName ? "\u00a0\u00a0\u00a0" + lastName : ""}`.trim();
 
       const detailLine1 = document.getElementById("rcpDetailLine1Input").value.trim();
-      const studentCode = document.getElementById("rcpStudentCodeInput").value.trim();
+      const studentCode = document.getElementById("rcpStudentCodeInput") ? document.getElementById("rcpStudentCodeInput").value.trim() : "";
       const detailLine2 = document.getElementById("rcpDetailLine2Input").value.trim();
 
       const items = [];
@@ -7295,7 +7289,9 @@ ${loginUrl}
       document.getElementById("rcpFirstNameInput").value = "";
       document.getElementById("rcpLastNameInput").value = "";
       document.getElementById("rcpDetailLine1Input").value = "";
-      document.getElementById("rcpStudentCodeInput").value = "";
+      if (document.getElementById("rcpStudentCodeInput")) {
+        document.getElementById("rcpStudentCodeInput").value = "";
+      }
       document.getElementById("rcpDetailLine2Input").value = "";
       const now = new Date();
       document.getElementById("rcpDateInput").value = now.toISOString().slice(0, 10);
@@ -7594,7 +7590,7 @@ ${loginUrl}
             ` : `
               <div class="receipt-field-line">
                 <span class="receipt-field-label">ที่อยู่ / หน่วยงาน</span>
-                <span class="receipt-field-fill">${escapeHtml(r.detailLine1 || "")} ${r.studentCode ? `(อ้างอิง: ${escapeHtml(r.studentCode)})` : ""}</span>
+                <span class="receipt-field-fill">${escapeHtml(r.detailLine1 || "")}</span>
               </div>
             `}
 
