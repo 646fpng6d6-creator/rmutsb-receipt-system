@@ -2322,14 +2322,26 @@
             </div>
 
             <!-- Bank Transfer Extra Fields (Shown when paymentMethod == เงินโอน) -->
-            <div id="transferBankFieldsWrap" class="grid-2" style="display:none; background:var(--slate-50); padding:0.9rem; border-radius:8px; border:1px solid var(--slate-200); margin-bottom:0.95rem;">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">ธนาคารของผู้ชำระเงิน</label>
-                <select id="rcpPayerBankSelect" class="form-select"></select>
+            <div id="transferBankFieldsWrap" style="display:none; background:var(--slate-50); padding:0.9rem; border-radius:8px; border:1px solid var(--slate-200); margin-bottom:0.95rem;">
+              <div class="grid-2" style="margin-bottom:0.75rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">ธนาคารของผู้ชำระเงิน</label>
+                  <select id="rcpPayerBankSelect" class="form-select"></select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">โอนเข้าบัญชีธนาคารของมหาวิทยาลัย *</label>
+                  <select id="rcpUniBankSelect" class="form-select"></select>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">โอนเข้าบัญชีธนาคารของมหาวิทยาลัย *</label>
-                <select id="rcpUniBankSelect" class="form-select"></select>
+              <div class="grid-2">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">วันที่โอนเงิน *</label>
+                  <input type="date" id="rcpTransferDateInput" class="form-control" />
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">เวลาโอน *</label>
+                  <input type="time" id="rcpTransferTimeInput" class="form-control" />
+                </div>
               </div>
             </div>
 
@@ -2725,10 +2737,26 @@
           </div>
           <div class="form-group">
             <label class="form-label">ช่องทางชำระเงิน</label>
-            <select id="editRcpPaymentMethod" class="form-select">
+            <select id="editRcpPaymentMethod" class="form-select" onchange="toggleEditTransferFields()">
               <option value="เงินสด">เงินสด</option>
               <option value="เงินโอน">เงินโอน</option>
             </select>
+          </div>
+        </div>
+        <div id="editRcpTransferWrap" style="display:none; background:var(--slate-50); padding:0.8rem; border-radius:8px; border:1px solid var(--slate-200); margin-bottom:0.95rem;">
+          <div class="form-group" style="margin-bottom:0.6rem;">
+            <label class="form-label">โอนเข้าบัญชีธนาคารของมหาวิทยาลัย</label>
+            <input type="text" id="editRcpUniBank" class="form-control" placeholder="เช่น ธนาคารกรุงไทย (128-0-28939-2)" />
+          </div>
+          <div class="grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">วันที่โอนเงิน</label>
+              <input type="date" id="editRcpTransferDate" class="form-control" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">เวลาโอน</label>
+              <input type="time" id="editRcpTransferTime" class="form-control" />
+            </div>
           </div>
         </div>
         <div class="grid-3">
@@ -3313,7 +3341,7 @@
             id: "ubank-1",
             bankName: "ธนาคารกรุงไทย",
             accountName: "มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ",
-            accountNo: "101-0-60000-9"
+            accountNo: "128-0-28939-2"
           },
           {
             id: "ubank-2",
@@ -3693,6 +3721,46 @@
       const yearBE = yearCE < 2400 ? yearCE + 543 : yearCE;
       const shortYear = String(yearBE).slice(-2);
       return `${day}-${THAI_MONTHS_SHORT[monthIdx] || ""}-${shortYear}`;
+    }
+
+    function formatTransferDateTimeThai(dateStr, timeStr) {
+      let datePart = "";
+      if (dateStr) {
+        const parts = String(dateStr).split("-");
+        if (parts.length === 3) {
+          const yearCE = parseInt(parts[0], 10);
+          const monthIdx = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+          const yearBE = yearCE < 2400 ? yearCE + 543 : yearCE;
+          const shortYear = String(yearBE).slice(-2);
+          const monthShort = THAI_MONTHS_SHORT[monthIdx] || "";
+          datePart = `วันที่ ${day} ${monthShort}${shortYear}`;
+        } else {
+          datePart = `วันที่ ${dateStr}`;
+        }
+      }
+
+      let timePart = "";
+      if (timeStr) {
+        let cleanTime = String(timeStr).trim();
+        if (cleanTime.includes(":")) {
+          const tParts = cleanTime.split(":");
+          cleanTime = `${tParts[0]}.${tParts[1]}`;
+        }
+        if (!cleanTime.endsWith("น.") && !cleanTime.endsWith("น")) {
+          cleanTime += " น.";
+        }
+        timePart = `เวลา ${cleanTime}`;
+      }
+
+      if (datePart && timePart) {
+        return `${datePart} ${timePart}`;
+      } else if (datePart) {
+        return datePart;
+      } else if (timePart) {
+        return timePart;
+      }
+      return "";
     }
 
     function formatMoney(num, withDecimals = true) {
@@ -4563,7 +4631,10 @@
             <td>${escapeHtml(r.payerFullName || ((r.title || "") + (r.firstName || "") + " " + (r.lastName || "")).trim())}</td>
             <td>${itemsSummary}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
-            <td>${escapeHtml(r.paymentMethod || "เงินสด")}</td>
+            <td>
+              ${escapeHtml(r.paymentMethod || "เงินสด")}
+              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+            </td>
             <td>
               <span class="status-pill ${statusClass}">${escapeHtml(r.status || "ปกติ")}</span>
               ${r.cancelReason ? `<div style="font-size:0.76rem; color:#991b1b; margin-top:2px;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
@@ -6483,7 +6554,10 @@ ${loginUrl}
             <td>${escapeHtml(r.payerFullName)}</td>
             <td>${itemsHtml}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
-            <td>${escapeHtml(r.paymentMethod || "เงินสด")}</td>
+            <td>
+              ${escapeHtml(r.paymentMethod || "เงินสด")}
+              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+            </td>
             <td>
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
               ${r.cancelReason ? `<div style="font-size:0.75rem; color:#991b1b; margin-top:2px;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
@@ -6500,6 +6574,12 @@ ${loginUrl}
       }).join("");
     }
 
+    function toggleEditTransferFields() {
+      const isTransfer = document.getElementById("editRcpPaymentMethod").value === "เงินโอน";
+      const wrap = document.getElementById("editRcpTransferWrap");
+      if (wrap) wrap.style.display = isTransfer ? "block" : "none";
+    }
+
     function openReceiptEditModal(receiptId) {
       const r = (appState.receipts || []).find(x => x.id === receiptId);
       if (!r) return;
@@ -6509,6 +6589,16 @@ ${loginUrl}
       document.getElementById("editRcpTime").value = r.time || "";
       document.getElementById("editRcpPayerFullName").value = r.payerFullName || "";
       document.getElementById("editRcpPaymentMethod").value = r.paymentMethod || "เงินสด";
+      if (document.getElementById("editRcpUniBank")) {
+        document.getElementById("editRcpUniBank").value = r.universityBank || "";
+      }
+      if (document.getElementById("editRcpTransferDate")) {
+        document.getElementById("editRcpTransferDate").value = r.transferDate || r.date || "";
+      }
+      if (document.getElementById("editRcpTransferTime")) {
+        document.getElementById("editRcpTransferTime").value = r.transferTime || r.time || "";
+      }
+      toggleEditTransferFields();
       document.getElementById("editRcpDetail1").value = r.detailLine1 || "";
       document.getElementById("editRcpStudentCode").value = r.studentCode || "";
       document.getElementById("editRcpDetail2").value = r.detailLine2 || "";
@@ -6528,11 +6618,15 @@ ${loginUrl}
       const idx = receipts.findIndex(r => r.id === id);
       if (idx < 0) return;
 
+      const isTransfer = document.getElementById("editRcpPaymentMethod").value === "เงินโอน";
       receipts[idx] = Object.assign({}, receipts[idx], {
         date: document.getElementById("editRcpDate").value,
         time: document.getElementById("editRcpTime").value,
         payerFullName: document.getElementById("editRcpPayerFullName").value.trim(),
         paymentMethod: document.getElementById("editRcpPaymentMethod").value,
+        universityBank: isTransfer ? (document.getElementById("editRcpUniBank")?.value.trim() || receipts[idx].universityBank || "") : "",
+        transferDate: isTransfer ? (document.getElementById("editRcpTransferDate")?.value || "") : "",
+        transferTime: isTransfer ? (document.getElementById("editRcpTransferTime")?.value || "") : "",
         detailLine1: document.getElementById("editRcpDetail1").value.trim(),
         studentCode: document.getElementById("editRcpStudentCode").value.trim(),
         detailLine2: document.getElementById("editRcpDetail2").value.trim(),
@@ -6820,6 +6914,14 @@ ${loginUrl}
       if (timeEl && !timeEl.value) {
         timeEl.value = now.toTimeString().slice(0, 5);
       }
+      const transDateEl = document.getElementById("rcpTransferDateInput");
+      const transTimeEl = document.getElementById("rcpTransferTimeInput");
+      if (transDateEl && !transDateEl.value) {
+        transDateEl.value = now.toISOString().slice(0, 10);
+      }
+      if (transTimeEl && !transTimeEl.value) {
+        transTimeEl.value = now.toTimeString().slice(0, 5);
+      }
       const container = document.getElementById("paymentItemsContainer");
       if (container && container.children.length === 0) {
         addPaymentRowInForm();
@@ -6903,7 +7005,19 @@ ${loginUrl}
 
     function toggleTransferBankFields() {
       const method = document.getElementById("rcpPaymentMethodInput").value;
-      document.getElementById("transferBankFieldsWrap").style.display = method === "เงินโอน" ? "grid" : "none";
+      const wrap = document.getElementById("transferBankFieldsWrap");
+      const isTransfer = method === "เงินโอน";
+      if (wrap) wrap.style.display = isTransfer ? "block" : "none";
+      if (isTransfer) {
+        const transDate = document.getElementById("rcpTransferDateInput");
+        const transTime = document.getElementById("rcpTransferTimeInput");
+        if (transDate && !transDate.value) {
+          transDate.value = document.getElementById("rcpDateInput")?.value || new Date().toISOString().slice(0, 10);
+        }
+        if (transTime && !transTime.value) {
+          transTime.value = document.getElementById("rcpTimeInput")?.value || new Date().toTimeString().slice(0, 5);
+        }
+      }
     }
 
     function getActiveProjectsForUser() {
@@ -7014,8 +7128,11 @@ ${loginUrl}
       const time = document.getElementById("rcpTimeInput").value;
       const payerType = document.getElementById("rcpPayerTypeInput").value;
       const paymentMethod = document.getElementById("rcpPaymentMethodInput").value;
-      const payerBank = paymentMethod === "เงินโอน" ? document.getElementById("rcpPayerBankSelect").value : "";
-      const universityBank = paymentMethod === "เงินโอน" ? document.getElementById("rcpUniBankSelect").value : "";
+      const isTransfer = paymentMethod === "เงินโอน";
+      const payerBank = isTransfer ? document.getElementById("rcpPayerBankSelect").value : "";
+      const universityBank = isTransfer ? document.getElementById("rcpUniBankSelect").value : "";
+      const transferDate = isTransfer ? (document.getElementById("rcpTransferDateInput")?.value || date) : "";
+      const transferTime = isTransfer ? (document.getElementById("rcpTransferTimeInput")?.value || time) : "";
 
       const titleSelVal = document.getElementById("rcpTitleSelect").value;
       let title = "";
@@ -7064,6 +7181,8 @@ ${loginUrl}
         paymentMethod,
         payerBank,
         universityBank,
+        transferDate,
+        transferTime,
         title,
         firstName,
         lastName,
@@ -7191,6 +7310,12 @@ ${loginUrl}
       const now = new Date();
       document.getElementById("rcpDateInput").value = now.toISOString().slice(0, 10);
       document.getElementById("rcpTimeInput").value = now.toTimeString().slice(0, 5);
+      if (document.getElementById("rcpTransferDateInput")) {
+        document.getElementById("rcpTransferDateInput").value = now.toISOString().slice(0, 10);
+      }
+      if (document.getElementById("rcpTransferTimeInput")) {
+        document.getElementById("rcpTransferTimeInput").value = now.toTimeString().slice(0, 5);
+      }
       const container = document.getElementById("paymentItemsContainer");
       container.innerHTML = "";
       addPaymentRowInForm();
@@ -7233,7 +7358,10 @@ ${loginUrl}
             <td>${escapeHtml(r.payerFullName)}</td>
             <td>${itemsSummary}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
-            <td>${escapeHtml(r.paymentMethod || "เงินสด")}</td>
+            <td>
+              ${escapeHtml(r.paymentMethod || "เงินสด")}
+              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+            </td>
             <td>
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
               ${r.cancelReason ? `<div style="font-size:0.75rem; color:#991b1b;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
@@ -7384,12 +7512,21 @@ ${loginUrl}
 
       let transferNoteHtml = "";
       if (r.paymentMethod === "เงินโอน") {
+        const transDate = r.transferDate || r.date;
+        const transTime = r.transferTime || r.time;
+        const dtText = formatTransferDateTimeThai(transDate, transTime);
+        const dtSuffix = dtText ? ` ${escapeHtml(dtText)}` : "";
+
         if (r.universityBank && r.universityBank.trim()) {
           const uBank = r.universityBank.trim();
-          const bankStr = uBank.startsWith("บัญชี") ? uBank : `บัญชี ${uBank}`;
-          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน เข้า${bankStr.startsWith(" ") ? "" : " "}${escapeHtml(bankStr)}</div>`;
+          let bankDisplay = uBank;
+          if (!bankDisplay.startsWith("บัญชี")) {
+            bankDisplay = "บัญชี " + bankDisplay;
+          }
+          const bankPhrase = bankDisplay.startsWith("บัญชี") ? ("เข้า" + bankDisplay) : ("เข้า " + bankDisplay);
+          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
         } else {
-          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน</div>`;
+          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
         }
       }
 
