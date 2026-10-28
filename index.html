@@ -3054,6 +3054,20 @@
             active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
+          },
+          {
+            user_id: "usr-1793152505576",
+            username: "stf002",
+            password: "user002",
+            email: "kantarath.h@rmutsb.ac.th",
+            role: "user",
+            permission_level: "issuer",
+            display_name: "นางสาวคันธรัตน์ หอมสุวรรณ์",
+            staff_code: "STF002",
+            position: "นักวิชาการเงินและบัญชีชำนาญการ",
+            active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }
         ],
         titles: [
@@ -3305,8 +3319,20 @@
         });
       }
 
-      // นำบัญชี STF002 ออกจากระบบตามความต้องการของผู้ใช้งาน
-      users = users.filter(u => u.staff_code !== "STF002" && u.user_id !== "staff-rmutsb-002");
+      // นำบัญชี staff-rmutsb-002 ซ้ำซ้อนเดิมออกจากระบบ (ไม่อนุญาตให้กระทบบัญชี STF002 ที่สร้างขึ้นใหม่)
+      users = users.filter(u => u.user_id !== "staff-rmutsb-002");
+
+      // กำจัดบัญชีผู้ใช้งานที่ user_id ซ้ำซ้อน
+      const seenUserIds = new Set();
+      const dedupedUsers = [];
+      for (const u of users) {
+        if (!u.user_id) u.user_id = "usr-" + Math.random().toString(36).slice(2, 9);
+        if (!seenUserIds.has(u.user_id)) {
+          seenUserIds.add(u.user_id);
+          dedupedUsers.push(u);
+        }
+      }
+      users = dedupedUsers;
 
       merged.users = users;
       if (Array.isArray(merged.receipts)) {
@@ -3645,7 +3671,9 @@
               return;
             }
 
-            const changed = stateRow.updated_at !== lastStateUpdatedAt;
+            const cloudTs = stateRow.updated_at ? new Date(stateRow.updated_at).getTime() : 0;
+            const localTs = lastStateUpdatedAt ? new Date(lastStateUpdatedAt).getTime() : 0;
+            const changed = Math.abs(cloudTs - localTs) > 500;
             lastStateUpdatedAt = stateRow.updated_at;
             appState = normalizeAndMigrateAppState(stateRow.data);
             safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
@@ -3724,6 +3752,9 @@
       }
       safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
 
+      const nowIso = new Date().toISOString();
+      lastStateUpdatedAt = nowIso;
+
       if (isSupabaseMode()) {
         try {
           const { error } = await supabaseClient
@@ -3731,7 +3762,7 @@
             .upsert({
               id: "main",
               data: appState,
-              updated_at: new Date().toISOString()
+              updated_at: nowIso
             });
           if (error) {
             console.warn("Supabase app_state sync warning:", error.message);
@@ -3757,13 +3788,21 @@
 
     function setupRealtimeAndPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
-      const intervalMs = (window.RMUTSB_SUPABASE_CONFIG && window.RMUTSB_SUPABASE_CONFIG.pollingIntervalMs) || 3000;
+      const intervalMs = (window.RMUTSB_SUPABASE_CONFIG && window.RMUTSB_SUPABASE_CONFIG.pollingIntervalMs) || 1500;
 
       pollingTimer = setInterval(() => {
-        if (currentUser) {
+        loadAppStateFromStorageOrSupabase(false);
+      }, intervalMs);
+
+      // เมื่อผู้ใช้สลับกลับมาที่แท็บเบราว์เซอร์หรือหน้าต่าง ให้ซิงค์ข้อมูลล่าสุดทันที
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
           loadAppStateFromStorageOrSupabase(false);
         }
-      }, intervalMs);
+      });
+      window.addEventListener("focus", () => {
+        loadAppStateFromStorageOrSupabase(false);
+      });
 
       if (isSupabaseMode()) {
         try {
@@ -3779,7 +3818,7 @@
             )
             .subscribe();
         } catch (e) {
-          console.warn("Realtime subscription fallback to 3s polling:", e);
+          console.warn("Realtime subscription fallback to polling:", e);
         }
       }
     }
@@ -4725,6 +4764,11 @@
       }
 
       appState.users = users;
+      closeUserModal();
+      renderAdminUsersTable();
+      refreshAllVisibleViewsPreservingForms();
+      showToast(editMode === "edit" ? `แก้ไขข้อมูลผู้ใช้งาน "${display_name}" เรียบร้อยแล้ว` : `เพิ่มผู้ใช้งาน "${display_name}" (Username: ${username}) เรียบร้อยแล้ว`);
+
       await persistAppState();
       if (isSupabaseMode()) {
         try {
@@ -4745,13 +4789,11 @@
           console.warn("Supabase profiles upsert warning:", profErr);
         }
       }
-      closeUserModal();
-      showToast(editMode === "edit" ? `แก้ไขข้อมูลผู้ใช้งาน "${display_name}" เรียบร้อยแล้ว` : `เพิ่มผู้ใช้งาน "${display_name}" (Username: ${username}) เรียบร้อยแล้ว`);
 
       // ส่งอีเมลแจ้งชื่อผู้ใช้งานและรหัสผ่านไปยังผู้ใช้งาน หากมีอีเมลและเลือกส่ง
       const sendEmailChecked = document.getElementById("modalUserSendCredentialsEmail")?.checked;
       if (email && email.includes("@") && (sendEmailChecked || editMode === "add")) {
-        sendUserCredentialsEmail({
+        await sendUserCredentialsEmail({
           username,
           password,
           displayName: display_name,
@@ -4761,6 +4803,7 @@
           permissionLevel: permission_level,
           email
         });
+        renderAdminEmailSettings();
       }
     }
 
@@ -4779,7 +4822,15 @@
       users[idx].updated_at = new Date().toISOString();
 
       appState.users = users;
+      renderAdminUsersTable();
       await persistAppState();
+      if (isSupabaseMode() && supabaseClient) {
+        try {
+          await supabaseClient.from("profiles").update({ active: newActive, updated_at: users[idx].updated_at }).eq("user_id", userId);
+        } catch (e) {
+          console.warn("Supabase profiles update warning:", e);
+        }
+      }
       showToast(newActive ? "เปิดใช้งานบัญชีผู้ใช้งานแล้ว" : "ระงับการใช้งานบัญชีผู้ใช้งานแล้ว (active = false)");
     }
 
@@ -5145,6 +5196,8 @@ ${loginUrl}
         appState.emailLogs.unshift(logEntry);
         if (appState.emailLogs.length > 50) appState.emailLogs.pop();
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+        renderAdminEmailSettings();
+        await persistAppState();
 
         return { success: true, log: logEntry };
       } catch (err) {
@@ -5153,7 +5206,10 @@ ${loginUrl}
         logEntry.error = err.message;
         if (!appState.emailLogs) appState.emailLogs = [];
         appState.emailLogs.unshift(logEntry);
+        if (appState.emailLogs.length > 50) appState.emailLogs.pop();
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+        renderAdminEmailSettings();
+        await persistAppState();
         return { success: false, error: err.message, log: logEntry };
       }
     }
@@ -5207,7 +5263,8 @@ ${loginUrl}
         "ยืนยันการส่งข้อมูลเข้าใช้งานทางอีเมล",
         `คุณต้องการส่งชื่อผู้ใช้งาน (${u.username}) และรหัสผ่าน ไปยังอีเมล "${u.email}" ใช่หรือไม่?`,
         async () => {
-          await sendUserCredentialsEmail({
+          showToast(`กำลังส่งข้อมูลเข้าใช้งานไปยังอีเมล ${u.email}...`);
+          const res = await sendUserCredentialsEmail({
             username: u.username,
             password: u.password || (u.role === "admin" ? "admin1234" : "123456"),
             displayName: u.display_name,
@@ -5217,6 +5274,12 @@ ${loginUrl}
             permissionLevel: u.permission_level,
             email: u.email
           });
+          renderAdminEmailSettings();
+          if (res && res.success) {
+            showToast(`✓ ส่งรหัสผ่านไปยังอีเมล ${u.email} สำเร็จแล้ว`);
+          } else {
+            showToast(`ส่งอีเมลไม่สำเร็จ: ${(res && res.error) || "เกิดข้อผิดพลาด"}`, true);
+          }
         }
       );
     }
