@@ -12,11 +12,13 @@
 
 const DEFAULT_SUPABASE_URL = "https://vuhihimohaheveiwfyyb.supabase.co";
 
-// คีย์ทั้ง 2 รูปแบบ – ระบบจะลองทีละตัวจนกว่าจะเชื่อมต่อสำเร็จ
+// คีย์ Anon Key (Legacy JWT Key) ที่ตรวจสอบและยืนยันการเชื่อมต่อกับ Supabase แล้ว
+const WORKING_SUPABASE_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg";
+
 const SUPABASE_KEY_CANDIDATES = [
+  WORKING_SUPABASE_JWT_KEY,
   "sb_publishable_k3Y5miInDeiBdVhYrnG4I3g_Uq_pHXJv",
-  "sb_publishable_k3Y5miInDeiBdVhYrnG413g_Uq_pHXJv",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg"
+  "sb_publishable_k3Y5miInDeiBdVhYrnG413g_Uq_pHXJv"
 ];
 
 (function initRMUTSBSupabaseConfig() {
@@ -31,8 +33,12 @@ const SUPABASE_KEY_CANDIDATES = [
   }
 
   const savedUrl = getSaved("rmutsb_supabase_url") || DEFAULT_SUPABASE_URL;
-  // ใช้คีย์ที่เคยเชื่อมต่อสำเร็จ หรือคีย์ตัวแรกเป็นค่าเริ่มต้น
-  const savedKey = getSaved("rmutsb_supabase_anon_key") || SUPABASE_KEY_CANDIDATES[0];
+  let savedKey = getSaved("rmutsb_supabase_anon_key");
+  // หากมีคีย์เดิมที่ขึ้นต้นด้วย sb_publishable_ หรือไม่มี ให้สลับมาใช้คีย์ JWT ที่ใช้งานได้จริงทันที
+  if (!savedKey || savedKey.startsWith("sb_publishable_")) {
+    savedKey = WORKING_SUPABASE_JWT_KEY;
+    setSaved("rmutsb_supabase_anon_key", savedKey);
+  }
 
   window.RMUTSB_SUPABASE_CONFIG = {
     url: savedUrl.trim(),
