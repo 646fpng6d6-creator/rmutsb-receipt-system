@@ -2271,7 +2271,7 @@
 
       <!-- Viewer-Only Notice if permission_level === 'viewer' -->
       <div id="viewerOnlyNotice" class="alert-box alert-warning" style="display:none;">
-        <strong>สิทธิ์การเข้าใช้งานของคุณ: เจ้าหน้าที่สำหรับเรียกดูและพิมพ์ใบเสร็จ</strong> — คุณสามารถค้นหา เรียกดู ดาวน์โหลด PDF และสั่งพิมพ์ใบเสร็จย้อนหลังได้ แต่ไม่สามารถเพิ่ม แก้ไข หรือยกเลิกใบเสร็จได้
+        <strong>สิทธิ์การเข้าใช้งานของคุณ: เจ้าหน้าที่สำหรับเรียกดู/ดาวน์โหลด/พิมพ์ (ห้ามเพิ่ม-ลบ-แก้ไข)</strong> — มีสิทธิ์พิมพ์ได้เฉพาะต้นฉบับใบเสร็จเท่านั้น โดยไม่สามารถเพิ่ม แก้ไข ยกเลิก หรือพิมพ์สำเนาได้
       </div>
 
       <!-- USER TAB 1: ISSUE RECEIPT FORM -->
@@ -2326,7 +2326,7 @@
                   <input type="date" id="rcpTransferDateInput" class="form-control" />
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                  <label class="form-label">เวลาโอน *</label>
+                  <label class="form-label">เวลาโอน (ระบุหรือไม่ก็ได้)</label>
                   <input type="time" id="rcpTransferTimeInput" class="form-control" />
                 </div>
               </div>
@@ -2737,7 +2737,7 @@
               <input type="date" id="editRcpTransferDate" class="form-control" />
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">เวลาโอน</label>
+              <label class="form-label">เวลาโอน (ระบุหรือไม่ก็ได้)</label>
               <input type="time" id="editRcpTransferTime" class="form-control" />
             </div>
           </div>
@@ -2924,9 +2924,9 @@
           <input type="range" id="printSigScaleSlider" min="40" max="250" step="5" value="100" style="width:85px; cursor:pointer;" oninput="setPrintSignatureScale(this.value)" title="เลื่อนปรับขนาดลายเซ็น (40% - 250%)" />
           <button type="button" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:0.72rem; background:#0f172a; color:#94a3b8; border-color:#64748b;" onclick="setPrintSignatureScale(100)" title="รีเซ็ตเป็น 100%">100%</button>
         </div>
-        <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('both')">แสดง ต้นฉบับ + สำเนา (2 หน้า)</button>
-        <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('original')">เฉพาะต้นฉบับ</button>
-        <button class="btn btn-outline btn-sm" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('copy')">เฉพาะสำเนา</button>
+        <button class="btn btn-outline btn-sm" id="printBtnModeBoth" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('both')">แสดง ต้นฉบับ + สำเนา (2 หน้า)</button>
+        <button class="btn btn-outline btn-sm" id="printBtnModeOriginal" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('original')">เฉพาะต้นฉบับ</button>
+        <button class="btn btn-outline btn-sm" id="printBtnModeCopy" style="background:#334155; color:#fff; border-color:#475569;" onclick="setPrintPageMode('copy')">เฉพาะสำเนา</button>
         <button class="btn btn-success" onclick="window.print()">สั่งพิมพ์ / Save as PDF</button>
         <button class="btn btn-danger" onclick="closePrintModal()">ปิดหน้าต่างพิมพ์</button>
       </div>
@@ -3700,6 +3700,20 @@
       const yearBE = yearCE < 2400 ? yearCE + 543 : yearCE;
       const shortYear = String(yearBE).slice(-2);
       return `${day}-${THAI_MONTHS_SHORT[monthIdx] || ""}-${shortYear}`;
+    }
+
+    function formatTransferDateThai(dateStr) {
+      if (!dateStr) return "";
+      const parts = String(dateStr).split("-");
+      if (parts.length === 3) {
+        const yearCE = parseInt(parts[0], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const yearBE = yearCE < 2400 ? yearCE + 543 : yearCE;
+        const monthShort = THAI_MONTHS_SHORT[monthIdx] || "";
+        return `วันที่ ${day} ${monthShort} ${yearBE}`;
+      }
+      return `วันที่ ${dateStr}`;
     }
 
     function formatTransferDateTimeThai(dateStr, timeStr) {
@@ -4611,8 +4625,14 @@
             <td>${itemsSummary}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
             <td>
-              ${escapeHtml(r.paymentMethod || "เงินสด")}
-              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+              <div><strong>${escapeHtml(r.paymentMethod || "เงินสด")}</strong></div>
+              ${r.paymentMethod === "เงินโอน" ? `
+                <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
+                  ${r.universityBank ? `<div>โอนเข้า: ${escapeHtml(r.universityBank)}</div>` : ""}
+                  <div>${escapeHtml(formatTransferDateThai(r.transferDate || r.date))}</div>
+                  <div>เวลา: ${r.transferTime ? `${escapeHtml(r.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
+                </div>
+              ` : ""}
             </td>
             <td>
               <span class="status-pill ${statusClass}">${escapeHtml(r.status || "ปกติ")}</span>
@@ -6534,8 +6554,14 @@ ${loginUrl}
             <td>${itemsHtml}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
             <td>
-              ${escapeHtml(r.paymentMethod || "เงินสด")}
-              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+              <div><strong>${escapeHtml(r.paymentMethod || "เงินสด")}</strong></div>
+              ${r.paymentMethod === "เงินโอน" ? `
+                <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
+                  ${r.universityBank ? `<div>โอนเข้า: ${escapeHtml(r.universityBank)}</div>` : ""}
+                  <div>${escapeHtml(formatTransferDateThai(r.transferDate || r.date))}</div>
+                  <div>เวลา: ${r.transferTime ? `${escapeHtml(r.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
+                </div>
+              ` : ""}
             </td>
             <td>
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
@@ -6664,6 +6690,10 @@ ${loginUrl}
             paymentItem: item.paymentItem || "-",
             amount: itemAmt,
             paymentMethod: r.paymentMethod || "เงินสด",
+            universityBank: r.universityBank || "",
+            transferDate: r.transferDate || "",
+            transferTime: r.transferTime || "",
+            payerBank: r.payerBank || "",
             status: r.status || "ปกติ",
             cancelReason: r.cancelReason || "",
             issuerName: r.issuerName || "เจ้าหน้าที่"
@@ -6700,7 +6730,16 @@ ${loginUrl}
           <td>${escapeHtml(row.projectName)}</td>
           <td><strong>${escapeHtml(row.paymentItem)}</strong></td>
           <td class="text-right"><strong>${formatMoney(row.amount, false)}</strong></td>
-          <td>${escapeHtml(row.paymentMethod)}</td>
+          <td>
+            <div><strong>${escapeHtml(row.paymentMethod)}</strong></div>
+            ${row.paymentMethod === "เงินโอน" ? `
+              <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
+                ${row.universityBank ? `<div>โอนเข้า: ${escapeHtml(row.universityBank)}</div>` : ""}
+                <div>${escapeHtml(formatTransferDateThai(row.transferDate || row.rawDate))}</div>
+                <div>เวลา: ${row.transferTime ? `${escapeHtml(row.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
+              </div>
+            ` : ""}
+          </td>
           <td><span class="status-pill ${row.status === 'ยกเลิก' ? 'cancelled' : 'normal'}">${escapeHtml(row.status)}</span></td>
           <td>${escapeHtml(row.issuerName)}</td>
         </tr>
@@ -6739,19 +6778,26 @@ ${loginUrl}
       const headers = ["วันที่", "เวลา", "เล่มที่", "เลขที่", "ผู้ชำระ", "ชื่อโครงการ", "รายการ", "จำนวนเงิน", "ช่องทางชำระ", "สถานะ", "ผู้ออก"];
       const csvLines = [
         headers.join(","),
-        ...rows.map(r => [
-          csvEscape(r.dateFormatted),
-          csvEscape(r.time),
-          csvEscape(r.bookNo),
-          csvEscape("'" + r.no),
-          csvEscape(r.payerFullName),
-          csvEscape(r.projectName === "-" ? "" : r.projectName),
-          csvEscape(r.paymentItem),
-          csvEscape(r.amount),
-          csvEscape(r.paymentMethod),
-          csvEscape(r.status),
-          csvEscape(r.issuerName)
-        ].join(","))
+        ...rows.map(r => {
+          let payChannelStr = r.paymentMethod;
+          if (r.paymentMethod === "เงินโอน") {
+            const timeDesc = r.transferTime ? (r.transferTime + " น.") : "ไม่ระบุเวลา";
+            payChannelStr = `เงินโอน (เข้า: ${r.universityBank || "-"} | วันที่: ${r.transferDate || r.rawDate} | เวลา: ${timeDesc})`;
+          }
+          return [
+            csvEscape(r.dateFormatted),
+            csvEscape(r.time),
+            csvEscape(r.bookNo),
+            csvEscape("'" + r.no),
+            csvEscape(r.payerFullName),
+            csvEscape(r.projectName === "-" ? "" : r.projectName),
+            csvEscape(r.paymentItem),
+            csvEscape(r.amount),
+            csvEscape(payChannelStr),
+            csvEscape(r.status),
+            csvEscape(r.issuerName)
+          ].join(",");
+        })
       ];
       downloadBlobFile("\uFEFF" + csvLines.join("\r\n"), `รายงานการชำระเงิน_มทร_สุวรรณภูมิ_${new Date().toISOString().slice(0,10)}.csv`, "text/csv;charset=utf-8;");
       showToast("ดาวน์โหลดไฟล์รายงาน CSV (แยกรายการย่อยละ 1 แถว) เรียบร้อยแล้ว");
@@ -6786,7 +6832,10 @@ ${loginUrl}
                   <td>${escapeHtml(r.projectName === "-" ? "" : r.projectName)}</td>
                   <td>${escapeHtml(r.paymentItem)}</td>
                   <td>${Number(r.amount)}</td>
-                  <td>${escapeHtml(r.paymentMethod)}</td>
+                  <td>
+                    ${escapeHtml(r.paymentMethod)}
+                    ${r.paymentMethod === "เงินโอน" ? `<br/><small>เข้า: ${escapeHtml(r.universityBank || "-")}<br/>${escapeHtml(formatTransferDateThai(r.transferDate || r.rawDate))}<br/>เวลา: ${r.transferTime ? escapeHtml(r.transferTime) + " น." : "(ไม่ระบุเวลา)"}</small>` : ""}
+                  </td>
                   <td>${escapeHtml(r.status)}</td>
                   <td>${escapeHtml(r.issuerName)}</td>
                 </tr>
@@ -6813,19 +6862,26 @@ ${loginUrl}
       const headers = ["วันที่", "เวลา", "เล่มที่", "เลขที่", "ผู้ชำระ", "รายการรวม", "จำนวนเงินรวม", "ช่องทางชำระ", "สถานะ", "เหตุผลยกเลิก", "ผู้ออก"];
       const lines = [
         headers.join(","),
-        ...receipts.map(r => [
-          csvEscape(formatThaiDateShortReport(r.date)),
-          csvEscape(r.time),
-          csvEscape(r.bookNo),
-          csvEscape("'" + r.no),
-          csvEscape(r.payerFullName),
-          csvEscape((r.items || []).map(i => `${i.paymentItem}:${i.amount}`).join(" | ")),
-          csvEscape(r.totalAmount),
-          csvEscape(r.paymentMethod),
-          csvEscape(r.status),
-          csvEscape(r.cancelReason || ""),
-          csvEscape(r.issuerName)
-        ].join(","))
+        ...receipts.map(r => {
+          let payChannelStr = r.paymentMethod || "เงินสด";
+          if (r.paymentMethod === "เงินโอน") {
+            const timeDesc = r.transferTime ? (r.transferTime + " น.") : "ไม่ระบุเวลา";
+            payChannelStr = `เงินโอน (เข้า: ${r.universityBank || "-"} | วันที่: ${r.transferDate || r.date} | เวลา: ${timeDesc})`;
+          }
+          return [
+            csvEscape(formatThaiDateShortReport(r.date)),
+            csvEscape(r.time),
+            csvEscape(r.bookNo),
+            csvEscape("'" + r.no),
+            csvEscape(r.payerFullName),
+            csvEscape((r.items || []).map(i => `${i.paymentItem}:${i.amount}`).join(" | ")),
+            csvEscape(r.totalAmount),
+            csvEscape(payChannelStr),
+            csvEscape(r.status),
+            csvEscape(r.cancelReason || ""),
+            csvEscape(r.issuerName)
+          ].join(",");
+        })
       ];
       downloadBlobFile("\uFEFF" + lines.join("\r\n"), `สรุปใบเสร็จรับเงิน_${new Date().toISOString().slice(0,10)}.csv`, "text/csv;charset=utf-8;");
       showToast("ดาวน์โหลดรายงานสรุปใบเสร็จ CSV เรียบร้อยแล้ว");
@@ -6899,9 +6955,6 @@ ${loginUrl}
       const transTimeEl = document.getElementById("rcpTransferTimeInput");
       if (transDateEl && !transDateEl.value) {
         transDateEl.value = now.toISOString().slice(0, 10);
-      }
-      if (transTimeEl && !transTimeEl.value) {
-        transTimeEl.value = now.toTimeString().slice(0, 5);
       }
       const container = document.getElementById("paymentItemsContainer");
       if (container && container.children.length === 0) {
@@ -6997,9 +7050,6 @@ ${loginUrl}
         const transTime = document.getElementById("rcpTransferTimeInput");
         if (transDate && !transDate.value) {
           transDate.value = document.getElementById("rcpDateInput")?.value || new Date().toISOString().slice(0, 10);
-        }
-        if (transTime && !transTime.value) {
-          transTime.value = document.getElementById("rcpTimeInput")?.value || new Date().toTimeString().slice(0, 5);
         }
       }
     }
@@ -7116,7 +7166,7 @@ ${loginUrl}
       const payerBank = isTransfer ? document.getElementById("rcpPayerBankSelect").value : "";
       const universityBank = isTransfer ? document.getElementById("rcpUniBankSelect").value : "";
       const transferDate = isTransfer ? (document.getElementById("rcpTransferDateInput")?.value || date) : "";
-      const transferTime = isTransfer ? (document.getElementById("rcpTransferTimeInput")?.value || time) : "";
+      const transferTime = isTransfer ? (document.getElementById("rcpTransferTimeInput")?.value || "").trim() : "";
 
       const titleSelVal = document.getElementById("rcpTitleSelect").value;
       let title = "";
@@ -7300,7 +7350,7 @@ ${loginUrl}
         document.getElementById("rcpTransferDateInput").value = now.toISOString().slice(0, 10);
       }
       if (document.getElementById("rcpTransferTimeInput")) {
-        document.getElementById("rcpTransferTimeInput").value = now.toTimeString().slice(0, 5);
+        document.getElementById("rcpTransferTimeInput").value = "";
       }
       const container = document.getElementById("paymentItemsContainer");
       container.innerHTML = "";
@@ -7315,6 +7365,7 @@ ${loginUrl}
       const bookFilter = document.getElementById("userHistoryBookFilter")?.value || "";
       const statusFilter = document.getElementById("userHistoryStatusFilter")?.value || "";
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
 
       const list = (appState.receipts || []).filter(r => {
         if (bookFilter && r.bookNo !== bookFilter) return false;
@@ -7345,8 +7396,14 @@ ${loginUrl}
             <td>${itemsSummary}</td>
             <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
             <td>
-              ${escapeHtml(r.paymentMethod || "เงินสด")}
-              ${r.paymentMethod === "เงินโอน" ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatTransferDateTimeThai(r.transferDate || r.date, r.transferTime || r.time))}</div>` : ""}
+              <div><strong>${escapeHtml(r.paymentMethod || "เงินสด")}</strong></div>
+              ${r.paymentMethod === "เงินโอน" ? `
+                <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
+                  ${r.universityBank ? `<div>โอนเข้า: ${escapeHtml(r.universityBank)}</div>` : ""}
+                  <div>${escapeHtml(formatTransferDateThai(r.transferDate || r.date))}</div>
+                  <div>เวลา: ${r.transferTime ? `${escapeHtml(r.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
+                </div>
+              ` : ""}
             </td>
             <td>
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
@@ -7354,8 +7411,12 @@ ${loginUrl}
             </td>
             <td>${escapeHtml(r.issuerName || "-")}</td>
             <td class="text-center" style="white-space:nowrap;">
-              <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
-              <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
+              ${isViewerOnly ? `
+                <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
+              ` : `
+                <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
+                <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
+              `}
               ${canCancel && !isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
             </td>
           </tr>
@@ -7448,6 +7509,10 @@ ${loginUrl}
     let currentPrintMode = "both";
 
     function openPrintReceiptById(receiptId, mode = "both") {
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+      if (isViewerOnly) {
+        mode = "original";
+      }
       const r = (appState.receipts || []).find(x => x.id === receiptId);
       if (!r) {
         showToast("ไม่พบข้อมูลใบเสร็จที่ต้องการพิมพ์", true);
@@ -7457,11 +7522,20 @@ ${loginUrl}
     }
 
     function openBatchCopyPrintModal(receiptList, titleText) {
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+      if (isViewerOnly) {
+        showToast("สิทธิ์การใช้งานของคุณไม่สามารถพิมพ์สำเนาได้ (พิมพ์ได้เฉพาะต้นฉบับ)", true);
+        return;
+      }
       document.getElementById("printModalTitle").textContent = titleText;
       renderReceiptPrintModal(receiptList, "copy");
     }
 
     function setPrintPageMode(mode) {
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+      if (isViewerOnly) {
+        mode = "original";
+      }
       currentPrintMode = mode;
       renderReceiptPrintModal(currentPrintReceipts, mode);
     }
@@ -7499,8 +7573,7 @@ ${loginUrl}
       let transferNoteHtml = "";
       if (r.paymentMethod === "เงินโอน") {
         const transDate = r.transferDate || r.date;
-        const transTime = r.transferTime || r.time;
-        const dtText = formatTransferDateTimeThai(transDate, transTime);
+        const dtText = formatTransferDateThai(transDate);
         const dtSuffix = dtText ? ` ${escapeHtml(dtText)}` : "";
 
         if (r.universityBank && r.universityBank.trim()) {
@@ -7675,8 +7748,32 @@ ${loginUrl}
     }
 
     function renderReceiptPrintModal(receiptsArray, mode = "both") {
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+      if (isViewerOnly) {
+        mode = "original";
+      }
       currentPrintReceipts = receiptsArray;
       currentPrintMode = mode;
+
+      const btnBoth = document.getElementById("printBtnModeBoth");
+      const btnCopy = document.getElementById("printBtnModeCopy");
+      const btnOrig = document.getElementById("printBtnModeOriginal");
+      if (btnBoth) btnBoth.style.display = isViewerOnly ? "none" : "inline-block";
+      if (btnCopy) btnCopy.style.display = isViewerOnly ? "none" : "inline-block";
+      if (btnOrig) btnOrig.style.display = isViewerOnly ? "none" : "inline-block";
+
+      const titleEl = document.getElementById("printModalTitle");
+      if (titleEl) {
+        if (isViewerOnly) {
+          titleEl.textContent = "ตัวอย่างใบเสร็จรับเงิน (ขนาด A5 แนวตั้ง: ต้นฉบับ / Original)";
+        } else if (mode === "original") {
+          titleEl.textContent = "ตัวอย่างใบเสร็จรับเงิน (ขนาด A5 แนวตั้ง: เฉพาะต้นฉบับ)";
+        } else if (mode === "copy") {
+          titleEl.textContent = "ตัวอย่างใบเสร็จรับเงิน (ขนาด A5 แนวตั้ง: เฉพาะสำเนา)";
+        } else {
+          titleEl.textContent = "ตัวอย่างใบเสร็จรับเงิน (ขนาด A5 แนวตั้ง: หน้า 1 ต้นฉบับ และ หน้า 2 สำเนา)";
+        }
+      }
 
       const container = document.getElementById("printPagesContainer");
       const pagesHtml = [];
