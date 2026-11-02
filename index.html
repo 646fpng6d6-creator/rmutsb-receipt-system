@@ -875,13 +875,15 @@
     .receipt-table-container {
       position: relative;
       border: 1.1px solid #000;
-      margin-top: 1.2mm;
-      margin-bottom: 1.2mm;
-      flex: 1;
+      margin-top: 1.8mm;
+      margin-bottom: 1.8mm;
+      height: 54mm;
+      min-height: 48mm;
+      max-height: 58mm;
+      flex: none;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 35mm;
       background: #ffffff;
     }
 
@@ -890,9 +892,9 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 80mm;
+      width: 76mm;
       max-width: 75%;
-      max-height: 75%;
+      max-height: 44mm;
       object-fit: contain;
       opacity: 0.17;
       pointer-events: none;
@@ -909,9 +911,9 @@
 
     .receipt-items-table thead th {
       border-bottom: 1.1px solid #000;
-      padding: 0.8mm 1.8mm;
-      font-size: 6.8pt;
-      line-height: 1.2;
+      padding: 1.2mm 2mm;
+      font-size: 8.8pt;
+      line-height: 1.25;
       font-weight: 700;
       text-align: center;
       background: rgba(255, 255, 255, 0.85);
@@ -928,32 +930,33 @@
 
     .receipt-items-body-cell {
       border-right: 1.1px solid #000;
-      padding: 1.2mm 2mm;
+      padding: 1.5mm 2.2mm;
       vertical-align: top;
-      font-size: 6.8pt;
-      line-height: 1.22;
+      font-size: 8.8pt;
+      line-height: 1.25;
     }
 
     .receipt-items-amount-cell {
-      padding: 1.2mm 1.8mm;
+      padding: 1.5mm 2mm;
       vertical-align: top;
       text-align: right;
-      font-size: 6.8pt;
-      line-height: 1.22;
+      font-size: 8.8pt;
+      line-height: 1.25;
     }
 
     .receipt-line-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 0.6mm;
-      line-height: 1.22;
+      margin-bottom: 0.8mm;
+      line-height: 1.25;
+      font-size: 8.8pt;
     }
 
     .receipt-project-block {
-      margin-top: 1mm;
-      margin-bottom: 0.6mm;
-      font-size: 6.2pt;
-      line-height: 1.2;
+      margin-top: 1.2mm;
+      margin-bottom: 0.8mm;
+      font-size: 8.2pt;
+      line-height: 1.25;
       word-break: break-word;
       overflow-wrap: anywhere;
       color: #111;
@@ -965,16 +968,16 @@
       align-items: stretch;
       position: relative;
       z-index: 1;
-      min-height: 6.2mm;
+      min-height: 6.8mm;
     }
 
     .receipt-bahttext-box {
       width: 59%;
       background: #e6effa;
       border-right: 1.1px solid #000;
-      padding: 0.6mm 1.2mm;
+      padding: 0.8mm 1.5mm;
       font-weight: 700;
-      font-size: 6.5pt;
+      font-size: 8.5pt;
       line-height: 1.2;
       display: flex;
       align-items: center;
@@ -985,9 +988,9 @@
     .receipt-total-label-box {
       width: 15%;
       border-right: 1.1px solid #000;
-      padding: 0.6mm 1mm;
+      padding: 0.8mm 1mm;
       font-weight: 700;
-      font-size: 6.8pt;
+      font-size: 8.8pt;
       line-height: 1.2;
       display: flex;
       align-items: center;
@@ -996,9 +999,9 @@
 
     .receipt-total-val-box {
       width: 26%;
-      padding: 0.6mm 1.8mm;
+      padding: 0.8mm 2mm;
       font-weight: 700;
-      font-size: 7.2pt;
+      font-size: 9.2pt;
       line-height: 1.2;
       display: flex;
       align-items: center;
@@ -7646,9 +7649,9 @@ ${loginUrl}
             bankDisplay = "บัญชี " + bankDisplay;
           }
           const bankPhrase = bankDisplay.startsWith("บัญชี") ? ("เข้า" + bankDisplay) : ("เข้า " + bankDisplay);
-          transferNoteHtml = `<div style="margin-top:1mm; font-size:6.2pt; line-height:1.2; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
+          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:8.2pt; line-height:1.25; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
         } else {
-          transferNoteHtml = `<div style="margin-top:1mm; font-size:6.2pt; line-height:1.2; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
+          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:8.2pt; line-height:1.25; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
         }
       }
 
