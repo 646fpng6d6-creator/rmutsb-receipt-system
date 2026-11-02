@@ -737,27 +737,30 @@
     /* A5 Portrait Page: 148mm x 210mm */
     .a5-receipt-page {
       width: 148mm;
+      height: 210mm;
       min-height: 208mm;
       max-height: 210mm;
       background: #ffffff;
       color: #000000;
-      padding: 8mm 10mm 7mm 10mm;
+      padding: 10mm;
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
       position: relative;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       font-family: 'Sarabun', sans-serif;
-      font-size: 10.5pt;
-      line-height: 1.38;
+      font-size: 8.5pt;
+      line-height: 1.25;
       overflow: hidden;
+      box-sizing: border-box;
     }
 
     .receipt-copy-label {
       text-align: center;
-      font-size: 11pt;
+      font-size: 9pt;
       font-weight: 700;
-      margin-bottom: 1mm;
+      margin-bottom: 0.5mm;
+      line-height: 1.2;
       color: #000;
     }
 
@@ -766,8 +769,8 @@
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
-      min-height: 21mm;
-      margin-bottom: 1.5mm;
+      min-height: 18mm;
+      margin-bottom: 1mm;
     }
 
     .receipt-garuda-wrap {
@@ -779,8 +782,8 @@
     }
 
     .receipt-garuda-img {
-      width: 19.5mm;
-      height: 19.5mm;
+      width: 17mm;
+      height: 17mm;
       object-fit: contain;
       background: transparent !important;
       display: block;
@@ -788,7 +791,8 @@
     }
 
     .receipt-book-box, .receipt-no-box {
-      font-size: 10.5pt;
+      font-size: 8.5pt;
+      line-height: 1.2;
       display: flex;
       align-items: baseline;
       gap: 1.5mm;
@@ -797,9 +801,9 @@
 
     .dotted-val {
       border-bottom: 1px dotted #222;
-      padding: 0 2.5mm 0.3mm 2.5mm;
+      padding: 0 2mm 0.2mm 2mm;
       font-weight: 700;
-      min-width: 24mm;
+      min-width: 20mm;
       text-align: center;
       display: inline-block;
     }
@@ -807,33 +811,36 @@
     .receipt-title-block {
       text-align: center;
       margin-top: 0.5mm;
-      margin-bottom: 2.2mm;
+      margin-bottom: 1.5mm;
     }
 
     .receipt-title-block h2 {
-      font-size: 14.5pt;
+      font-size: 12.5pt;
       font-weight: 700;
-      line-height: 1.25;
+      line-height: 1.18;
       color: #000;
+      margin: 0;
     }
 
     .receipt-title-block h3 {
-      font-size: 12pt;
+      font-size: 10pt;
       font-weight: 700;
-      line-height: 1.28;
+      line-height: 1.2;
       color: #000;
+      margin: 0.5mm 0 0 0;
     }
 
     .receipt-field-line {
       display: flex;
       align-items: baseline;
-      margin-bottom: 1.6mm;
-      font-size: 10pt;
+      margin-bottom: 1.1mm;
+      font-size: 8pt;
+      line-height: 1.22;
     }
 
     .receipt-field-label {
       white-space: nowrap;
-      margin-right: 2mm;
+      margin-right: 1.5mm;
     }
 
     .receipt-field-label.bold {
@@ -844,15 +851,16 @@
       flex: 1;
       border-bottom: 1px dotted #222;
       padding: 0 1.5mm 0.2mm 1.5mm;
-      min-height: 5.2mm;
+      min-height: 4.2mm;
       word-break: break-word;
     }
 
     .receipt-date-row {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 1.8mm;
-      font-size: 10pt;
+      margin-bottom: 1.2mm;
+      font-size: 8pt;
+      line-height: 1.2;
     }
 
     .receipt-date-box {
@@ -864,14 +872,14 @@
     /* Receipt Table with Centered Watermark */
     .receipt-table-container {
       position: relative;
-      border: 1.2px solid #000;
-      margin-top: 1.8mm;
-      margin-bottom: 2mm;
+      border: 1.1px solid #000;
+      margin-top: 1.2mm;
+      margin-bottom: 1.2mm;
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 68mm;
+      min-height: 38mm;
       background: #ffffff;
     }
 
@@ -880,9 +888,9 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 114mm;
-      max-width: 92%;
-      max-height: 56mm;
+      width: 90mm;
+      max-width: 80%;
+      max-height: 80%;
       object-fit: contain;
       opacity: 0.17;
       pointer-events: none;
@@ -899,8 +907,9 @@
 
     .receipt-items-table thead th {
       border-bottom: 1.1px solid #000;
-      padding: 1.8mm 2.5mm;
-      font-size: 10.5pt;
+      padding: 1.1mm 2mm;
+      font-size: 8.5pt;
+      line-height: 1.2;
       font-weight: 700;
       text-align: center;
       background: rgba(255, 255, 255, 0.85);
@@ -917,30 +926,32 @@
 
     .receipt-items-body-cell {
       border-right: 1.1px solid #000;
-      padding: 2.5mm 3mm;
+      padding: 1.5mm 2.2mm;
       vertical-align: top;
-      font-size: 10.2pt;
+      font-size: 8.2pt;
+      line-height: 1.25;
     }
 
     .receipt-items-amount-cell {
-      padding: 2.5mm 2.5mm;
+      padding: 1.5mm 2mm;
       vertical-align: top;
       text-align: right;
-      font-size: 10.2pt;
+      font-size: 8.2pt;
+      line-height: 1.25;
     }
 
     .receipt-line-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 1.2mm;
-      line-height: 1.38;
+      margin-bottom: 0.8mm;
+      line-height: 1.25;
     }
 
     .receipt-project-block {
-      margin-top: 2.2mm;
-      margin-bottom: 1.5mm;
-      font-size: 9.8pt;
-      line-height: 1.38;
+      margin-top: 1.2mm;
+      margin-bottom: 0.8mm;
+      font-size: 7.8pt;
+      line-height: 1.25;
       word-break: break-word;
       overflow-wrap: anywhere;
       color: #111;
@@ -952,16 +963,17 @@
       align-items: stretch;
       position: relative;
       z-index: 1;
-      min-height: 8.5mm;
+      min-height: 6.8mm;
     }
 
     .receipt-bahttext-box {
       width: 59%;
       background: #e6effa;
       border-right: 1.1px solid #000;
-      padding: 1.5mm 2mm;
+      padding: 0.8mm 1.5mm;
       font-weight: 700;
-      font-size: 9.8pt;
+      font-size: 7.8pt;
+      line-height: 1.2;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -971,9 +983,10 @@
     .receipt-total-label-box {
       width: 15%;
       border-right: 1.1px solid #000;
-      padding: 1.5mm 1mm;
+      padding: 0.8mm 1mm;
       font-weight: 700;
-      font-size: 10pt;
+      font-size: 8pt;
+      line-height: 1.2;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -981,36 +994,42 @@
 
     .receipt-total-val-box {
       width: 26%;
-      padding: 1.5mm 2.5mm;
+      padding: 0.8mm 2mm;
       font-weight: 700;
-      font-size: 10.5pt;
+      font-size: 8.5pt;
+      line-height: 1.2;
       display: flex;
       align-items: center;
       justify-content: flex-end;
     }
 
     .receipt-bottom-section {
-      font-size: 10pt;
+      font-size: 8pt;
+      line-height: 1.2;
+      margin-top: 1mm;
     }
 
     .receipt-correct-text {
-      margin-bottom: 3mm;
+      margin-bottom: 1.2mm;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 8pt;
+      line-height: 1.2;
     }
 
     .receipt-office-singleline {
       display: flex;
       align-items: baseline;
-      margin-bottom: 1.8mm;
-      font-size: 9.7pt;
+      margin-bottom: 1.2mm;
+      font-size: 7.7pt;
+      line-height: 1.2;
       white-space: nowrap;
       overflow: hidden;
     }
 
     .receipt-office-singleline .receipt-field-label {
-      margin-right: 3mm;
+      margin-right: 2.5mm;
       flex-shrink: 0;
     }
 
@@ -1021,22 +1040,22 @@
     .receipt-sign-block {
       width: 66%;
       margin-left: auto;
-      margin-top: 1mm;
-      margin-bottom: 1mm;
-      font-size: 8pt;
-      line-height: 1.2;
+      margin-top: 0.5mm;
+      margin-bottom: 0.8mm;
+      font-size: 7.5pt;
+      line-height: 1.15;
     }
 
     .receipt-sign-line {
       display: flex;
       align-items: flex-end;
-      margin-bottom: 1mm;
+      margin-bottom: 0.8mm;
     }
 
     .receipt-sign-label-short {
       flex-shrink: 0;
       white-space: nowrap;
-      font-size: 8pt;
+      font-size: 7.5pt;
       padding-bottom: 0.3mm;
       margin-right: 1.2mm;
     }
@@ -1044,7 +1063,7 @@
     .receipt-sign-right-label {
       flex-shrink: 0;
       white-space: nowrap;
-      font-size: 8pt;
+      font-size: 7.5pt;
       padding-bottom: 0.3mm;
       margin-left: 1.2mm;
     }
@@ -1053,8 +1072,8 @@
       width: 12.5mm;
       flex-shrink: 0;
       white-space: nowrap;
-      font-size: 8pt;
-      padding-bottom: 0.8mm;
+      font-size: 7.5pt;
+      padding-bottom: 0.5mm;
     }
 
     .receipt-sign-fill {
@@ -1063,10 +1082,10 @@
       text-align: center;
       padding-bottom: 0.15mm;
       padding-right: 3.5mm;
-      font-size: 8pt;
-      line-height: 1.15;
+      font-size: 7.5pt;
+      line-height: 1.1;
       position: relative;
-      min-height: 4.5mm;
+      min-height: 4.2mm;
     }
 
     .receipt-sign-fill.no-dotted-line,
@@ -1075,19 +1094,19 @@
     }
 
     .receipt-sign-line.signature-row {
-      height: 5.5mm;
-      min-height: 5.5mm;
-      max-height: 5.5mm;
+      height: 5.2mm;
+      min-height: 5.2mm;
+      max-height: 5.2mm;
       align-items: flex-end;
-      margin-bottom: 1.2mm;
+      margin-bottom: 0.8mm;
       position: relative;
     }
 
     .receipt-sign-line.signature-row .receipt-sign-fill {
       position: relative;
-      height: 4.8mm;
-      min-height: 4.8mm;
-      max-height: 4.8mm;
+      height: 4.5mm;
+      min-height: 4.5mm;
+      max-height: 4.5mm;
       padding-right: 0;
       padding-bottom: 0;
       border-bottom: 1px dotted #222;
@@ -1111,14 +1130,44 @@
     .receipt-signer-fullname-row {
       display: flex;
       align-items: center;
-      margin-bottom: 0.8mm;
+      margin-bottom: 0.6mm;
     }
 
     .receipt-signer-fullname-text {
       flex: 1;
       text-align: center;
-      font-size: 8pt;
+      font-size: 7.5pt;
       padding-right: 3.5mm;
+    }
+
+    /* Notes block at bottom of receipt */
+    .receipt-notes-block {
+      margin-top: 1.5mm;
+      font-size: 6.8pt;
+      line-height: 1.25;
+      color: #111;
+      text-align: left;
+    }
+
+    .receipt-notes-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2mm;
+    }
+
+    .receipt-notes-title {
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-size: 6.8pt;
+    }
+
+    .receipt-notes-list {
+      flex: 1;
+    }
+
+    .receipt-notes-list div {
+      margin-bottom: 0.3mm;
     }
 
     .receipt-footer-brand {
@@ -1181,12 +1230,14 @@
     /* ======================== PRINT MEDIA QUERY ======================== */
     @page {
       size: A5 portrait;
-      margin: 0;
+      margin: 10mm;
     }
 
     @media print {
       body {
         background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       .no-print, .top-navbar, .landing-container, .app-shell, .modal-backdrop, .print-toolbar, .toast-container {
         display: none !important;
@@ -1202,15 +1253,22 @@
         display: block !important;
       }
       .a5-receipt-page {
-        width: 148mm !important;
-        height: 209mm !important;
-        max-height: 210mm !important;
+        width: 128mm !important;
+        max-width: 128mm !important;
+        height: 188mm !important;
+        max-height: 189mm !important;
+        min-height: 180mm !important;
+        padding: 0 !important;
         margin: 0 auto !important;
         box-shadow: none !important;
         page-break-after: always !important;
         break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
       }
       .a5-receipt-page:last-child {
         page-break-after: auto !important;
@@ -7583,9 +7641,9 @@ ${loginUrl}
             bankDisplay = "บัญชี " + bankDisplay;
           }
           const bankPhrase = bankDisplay.startsWith("บัญชี") ? ("เข้า" + bankDisplay) : ("เข้า " + bankDisplay);
-          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
+          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:7.2pt; line-height:1.2; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
         } else {
-          transferNoteHtml = `<div style="margin-top:2mm; font-size:8.8pt; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
+          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:7.2pt; line-height:1.2; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
         }
       }
 
@@ -7740,6 +7798,16 @@ ${loginUrl}
               <div class="receipt-sign-line position-row">
                 <span class="receipt-sign-label">(ตำแหน่ง)</span>
                 <span class="receipt-sign-fill no-dotted-line">${escapeHtml(r.issuerPosition || office.defaultPosition || "นักวิชาการเงินและบัญชีชำนาญการ")}</span>
+              </div>
+            </div>
+
+            <div class="receipt-notes-block">
+              <div class="receipt-notes-row">
+                <span class="receipt-notes-title">หมายเหตุ</span>
+                <div class="receipt-notes-list">
+                  <div>1. มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ ได้ปฏิบัติตามหนังสือกระทรวงการคลัง ด่วนที่สุด ที่ กค 0402.2/ว39 ลว. 6 มี.ค. 2567 เรื่อง แบบใบเสร็จรับเงินอิเล็กทรอนิกส์ของส่วนราชการ (e-Government Receipt)</div>
+                  <div>2. เอกสารฉบับนี้ต้องมีลายเซ็นของผู้รับเงินถึงจะถือว่าสมบูรณ์</div>
+                </div>
               </div>
             </div>
           </div>
