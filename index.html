@@ -1315,6 +1315,7 @@
       </button>
       <div id="loggedInUserArea" style="display:none; align-items:center; gap:0.5rem;">
         <span class="user-pill" id="currentUserBadge"></span>
+        <button type="button" class="btn btn-outline btn-sm" onclick="openUserProfileModal()" style="color:#ffffff; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.12); display:inline-flex; align-items:center; gap:0.35rem;" title="แก้ไขข้อมูลส่วนตัว / รหัสผ่าน / ลายเซ็น">👤 ข้อมูลส่วนตัว / ลายเซ็น</button>
         <button class="btn btn-danger btn-sm" onclick="handleLogout()">ออกจากระบบ</button>
       </div>
     </div>
@@ -2311,8 +2312,13 @@
     <aside class="sidebar">
       <div class="sidebar-section-title">เมนูเจ้าหน้าที่ (User)</div>
       <button class="nav-item active" id="userNavIssueBtn" data-user-tab="issue" onclick="switchUserTab('issue')">1. ออกใบเสร็จรับเงิน</button>
-      <button class="nav-item" data-user-tab="history" onclick="switchUserTab('history')">2. เรียกดู / พิมพ์ใบเสร็จย้อนหลัง</button>
+      <button class="nav-item" data-user-tab="history" onclick="switchUserTab('history')">2. ประวัติใบเสร็จย้อนหลัง (แก้ไข/พิมพ์/ดาวน์โหลด)</button>
       <button class="nav-item" id="userNavCancelBtn" data-user-tab="cancel" onclick="switchUserTab('cancel')">3. ยกเลิกใบเสร็จรับเงิน</button>
+      <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed var(--slate-200);">
+        <button type="button" class="nav-item" style="color:var(--primary-navy); font-weight:600; display:flex; align-items:center; gap:0.4rem;" onclick="openUserProfileModal()">
+          <span>👤 ข้อมูลส่วนตัวและลายเซ็น</span>
+        </button>
+      </div>
       <div id="backToAdminWrap" style="display:none; margin-top:auto; padding-top:1rem; border-top:1px solid var(--slate-200);">
         <button class="nav-item" style="color:var(--primary-blue);" onclick="switchBackToAdminPortal()">← กลับหน้าผู้ดูแลระบบ (Admin)</button>
       </div>
@@ -2328,7 +2334,10 @@
           </div>
           <div style="text-align:right;">
             <div style="font-size:0.84rem; color:var(--slate-500);">เจ้าหน้าที่ผู้ปฏิบัติงาน</div>
-            <div style="font-size:0.95rem; font-weight:700; color:var(--accent-green);" id="userStaffInfoBanner">-</div>
+            <div style="display:flex; align-items:center; justify-content:flex-end; gap:0.5rem;">
+              <div style="font-size:0.95rem; font-weight:700; color:var(--accent-green);" id="userStaffInfoBanner">-</div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="openUserProfileModal()" style="padding:0.2rem 0.55rem; font-size:0.75rem;">✏️ แก้ไขข้อมูล/ลายเซ็น</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2458,13 +2467,41 @@
             </div>
           </form>
         </div>
+
+        <!-- Recent History on Issue Page -->
+        <div class="panel-card" style="margin-top:1.25rem;">
+          <div class="panel-header">
+            <h3>ประวัติข้อมูลใบเสร็จรับเงินย้อนหลังล่าสุด (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="switchUserTab('history')">ดูประวัติทั้งหมดและค้นหา →</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>เวลา</th>
+                  <th>เล่มที่</th>
+                  <th>เลขที่</th>
+                  <th>ผู้ชำระ</th>
+                  <th>รายการ</th>
+                  <th class="text-right">จำนวนเงิน</th>
+                  <th>ช่องทางชำระ</th>
+                  <th>สถานะ</th>
+                  <th>ผู้ออก</th>
+                  <th class="text-center">จัดการ / พิมพ์ / ดาวน์โหลด</th>
+                </tr>
+              </thead>
+              <tbody id="userRecentIssueTableBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- USER TAB 2: RECEIPT HISTORY & REPRINT -->
       <div id="userTab_history" class="user-tab-pane" style="display:none;">
         <div class="panel-card">
           <div class="panel-header">
-            <h3>เรียกดูใบเสร็จย้อนหลัง / ดาวน์โหลด PDF / สั่งพิมพ์ใบเสร็จ</h3>
+            <h3>ประวัติข้อมูลใบเสร็จรับเงินย้อนหลัง (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
             <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูล</button>
           </div>
           <div class="grid-3" style="margin-bottom:0.9rem;">
@@ -2502,7 +2539,7 @@
                   <th>ช่องทางชำระ</th>
                   <th>สถานะ</th>
                   <th>ผู้ออก</th>
-                  <th class="text-center">พิมพ์ / ดาวน์โหลด</th>
+                  <th class="text-center">จัดการ / พิมพ์ / ดาวน์โหลด</th>
                 </tr>
               </thead>
               <tbody id="userHistoryTableBody"></tbody>
@@ -2605,7 +2642,7 @@
           <div class="form-group">
             <label class="form-label">สิทธิ์การปฏิบัติงาน *</label>
             <select id="modalUserPermission" class="form-select" onchange="toggleUserSignatureVisibility()">
-              <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ/พิมพ์/ยกเลิก)</option>
+              <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ / พิมพ์ / แก้ไขข้อมูลใบเสร็จย้อนหลังได้ / ยกเลิกตามสิทธิ์)</option>
               <option value="viewer">เจ้าหน้าที่เรียกดูอย่างเดียว (ดู/ดาวน์โหลด/พิมพ์ ห้ามเพิ่ม-ลบ-แก้ไข)</option>
               <option value="full">ผู้ดูแลระบบ (จัดการได้ทุกเมนู)</option>
             </select>
@@ -2672,6 +2709,115 @@
         <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
           <button type="button" class="btn btn-outline" onclick="closeUserModal()">ยกเลิก</button>
           <button type="submit" class="btn btn-primary">บันทึกข้อมูลผู้ใช้งาน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================== USER PROFILE & SIGNATURE MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="userProfileModal">
+    <div class="modal-box" style="max-width:580px;">
+      <div class="modal-header">
+        <h3>👤 ข้อมูลส่วนตัวและลายเซ็นของฉัน</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeUserProfileModal()">ปิด</button>
+      </div>
+      <form onsubmit="saveUserProfile(event)">
+        <div style="background:var(--primary-blue-light); border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 0.95rem; margin-bottom:1rem; font-size:0.84rem; color:var(--primary-navy); line-height:1.45;">
+          <strong>จัดการข้อมูลส่วนตัว & รหัสผ่าน:</strong> เมื่อคุณเปลี่ยนแปลงรหัสผ่าน ข้อมูลส่วนตัว หรืออัปโหลดลายเซ็น ระบบจะบันทึกและอัปเดตข้อมูลเชื่อมต่อไปยังหลังบ้านของ Admin และฐานข้อมูลกลางอัตโนมัติทันที
+        </div>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">ชื่อผู้ใช้งาน (Username) [กำหนดโดย Admin]</label>
+            <input type="text" id="userProfileUsername" class="form-control" readonly style="background:var(--slate-100); color:var(--slate-700); font-weight:600;" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">รหัสเจ้าหน้าที่ (Staff Code) [กำหนดโดย Admin]</label>
+            <input type="text" id="userProfileStaffCode" class="form-control" readonly style="background:var(--slate-100); color:var(--slate-700); font-weight:600;" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">ชื่อ-นามสกุลที่แสดง (Display Name) *</label>
+            <input type="text" id="userProfileDisplayName" class="form-control" placeholder="เช่น นางสาวรุ่งทิวา จินดา" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">ตำแหน่ง (แสดงท้ายใบเสร็จ บรรทัดที่ 1)</label>
+            <input type="text" id="userProfilePosition" class="form-control" placeholder="เช่น นักวิชาการเงินและบัญชีชำนาญการ" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">อีเมลติดต่อ (Email)</label>
+            <input type="email" id="userProfileEmail" class="form-control" placeholder="เช่น user@rmutsb.ac.th" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">รหัสผ่านเข้าใช้งาน (Password) *</label>
+            <div style="display:flex; gap:0.35rem;">
+              <input type="text" id="userProfilePassword" class="form-control" placeholder="กำหนดรหัสผ่านเข้าใช้งาน" required />
+              <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('userProfilePassword', this)">ซ่อน</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนอัปโหลดลายเซ็นของ User -->
+        <div style="border-top:1px solid var(--slate-200); padding-top:0.85rem; margin-top:0.5rem;">
+          <label class="form-label" style="font-weight:700; color:var(--primary-navy); margin-bottom:0.35rem;">
+            ✍️ ลายเซ็นอิเล็กทรอนิกส์ส่วนตัว (แสดงท้ายใบเสร็จแทนลายเซ็นกลาง)
+          </label>
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+            <label class="btn btn-outline btn-sm" style="margin:0; cursor:pointer;">
+              📁 อัปโหลดรูปภาพลายเซ็น (PNG/JPG)
+              <input type="file" id="userProfileSignatureFile" accept="image/png, image/jpeg" style="display:none;" onchange="handleUserProfileSignatureUpload(event)" />
+            </label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearUserProfileSignature()">ลบลายเซ็น</button>
+          </div>
+
+          <div id="userProfileSignaturePreview" style="margin-top:0.5rem; display:none;">
+            <p style="font-size:0.8rem; color:#555; margin-bottom:0.3rem;">ตัวอย่างลายเซ็นปัจจุบัน:</p>
+            <div style="display:flex; align-items:center; justify-content:center; min-height:85px; max-height:140px; border:1px solid #e5e7eb; border-radius:6px; padding:10px; background:#fff; overflow:hidden;">
+              <img id="userProfileSignaturePreviewImg" src="" alt="ลายเซ็น" style="max-height:80px; max-width:250px; object-fit:contain; mix-blend-mode:multiply; transition:transform 0.15s ease;" />
+            </div>
+
+            <div style="margin-top:0.75rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.6rem 0.8rem;">
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                <span style="font-weight:600; color:#334155;">ปรับขนาดรูปลายเซ็นบนใบเสร็จ:</span>
+                <strong id="userProfileSignatureScaleVal" style="color:var(--primary-blue); font-size:0.95rem;">100%</strong>
+              </label>
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 9px; font-weight:bold;" onclick="stepUserProfileSignatureScale(-10)" title="ลดขนาดลายเซ็น">-</button>
+                <input type="range" id="userProfileSignatureScale" min="40" max="250" step="5" value="100" style="flex:1; cursor:pointer;" oninput="updateUserProfileSignatureScalePreview(this.value)" />
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 9px; font-weight:bold;" onclick="stepUserProfileSignatureScale(10)" title="เพิ่มขนาดลายเซ็น">+</button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="updateUserProfileSignatureScalePreview(100)">100%</button>
+              </div>
+              <div style="font-size:0.75rem; color:#64748b; margin-top:0.3rem;">
+                * ปรับขนาดได้ตั้งแต่ 40% ถึง 250% โดยตำแหน่งข้อความอื่นๆ บนใบเสร็จ A5 จะไม่ขยับ
+              </div>
+
+              <!-- จำลองตำแหน่งบนเส้นประจริงท้ายใบเสร็จ -->
+              <div style="margin-top:0.6rem; background:#ffffff; border:1px dashed #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem;">
+                <div style="font-size:0.75rem; color:#64748b; margin-bottom:0.3rem; font-weight:600;">จำลองตำแหน่งบนเส้นประใบเสร็จจริง (ลายเซ็นติดเส้นประ ไม่ลอย ไม่บังตัวหนังสือ):</div>
+                <div style="max-width:290px; margin:0 auto; padding:4px 0; font-family:'Sarabun',sans-serif;">
+                  <div style="display:flex; align-items:flex-end; height:32px; position:relative;">
+                    <span style="font-size:11px; white-space:nowrap; margin-right:4px;">(ลงชื่อ)</span>
+                    <div style="flex:1; border-bottom:1px dotted #333; height:20px; position:relative; overflow:visible;">
+                      <img id="userProfileSignatureLinePreviewImg" src="" alt="ลายเซ็น" style="position:absolute; left:50%; bottom:-2px; transform:translateX(-50%); object-fit:contain; object-position:bottom center; mix-blend-mode:multiply; pointer-events:none; background:transparent;" />
+                    </div>
+                    <span style="font-size:11px; white-space:nowrap; margin-left:4px;">ผู้รับเงิน</span>
+                  </div>
+                  <div id="userProfileSignatureLinePreviewName" style="text-align:center; font-size:10.5px; color:#334155; margin-top:2px;">(ชื่อ-สกุล)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="userProfileSignatureDataUrl" value="" />
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+          <button type="button" class="btn btn-outline" onclick="closeUserProfileModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูลส่วนตัวและลายเซ็น</button>
         </div>
       </form>
     </div>
@@ -2754,11 +2900,11 @@
     </div>
   </div>
 
-  <!-- ======================== EDIT ISSUED RECEIPT MODAL (ADMIN) ======================== -->
+  <!-- ======================== EDIT ISSUED RECEIPT MODAL ======================== -->
   <div class="modal-backdrop no-print" id="receiptEditModal">
     <div class="modal-box" style="max-width:620px;">
       <div class="modal-header">
-        <h3>แก้ไขข้อมูลใบเสร็จรับเงิน (สำหรับผู้ดูแลระบบ)</h3>
+        <h3>แก้ไขข้อมูลใบเสร็จรับเงินย้อนหลัง</h3>
         <button type="button" class="btn btn-outline btn-sm" onclick="closeReceiptEditModal()">ปิด</button>
       </div>
       <form onsubmit="saveReceiptEditModal(event)">
@@ -4652,6 +4798,7 @@
       renderAdminEmailSettings();
       renderUserPortalBannersAndDropdowns();
       renderUserHistoryTable();
+      renderUserRecentReceiptsTable();
     }
 
     // ======================== ADMIN 1: DASHBOARD ========================
@@ -4752,7 +4899,7 @@
           ? "จัดการได้ทุกอย่าง (Admin)"
           : (u.permission_level === "viewer"
               ? "เรียกดู/ดาวน์โหลด/พิมพ์ (ห้ามเพิ่ม-ลบ-แก้ไข)"
-              : "ออกใบเสร็จ/พิมพ์/ยกเลิกตามสิทธิ์");
+              : "ออกใบเสร็จ/พิมพ์/แก้ไขข้อมูลใบเสร็จย้อนหลังได้/ยกเลิกตามสิทธิ์");
 
         const isShown = Boolean(visiblePasswordMap[u.user_id]);
         const rawPass = u.password || (u.role === "admin" ? "admin1234" : "123456");
@@ -5214,6 +5361,202 @@
         });
         renderAdminEmailSettings();
       }
+    }
+
+    // ======================== USER SELF-SERVICE PROFILE & SIGNATURE ========================
+    function openUserProfileModal() {
+      if (!currentUser) {
+        showToast("กรุณาเข้าสู่ระบบก่อนดำเนินการ", true);
+        return;
+      }
+      const user = (appState.users || []).find(u => (currentUser.user_id && u.user_id === currentUser.user_id) || (currentUser.username && u.username === currentUser.username)) || currentUser;
+
+      document.getElementById("userProfileUsername").value = user.username || "";
+      document.getElementById("userProfileStaffCode").value = user.staff_code || "-";
+      document.getElementById("userProfileDisplayName").value = user.display_name || "";
+      document.getElementById("userProfilePosition").value = user.position || "";
+      document.getElementById("userProfileEmail").value = user.email || "";
+      document.getElementById("userProfilePassword").value = user.password || "";
+
+      const sigUrl = user.signatureDataUrl || "";
+      const sigScale = user.signatureScale || 100;
+      document.getElementById("userProfileSignatureDataUrl").value = sigUrl;
+      document.getElementById("userProfileSignatureScale").value = sigScale;
+
+      const previewBox = document.getElementById("userProfileSignaturePreview");
+      const previewImg = document.getElementById("userProfileSignaturePreviewImg");
+      const lineImg = document.getElementById("userProfileSignatureLinePreviewImg");
+
+      if (sigUrl) {
+        cleanAndTrimSignature(sigUrl, (cleanUrl) => {
+          const finalUrl = cleanUrl || sigUrl;
+          if (previewImg) previewImg.src = finalUrl;
+          if (lineImg) lineImg.src = finalUrl;
+          if (previewBox) previewBox.style.display = "block";
+          updateUserProfileSignatureScalePreview(sigScale);
+        });
+      } else {
+        if (previewImg) previewImg.src = "";
+        if (lineImg) lineImg.src = "";
+        if (previewBox) previewBox.style.display = "none";
+        updateUserProfileSignatureScalePreview(100);
+      }
+
+      document.getElementById("userProfileModal").classList.add("open");
+    }
+
+    function closeUserProfileModal() {
+      document.getElementById("userProfileModal").classList.remove("open");
+    }
+
+    function handleUserProfileSignatureUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const rawDataUrl = ev.target.result;
+        cleanAndTrimSignature(rawDataUrl, (cleanDataUrl) => {
+          const finalUrl = cleanDataUrl || rawDataUrl;
+          document.getElementById("userProfileSignatureDataUrl").value = finalUrl;
+          const previewImg = document.getElementById("userProfileSignaturePreviewImg");
+          if (previewImg) previewImg.src = finalUrl;
+          const lineImg = document.getElementById("userProfileSignatureLinePreviewImg");
+          if (lineImg) lineImg.src = finalUrl;
+          document.getElementById("userProfileSignaturePreview").style.display = "block";
+          const curScale = parseInt(document.getElementById("userProfileSignatureScale").value, 10) || 100;
+          updateUserProfileSignatureScalePreview(curScale);
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateUserProfileSignatureScalePreview(val) {
+      val = Math.max(40, Math.min(250, parseInt(val, 10) || 100));
+      const rangeEl = document.getElementById("userProfileSignatureScale");
+      if (rangeEl) rangeEl.value = val;
+      const valEl = document.getElementById("userProfileSignatureScaleVal");
+      if (valEl) valEl.textContent = val + "%";
+      const previewImg = document.getElementById("userProfileSignaturePreviewImg");
+      if (previewImg) {
+        previewImg.style.transform = `scale(${val / 100})`;
+      }
+      const lineImg = document.getElementById("userProfileSignatureLinePreviewImg");
+      if (lineImg) {
+        const baseH = 26; // px
+        const baseW = 105; // px
+        const h = Math.round(baseH * (val / 100));
+        const w = Math.round(baseW * (val / 100));
+        lineImg.style.height = h + "px";
+        lineImg.style.maxWidth = w + "px";
+      }
+      const lineName = document.getElementById("userProfileSignatureLinePreviewName");
+      if (lineName) {
+        const dispName = document.getElementById("userProfileDisplayName")?.value.trim();
+        lineName.textContent = dispName ? `(${dispName})` : "(ชื่อ-สกุล)";
+      }
+    }
+
+    function stepUserProfileSignatureScale(delta) {
+      const cur = parseInt(document.getElementById("userProfileSignatureScale").value, 10) || 100;
+      updateUserProfileSignatureScalePreview(cur + delta);
+    }
+
+    function clearUserProfileSignature() {
+      document.getElementById("userProfileSignatureDataUrl").value = "";
+      const previewImg = document.getElementById("userProfileSignaturePreviewImg");
+      if (previewImg) previewImg.src = "";
+      const lineImg = document.getElementById("userProfileSignatureLinePreviewImg");
+      if (lineImg) lineImg.src = "";
+      document.getElementById("userProfileSignaturePreview").style.display = "none";
+      const fileInput = document.getElementById("userProfileSignatureFile");
+      if (fileInput) fileInput.value = "";
+      updateUserProfileSignatureScalePreview(100);
+      showToast("ลบลายเซ็นส่วนบุคคลเรียบร้อยแล้ว");
+    }
+
+    async function saveUserProfile(event) {
+      event.preventDefault();
+      if (!currentUser) return;
+
+      const newPassword = document.getElementById("userProfilePassword").value.trim();
+      const newDisplayName = document.getElementById("userProfileDisplayName").value.trim();
+      const newPosition = document.getElementById("userProfilePosition").value.trim();
+      const newEmail = document.getElementById("userProfileEmail").value.trim();
+      const signatureDataUrl = document.getElementById("userProfileSignatureDataUrl").value || "";
+      const signatureScale = parseInt(document.getElementById("userProfileSignatureScale").value, 10) || 100;
+
+      if (!newPassword) {
+        showToast("กรุณากรอกรหัสผ่านเข้าใช้งาน", true);
+        return;
+      }
+      if (!newDisplayName) {
+        showToast("กรุณากรอกชื่อ-นามสกุล", true);
+        return;
+      }
+
+      const users = [...(appState.users || [])];
+      const idx = users.findIndex(u => (currentUser.user_id && u.user_id === currentUser.user_id) || (currentUser.username && u.username === currentUser.username));
+
+      const profileUpdate = {
+        password: newPassword,
+        display_name: newDisplayName,
+        position: newPosition,
+        email: newEmail,
+        signatureDataUrl: signatureDataUrl,
+        signatureScale: signatureScale,
+        updated_at: new Date().toISOString()
+      };
+
+      let updatedUser;
+      if (idx >= 0) {
+        users[idx] = Object.assign({}, users[idx], profileUpdate);
+        updatedUser = users[idx];
+      } else {
+        updatedUser = Object.assign({}, currentUser, profileUpdate);
+        users.push(updatedUser);
+      }
+
+      if (updatedUser.role === "admin" && idx === 0) {
+        appState.admin = Object.assign({}, appState.admin, {
+          adminPassword: newPassword
+        });
+      }
+
+      currentUser = Object.assign({}, currentUser, updatedUser);
+      safeSetItem("rmutsb_active_user_session", JSON.stringify({
+        user: currentUser,
+        portal: currentUser.role === "admin" ? "admin" : "user"
+      }));
+
+      appState.users = users;
+      closeUserProfileModal();
+
+      renderAdminUsersTable();
+      refreshAllVisibleViewsPreservingForms();
+
+      await persistAppState();
+
+      if (isSupabaseMode() && supabaseClient) {
+        try {
+          await supabaseClient.from("profiles").upsert({
+            user_id: updatedUser.user_id,
+            username: updatedUser.username,
+            password: updatedUser.password,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            permission_level: updatedUser.permission_level,
+            display_name: updatedUser.display_name,
+            staff_code: updatedUser.staff_code,
+            position: updatedUser.position,
+            active: updatedUser.active !== false,
+            updated_at: updatedUser.updated_at
+          });
+        } catch (e) {
+          console.warn("Supabase profiles update warning:", e);
+        }
+      }
+
+      showToast("บันทึกการแก้ไขข้อมูลส่วนตัวและลายเซ็นเรียบร้อยแล้ว ข้อมูลในระบบได้รับการอัปเดตอัตโนมัติ");
     }
 
     async function toggleUserActiveStatus(userId) {
@@ -7478,6 +7821,62 @@ ${loginUrl}
               ${isViewerOnly ? `
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
               ` : `
+                <button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>
+                <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
+                <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
+              `}
+              ${canCancel && !isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderUserRecentReceiptsTable() {
+      const tbody = document.getElementById("userRecentIssueTableBody");
+      if (!tbody) return;
+
+      const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
+      const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+      const receipts = (appState.receipts || []).slice(0, 10);
+
+      if (receipts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = receipts.map(r => {
+        const itemsSummary = (r.items || []).map(it => `${escapeHtml(it.paymentItem)} (${formatMoney(it.amount, true)})`).join(", ");
+        const isCancelled = r.status === "ยกเลิก";
+        return `
+          <tr>
+            <td>${escapeHtml(formatThaiDateShortReport(r.date))}</td>
+            <td>${escapeHtml(r.time || "-")}</td>
+            <td><strong>${escapeHtml(r.bookNo)}</strong></td>
+            <td><strong>${escapeHtml(r.no)}</strong></td>
+            <td>${escapeHtml(r.payerFullName)}</td>
+            <td>${itemsSummary}</td>
+            <td class="text-right"><strong>${formatMoney(r.totalAmount, true)}</strong></td>
+            <td>
+              <div><strong>${escapeHtml(r.paymentMethod || "เงินสด")}</strong></div>
+              ${r.paymentMethod === "เงินโอน" ? `
+                <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
+                  ${r.universityBank ? `<div>โอนเข้า: ${escapeHtml(r.universityBank)}</div>` : ""}
+                  <div>${escapeHtml(formatTransferDateThai(r.transferDate || r.date))}</div>
+                  <div>เวลา: ${r.transferTime ? `${escapeHtml(r.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
+                </div>
+              ` : ""}
+            </td>
+            <td>
+              <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
+              ${r.cancelReason ? `<div style="font-size:0.75rem; color:#991b1b;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
+            </td>
+            <td>${escapeHtml(r.issuerName || "-")}</td>
+            <td class="text-center" style="white-space:nowrap;">
+              ${isViewerOnly ? `
+                <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
+              ` : `
+                <button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
                 <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
               `}
@@ -7779,13 +8178,14 @@ ${loginUrl}
                 <span class="receipt-sign-label-short">(ลงชื่อ)</span>
                 <span class="receipt-sign-fill">
                   ${(() => {
-                    const sigUrl = r.issuerSignatureDataUrl || (office.showSignature !== false && (office.customSignatureDataUrl || EMBEDDED_ASSETS.signature)) || "";
-                    if (!sigUrl) return "";
-                    let userScale = null;
+                    let userObj = null;
                     if (r.issuerStaffCode || r.issuerName) {
-                      const u = (appState.users || []).find(x => (r.issuerStaffCode && x.staff_code === r.issuerStaffCode) || (r.issuerName && x.display_name === r.issuerName));
-                      if (u && u.signatureScale) userScale = u.signatureScale;
+                      userObj = (appState.users || []).find(x => (r.issuerStaffCode && x.staff_code === r.issuerStaffCode) || (r.issuerName && x.display_name === r.issuerName));
                     }
+                    const userSigUrl = userObj && userObj.signatureDataUrl;
+                    const sigUrl = r.issuerSignatureDataUrl || userSigUrl || (office.showSignature !== false && (office.customSignatureDataUrl || EMBEDDED_ASSETS.signature)) || "";
+                    if (!sigUrl) return "";
+                    let userScale = userObj && userObj.signatureScale;
                     const scale = r.issuerSignatureScale || userScale || (currentUser && currentUser.signatureScale) || (office && office.signatureScale) || 100;
                     const h = (8.8 * (scale / 100)).toFixed(2);
                     const w = (36 * (scale / 100)).toFixed(2);
@@ -7812,7 +8212,7 @@ ${loginUrl}
                 <span class="receipt-notes-title">หมายเหตุ</span>
                 <div class="receipt-notes-list">
                   <div>1. มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ ได้ปฏิบัติตามหนังสือกระทรวงการคลัง ด่วนที่สุด ที่ กค 0402.2/ว39<br><span style="white-space:nowrap;">ลว. 6 มี.ค. 2567</span> เรื่อง แบบใบเสร็จรับเงินอิเล็กทรอนิกส์ของส่วนราชการ (e-Government Receipt)</div>
-                  <div>2. เอกสารฉบับนี้ต้องมีลายเซ็นของผู้รับเงินถึงจะถือว่าสมบูรณ์</div>
+                  <div>2. เอกสารฉบับนี้ต้องมีลายเซ็นอิเล็กทรอนิกส์ของผู้รับเงินจึงจะถือว่าสมบูรณ์</div>
                 </div>
               </div>
             </div>
