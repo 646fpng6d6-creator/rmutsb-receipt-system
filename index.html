@@ -2723,17 +2723,19 @@
       </div>
       <form onsubmit="saveUserProfile(event)">
         <div style="background:var(--primary-blue-light); border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 0.95rem; margin-bottom:1rem; font-size:0.84rem; color:var(--primary-navy); line-height:1.45;">
-          <strong>จัดการข้อมูลส่วนตัว & รหัสผ่าน:</strong> เมื่อคุณเปลี่ยนแปลงรหัสผ่าน ข้อมูลส่วนตัว หรืออัปโหลดลายเซ็น ระบบจะบันทึกและอัปเดตข้อมูลเชื่อมต่อไปยังหลังบ้านของ Admin และฐานข้อมูลกลางอัตโนมัติทันที
+          <strong>จัดการข้อมูลส่วนตัว & รหัสผ่าน:</strong> คุณสามารถแก้ไขชื่อผู้ใช้งาน (Username), รหัสผ่านเข้าใช้งาน (Password) และข้อมูลส่วนตัวหรืออัปโหลดลายเซ็นของตนเองได้ที่นี่ โดยระบบจะบันทึกและอัปเดตข้อมูลเชื่อมต่อไปยังหลังบ้านของผู้ดูแลระบบ (Admin) และฐานข้อมูลกลางให้โดยอัตโนมัติ
         </div>
         
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">ชื่อผู้ใช้งาน (Username) [กำหนดโดย Admin]</label>
-            <input type="text" id="userProfileUsername" class="form-control" readonly style="background:var(--slate-100); color:var(--slate-700); font-weight:600;" />
+            <label class="form-label">ชื่อผู้ใช้งานสำหรับเข้าสู่ระบบ (Username) *</label>
+            <input type="text" id="userProfileUsername" class="form-control" placeholder="เช่น user01, somchai" required autocomplete="username" />
+            <div style="font-size:0.75rem; color:var(--slate-500); margin-top:2px;">* สามารถเปลี่ยน Username ได้ (ระบบจะอัปเดตไปยังระบบ Admin อัตโนมัติ)</div>
           </div>
           <div class="form-group">
-            <label class="form-label">รหัสเจ้าหน้าที่ (Staff Code) [กำหนดโดย Admin]</label>
+            <label class="form-label">รหัสเจ้าหน้าที่ (Staff Code) [ระบบกำหนด]</label>
             <input type="text" id="userProfileStaffCode" class="form-control" readonly style="background:var(--slate-100); color:var(--slate-700); font-weight:600;" />
+            <div style="font-size:0.75rem; color:var(--slate-500); margin-top:2px;">รหัสประจำตัวอ้างอิงของเจ้าหน้าที่</div>
           </div>
         </div>
 
@@ -5478,6 +5480,7 @@
       event.preventDefault();
       if (!currentUser) return;
 
+      const newUsername = document.getElementById("userProfileUsername").value.trim();
       const newPassword = document.getElementById("userProfilePassword").value.trim();
       const newDisplayName = document.getElementById("userProfileDisplayName").value.trim();
       const newPosition = document.getElementById("userProfilePosition").value.trim();
@@ -5485,6 +5488,10 @@
       const signatureDataUrl = document.getElementById("userProfileSignatureDataUrl").value || "";
       const signatureScale = parseInt(document.getElementById("userProfileSignatureScale").value, 10) || 100;
 
+      if (!newUsername) {
+        showToast("กรุณากรอกชื่อผู้ใช้งาน (Username)", true);
+        return;
+      }
       if (!newPassword) {
         showToast("กรุณากรอกรหัสผ่านเข้าใช้งาน", true);
         return;
@@ -5495,9 +5502,22 @@
       }
 
       const users = [...(appState.users || [])];
-      const idx = users.findIndex(u => (currentUser.user_id && u.user_id === currentUser.user_id) || (currentUser.username && u.username === currentUser.username));
+      const targetUserId = currentUser.user_id || currentUser.staff_code;
+      const idx = users.findIndex(u => (targetUserId && (u.user_id === targetUserId || u.staff_code === targetUserId)) || (currentUser.username && u.username === currentUser.username));
+
+      // ตรวจสอบชื่อผู้ใช้งานซ้ำกับบัญชีอื่นในระบบหรือไม่
+      const duplicateUser = users.find(u => {
+        const otherId = u.user_id || u.staff_code;
+        const currentId = (idx >= 0 && (users[idx].user_id || users[idx].staff_code)) || targetUserId;
+        return otherId !== currentId && (u.username || "").toLowerCase() === newUsername.toLowerCase();
+      });
+      if (duplicateUser) {
+        showToast(`ชื่อผู้ใช้งาน (Username) "${newUsername}" มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น`, true);
+        return;
+      }
 
       const profileUpdate = {
+        username: newUsername,
         password: newPassword,
         display_name: newDisplayName,
         position: newPosition,
@@ -5518,6 +5538,7 @@
 
       if (updatedUser.role === "admin" && idx === 0) {
         appState.admin = Object.assign({}, appState.admin, {
+          adminUsername: newUsername,
           adminPassword: newPassword
         });
       }
@@ -5527,6 +5548,21 @@
         user: currentUser,
         portal: currentUser.role === "admin" ? "admin" : "user"
       }));
+
+      // อัปเดตการแสดงผลป้ายผู้ใช้บนแถบเมนูด้านบน (Top Navbar Badge)
+      const roleLabel = currentUser.role === "admin"
+        ? "Admin"
+        : (currentUser.permission_level === "viewer" ? "เจ้าหน้าที่ (ดู/พิมพ์)" : "เจ้าหน้าที่ (ออกใบเสร็จ)");
+      const badgeEl = document.getElementById("currentUserBadge");
+      if (badgeEl) {
+        badgeEl.textContent = `${currentUser.display_name} (${currentUser.username || currentUser.staff_code || roleLabel})`;
+      }
+
+      // อัปเดตข้อมูลเจ้าหน้าที่บนแบนเนอร์หน้าระบบ User
+      const staffBanner = document.getElementById("userStaffInfoBanner");
+      if (staffBanner) {
+        staffBanner.textContent = `${currentUser.display_name} (${currentUser.position || "เจ้าหน้าที่การเงิน"})`;
+      }
 
       appState.users = users;
       closeUserProfileModal();
@@ -5556,7 +5592,7 @@
         }
       }
 
-      showToast("บันทึกการแก้ไขข้อมูลส่วนตัวและลายเซ็นเรียบร้อยแล้ว ข้อมูลในระบบได้รับการอัปเดตอัตโนมัติ");
+      showToast(`บันทึกการแก้ไขข้อมูลสำเร็จ (Username: ${newUsername}) ข้อมูลในระบบ Admin ได้รับการอัปเดตอัตโนมัติแล้ว`);
     }
 
     async function toggleUserActiveStatus(userId) {
