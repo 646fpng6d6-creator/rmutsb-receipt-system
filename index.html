@@ -1479,7 +1479,7 @@
       </div>
       <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
         <button type="button" class="btn btn-outline" onclick="closeSqlSchemaHelperModal()">ปิด</button>
-        <a href="https://supabase.com/dashboard/project/vuhihimohaheveiwfyyb/sql/new" target="_blank" class="btn btn-success">เปิดหน้า Supabase SQL Editor ↗</a>
+        <a href="https://supabase.com/dashboard/project/qrjkcsadqinujtpnsdvi/sql/new" target="_blank" class="btn btn-success">เปิดหน้า Supabase SQL Editor ↗</a>
       </div>
     </div>
   </div>
@@ -1513,7 +1513,7 @@
         <button type="button" class="btn btn-outline" onclick="closeSupabaseFailedToFetchModal()">ปิดหน้าต่างนี้</button>
         <div style="display:flex; gap:0.5rem;">
           <button type="button" class="btn btn-primary" onclick="closeSupabaseFailedToFetchModal(); openDirectDataTransferModal();">🔄 ถ่ายโอน/สำรองข้อมูล</button>
-          <a href="https://supabase.com/dashboard/project/vuhihimohaheveiwfyyb" target="_blank" class="btn btn-success" style="display:inline-flex; align-items:center; gap:0.35rem;">
+          <a href="https://supabase.com/dashboard/project/qrjkcsadqinujtpnsdvi" target="_blank" class="btn btn-success" style="display:inline-flex; align-items:center; gap:0.35rem;">
             🚀 เปิดหน้า Supabase Dashboard เพื่อกด Restore ↗
           </a>
         </div>
@@ -1559,7 +1559,7 @@
         <button type="button" class="btn btn-outline" onclick="closeSupabaseQuotaExceededModal()">ปิดหน้าต่างนี้</button>
         <div style="display:flex; gap:0.5rem;">
           <button type="button" class="btn btn-primary" onclick="closeSupabaseQuotaExceededModal(); openDirectDataTransferModal();">🔄 สำรอง/ถ่ายโอนข้อมูล (JSON)</button>
-          <a href="https://supabase.com/dashboard/project/vuhihimohaheveiwfyyb" target="_blank" class="btn btn-success" style="display:inline-flex; align-items:center; gap:0.35rem;">
+          <a href="https://supabase.com/dashboard/project/qrjkcsadqinujtpnsdvi" target="_blank" class="btn btn-success" style="display:inline-flex; align-items:center; gap:0.35rem;">
             เปิดหน้า Supabase Dashboard ↗
           </a>
         </div>
@@ -3229,15 +3229,25 @@
 
     // Ensure RMUTSB_SUPABASE_CONFIG exists even if supabase-config.js was not loaded externally
     if (!window.RMUTSB_SUPABASE_CONFIG) {
+      const defUrl = "https://qrjkcsadqinujtpnsdvi.supabase.co";
+      const defKey = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
+      let u = safeGetItem("rmutsb_supabase_url");
+      let k = safeGetItem("rmutsb_supabase_anon_key");
+      if (!u || u.includes("vuhihimohaheveiwfyyb") || !k || k.includes("UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg") || k.includes("k3Y5miInDeiBdVhYrnG4")) {
+        u = defUrl;
+        k = defKey;
+        safeSetItem("rmutsb_supabase_url", u);
+        safeSetItem("rmutsb_supabase_anon_key", k);
+      }
       window.RMUTSB_SUPABASE_CONFIG = {
-        url: safeGetItem("rmutsb_supabase_url") || "",
-        anonKey: safeGetItem("rmutsb_supabase_anon_key") || "",
-        pollingIntervalMs: 3000,
+        url: (u || "").trim().replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, ""),
+        anonKey: (k || "").trim(),
+        pollingIntervalMs: 15000,
         isConfigured: function () {
           return Boolean(this.url && this.anonKey && this.url.startsWith("http"));
         },
         saveConfig: function (u, k) {
-          this.url = (u || "").trim().replace(/\/+$/, "");
+          this.url = (u || "").trim().replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
           this.anonKey = (k || "").trim();
           safeSetItem("rmutsb_supabase_url", this.url);
           safeSetItem("rmutsb_supabase_anon_key", this.anonKey);
@@ -3245,8 +3255,8 @@
         clearConfig: function () {
           safeRemoveItem("rmutsb_supabase_url");
           safeRemoveItem("rmutsb_supabase_anon_key");
-          this.url = "";
-          this.anonKey = "";
+          this.url = defUrl;
+          this.anonKey = defKey;
         }
       };
     }
@@ -4109,7 +4119,7 @@
 
             lastAttemptErr = testErr;
             // ตาราง app_state ยังไม่มี → เชื่อมต่อ API สำเร็จแต่ต้องรัน SQL ก่อน
-            if (testErr.code === "42P01" || (testErr.message && testErr.message.includes("relation") && testErr.message.includes("does not exist"))) {
+            if (testErr.code === "42P01" || testErr.code === "PGRST205" || (testErr.message && (testErr.message.includes("relation") || testErr.message.includes("does not exist") || testErr.message.includes("Could not find the table")))) {
               supabaseClient = client;
               cfg.anonKey = tryKey;
               if (cfg.markWorkingKey) cfg.markWorkingKey(tryKey);
@@ -8616,8 +8626,8 @@ create policy "Allow public read write profiles"
           } catch (err) {
             console.error("Sync to cloud error:", err);
             const errMsg = String((err && (err.message || err)) || "");
-            if (err.code === "42P01" || (errMsg.includes("app_state") && errMsg.includes("does not exist"))) {
-              showToast("ยังไม่ได้สร้างตารางบน Supabase กรุณารัน SQL ก่อน (ดูคำสั่งในหน้าถัดไป)", true);
+            if (err.code === "42P01" || err.code === "PGRST205" || (errMsg.includes("app_state") && (errMsg.includes("does not exist") || errMsg.includes("not find") || errMsg.includes("schema cache")))) {
+              showToast("ยังไม่ได้สร้างตารางบน Supabase กรุณารัน SQL ก่อน (เปิดหน้าต่างคำสั่งให้แล้ว)", true);
               openSqlSchemaHelperModal();
             } else if (errMsg.includes("exceed_egress_quota") || err.status === 402 || errMsg.includes("spend caps") || errMsg.includes("Egress Quota")) {
               showToast("Supabase เกินโควต้าปริมาณข้อมูล Egress (5 GB) ของแพ็กเกจฟรีแล้ว", true);

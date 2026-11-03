@@ -10,16 +10,19 @@
  * ทุกเครื่องจะใช้ฐานข้อมูลเดียวกันโดยไม่ต้องตั้งค่าใดๆ เพิ่มเติม
  */
 
-const DEFAULT_SUPABASE_URL = "https://vuhihimohaheveiwfyyb.supabase.co";
+const DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
 
-// คีย์ Anon Key (Legacy JWT Key) ที่ตรวจสอบและยืนยันการเชื่อมต่อกับ Supabase แล้ว
-const WORKING_SUPABASE_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1aGloaW1vaGFoZXZlaXdmeXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjA3NTMsImV4cCI6MjEwNzc5Njc1M30.UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg";
+// คีย์ Anon Key สำหรับโปรเจกต์ใหม่ (โควต้าเต็ม 5 GB ใหม่)
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
 
 const SUPABASE_KEY_CANDIDATES = [
-  WORKING_SUPABASE_JWT_KEY,
-  "sb_publishable_k3Y5miInDeiBdVhYrnG4I3g_Uq_pHXJv",
-  "sb_publishable_k3Y5miInDeiBdVhYrnG413g_Uq_pHXJv"
+  DEFAULT_SUPABASE_ANON_KEY
 ];
+
+function cleanSupabaseUrl(u) {
+  if (!u) return "";
+  return u.trim().replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
+}
 
 (function initRMUTSBSupabaseConfig() {
   function getSaved(k) {
@@ -32,16 +35,19 @@ const SUPABASE_KEY_CANDIDATES = [
     try { localStorage.removeItem(k); } catch (e) {}
   }
 
-  const savedUrl = getSaved("rmutsb_supabase_url") || DEFAULT_SUPABASE_URL;
-  let savedKey = getSaved("rmutsb_supabase_anon_key");
-  // หากมีคีย์เดิมที่ขึ้นต้นด้วย sb_publishable_ หรือไม่มี ให้สลับมาใช้คีย์ JWT ที่ใช้งานได้จริงทันที
-  if (!savedKey || savedKey.startsWith("sb_publishable_")) {
-    savedKey = WORKING_SUPABASE_JWT_KEY;
+  let savedUrl = cleanSupabaseUrl(getSaved("rmutsb_supabase_url"));
+  let savedKey = (getSaved("rmutsb_supabase_anon_key") || "").trim();
+
+  // หากเป็น URL หรือ Key ของโปรเจกต์เดิมที่โควต้าเต็ม (vuhihimohaheveiwfyyb) หรือยังไม่มี ให้อัปเกรดเป็นโปรเจกต์ใหม่ทันที
+  if (!savedUrl || savedUrl.includes("vuhihimohaheveiwfyyb") || !savedKey || savedKey.includes("UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg") || savedKey.includes("k3Y5miInDeiBdVhYrnG4")) {
+    savedUrl = DEFAULT_SUPABASE_URL;
+    savedKey = DEFAULT_SUPABASE_ANON_KEY;
+    setSaved("rmutsb_supabase_url", savedUrl);
     setSaved("rmutsb_supabase_anon_key", savedKey);
   }
 
   window.RMUTSB_SUPABASE_CONFIG = {
-    url: savedUrl.trim(),
+    url: cleanSupabaseUrl(savedUrl),
     anonKey: savedKey.trim(),
     keyCandidates: SUPABASE_KEY_CANDIDATES,
     pollingIntervalMs: 15000,
@@ -49,7 +55,7 @@ const SUPABASE_KEY_CANDIDATES = [
       return Boolean(this.url && this.anonKey && this.url.startsWith("http"));
     },
     saveConfig: function (newUrl, newAnonKey) {
-      const cleanUrl = (newUrl || "").trim().replace(/\/+$/, "");
+      const cleanUrl = cleanSupabaseUrl(newUrl);
       const cleanKey = (newAnonKey || "").trim();
       setSaved("rmutsb_supabase_url", cleanUrl);
       setSaved("rmutsb_supabase_anon_key", cleanKey);
