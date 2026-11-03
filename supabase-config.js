@@ -44,7 +44,7 @@ const SUPABASE_KEY_CANDIDATES = [
     url: savedUrl.trim(),
     anonKey: savedKey.trim(),
     keyCandidates: SUPABASE_KEY_CANDIDATES,
-    pollingIntervalMs: 1500,
+    pollingIntervalMs: 15000,
     isConfigured: function () {
       return Boolean(this.url && this.anonKey && this.url.startsWith("http"));
     },
