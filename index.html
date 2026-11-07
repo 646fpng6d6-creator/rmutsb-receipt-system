@@ -4274,6 +4274,31 @@
       setTimeout(() => el.remove(), 4000);
     }
 
+function sortReceiptsNewestFirst(list) {
+      if (!Array.isArray(list)) return [];
+      return list.slice().sort((a, b) => {
+        // 1. วันที่ล่าสุดขึ้นก่อน (Newest Date First e.g. 2026-11-06 > 2026-10-29)
+        const dateA = a.date || "";
+        const dateB = b.date || "";
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
+
+        // 2. เวลาล่าสุดขึ้นก่อน (Newest Time First e.g. 19:55 > 08:30)
+        const timeA = a.time || "";
+        const timeB = b.time || "";
+        if (timeA !== timeB) return timeB.localeCompare(timeA);
+
+        // 3. เล่มที่ล่าสุดขึ้นก่อน (e.g. RUS70001 > AN704001)
+        const bookA = String(a.bookNo || "");
+        const bookB = String(b.bookNo || "");
+        if (bookA !== bookB) return bookB.localeCompare(bookA);
+
+        // 4. เลขที่ใบเสร็จมากสุด (ออกล่าสุด) ขึ้นก่อน (e.g. 0200 > 0001)
+        const noA = parseInt(String(a.no || "0").replace(/\D/g, ""), 10) || 0;
+        const noB = parseInt(String(b.no || "0").replace(/\D/g, ""), 10) || 0;
+        return noB - noA;
+      });
+    }
+
     // ======================== SUPABASE & FALLBACK INITIALIZATION ========================
     const BUILTIN_DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
     const BUILTIN_DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
@@ -5214,7 +5239,7 @@
 
       const tbody = document.getElementById("dashboardRecentBody");
       if (!tbody) return;
-      const recent = receipts.slice(0, 15);
+      const recent = sortReceiptsNewestFirst(receipts).slice(0, 15);
 
       if (recent.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="color:var(--slate-500); padding:1.5rem;">ยังไม่มีรายการใบเสร็จรับเงินในระบบ</td></tr>`;
@@ -7373,20 +7398,14 @@ ${loginUrl}
       });
 
       // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จล่าสุดขึ้นก่อน (Newest First)
-      filtered.sort((a, b) => {
-        const dateA = (a.date || "") + " " + (a.time || "");
-        const dateB = (b.date || "") + " " + (b.time || "");
-        const cmp = dateB.localeCompare(dateA);
-        if (cmp !== 0) return cmp;
-        return (Number(b.no) || 0) - (Number(a.no) || 0);
-      });
+      const sortedFiltered = sortReceiptsNewestFirst(filtered);
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบข้อมูลใบเสร็จรับเงินตามเงื่อนไขที่ค้นหา</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = filtered.map(r => {
+      tbody.innerHTML = sortedFiltered.map(r => {
         const itemsHtml = (r.items || []).map(it =>
           `<div>• ${escapeHtml(it.paymentItem)} ${it.projectName && it.projectName !== 'ไม่ระบุโครงการ' ? `<span style="color:var(--slate-500);">(${escapeHtml(it.projectName)})</span>` : ''}: <strong>${formatMoney(it.amount, true)}</strong></div>`
         ).join("");
@@ -7506,7 +7525,7 @@ ${loginUrl}
       let netAmountNormal = 0;
       let matchedReceiptsCount = 0;
 
-      (appState.receipts || []).forEach(r => {
+      sortReceiptsNewestFirst(appState.receipts || []).forEach(r => {
         if (bookFilter && r.bookNo !== bookFilter) return;
         if (statusFilter && (r.status || "ปกติ") !== statusFilter) return;
         if (dateFrom && r.date < dateFrom) return;
@@ -8744,12 +8763,14 @@ ${loginUrl}
         return true;
       });
 
-      if (list.length === 0) {
+      const sortedList = sortReceiptsNewestFirst(list);
+
+      if (sortedList.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบรายการใบเสร็จรับเงิน</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = list.map(r => {
+      tbody.innerHTML = sortedList.map(r => {
         const itemsSummary = (r.items || []).map(it => `${escapeHtml(it.paymentItem)} (${formatMoney(it.amount, true)})`).join(", ");
         const isCancelled = r.status === "ยกเลิก";
         return `
@@ -8798,14 +8819,7 @@ ${loginUrl}
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
       // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จที่ออกล่าสุดขึ้นก่อน (Newest First)
-      const sorted = (appState.receipts || []).slice().sort((a, b) => {
-        const dateA = (a.date || "") + " " + (a.time || "");
-        const dateB = (b.date || "") + " " + (b.time || "");
-        const cmp = dateB.localeCompare(dateA);
-        if (cmp !== 0) return cmp;
-        return (Number(b.no) || 0) - (Number(a.no) || 0);
-      });
-      const receipts = sorted.slice(0, 15);
+      const receipts = sortReceiptsNewestFirst(appState.receipts || []).slice(0, 15);
 
       if (receipts.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
