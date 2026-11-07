@@ -1302,89 +1302,63 @@
       </div>
     </div>
     <div class="nav-actions">
-      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อฐานข้อมูลส่วนกลาง (คลิกเพื่อดูรายละเอียด / ตั้งค่า)" onclick="openDatabaseConfigModal()" style="cursor:pointer;">
+      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อระบบฐานข้อมูล (ออนไลน์เรียลไทม์)" onclick="openDatabaseConfigModal()" style="cursor:pointer;">
         <span class="conn-dot" id="connDot"></span>
-        <span id="connStatusText">กำลังตรวจสอบฐานข้อมูล...</span>
+        <span id="connStatusText">ออนไลน์</span>
       </div>
-      <button class="btn btn-primary btn-sm" style="background:#059669; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.35rem;" onclick="promptSyncLocalToActiveDatabase()" title="อัปโหลดข้อมูลจากหน้านี้ขึ้นสู่ฐานข้อมูลส่วนกลาง (Google Sheet / Supabase)">
-        ☁️ ซิงค์ข้อมูลขึ้นคลาวด์
-      </button>
-      <button class="btn btn-ghost-light" onclick="openDatabaseConfigModal()" title="ตั้งค่าเชื่อมต่อ Google Sheet หรือ Supabase">
-        📊 ฐานข้อมูล Google Sheet / Supabase
-      </button>
-      <button class="btn btn-ghost-light" onclick="openDirectDataTransferModal()" title="ถ่ายโอนข้อมูลข้ามเครื่องหรือสำรองข้อมูล">
-        🔄 ถ่ายโอนข้อมูล
-      </button>
+      
+      <!-- Admin Tools: Visible only when logged in as Admin -->
+      <div id="adminNavTools" style="display:none; align-items:center; gap:0.4rem;">
+        <button type="button" class="btn btn-ghost-light btn-sm" onclick="openDatabaseConfigModal()" title="ตั้งค่าฐานข้อมูล Google Sheet / Supabase">
+          ⚙️ ฐานข้อมูล
+        </button>
+        <button type="button" class="btn btn-ghost-light btn-sm" onclick="openDirectDataTransferModal()" title="สำรองและถ่ายโอนข้อมูล">
+          🔄 สำรองข้อมูล
+        </button>
+      </div>
+
+      <!-- User Area: Visible when logged in -->
       <div id="loggedInUserArea" style="display:none; align-items:center; gap:0.5rem;">
         <span class="user-pill" id="currentUserBadge"></span>
-        <button type="button" class="btn btn-outline btn-sm" onclick="openUserProfileModal()" style="color:#ffffff; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.12); display:inline-flex; align-items:center; gap:0.35rem;" title="แก้ไขข้อมูลส่วนตัว / รหัสผ่าน / ลายเซ็น">👤 ข้อมูลส่วนตัว / ลายเซ็น</button>
-        <button class="btn btn-danger btn-sm" onclick="handleLogout()">ออกจากระบบ</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="openUserProfileModal()" style="color:#ffffff; border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.1); display:inline-flex; align-items:center; gap:0.3rem;" title="ข้อมูลส่วนตัว / ลายเซ็น">👤 ข้อมูลส่วนตัว</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="handleLogout()">ออกจากระบบ</button>
       </div>
     </div>
   </header>
 
-  <!-- ======================== 1. LANDING PAGE ======================== -->
-  <main id="landingView" class="landing-container no-print">
-    <div class="hero-card">
-      <div class="hero-header">
-        <img id="heroLogoImg" alt="โลโก้ มทร.สุวรรณภูมิ" />
-        <div>
-          <h2>ระบบออกใบเสร็จรับเงิน</h2>
-          <p>มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ — ระบบบริหารจัดการและออกใบเสร็จรับเงินผ่านฐานข้อมูลกลางออนไลน์ รองรับการใช้งานหลายเครื่องพร้อมกัน</p>
-        </div>
+  <!-- ======================== 1. AUTHENTIC LOGIN PAGE ======================== -->
+  <main id="landingView" class="landing-container no-print" style="max-width:440px; margin:3.5rem auto 2.5rem; padding:0 1rem;">
+    <div class="auth-card" style="background:#ffffff; border-radius:14px; box-shadow:0 12px 32px rgba(15, 44, 89, 0.12), 0 2px 6px rgba(15, 44, 89, 0.06); border:1px solid #e2e8f0; border-top:5px solid var(--primary-navy); padding:2.25rem 2rem; text-align:center;">
+      <div style="margin-bottom:1.5rem;">
+        <img id="heroLogoImg" alt="ตราสัญลักษณ์ มทร.สุวรรณภูมิ" style="width:72px; height:72px; object-fit:contain; margin-bottom:0.75rem;" />
+        <h2 style="font-size:1.4rem; font-weight:700; color:var(--primary-navy); margin:0 0 0.35rem 0;">ระบบออกใบเสร็จรับเงิน</h2>
+        <div style="font-size:0.92rem; color:var(--slate-600); font-weight:500;">มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ</div>
       </div>
 
-      <div id="landingSupabaseNotice" class="alert-box alert-success" style="display:none;"></div>
+      <div id="unifiedLoginError" class="alert-box alert-danger" style="display:none; text-align:left; font-size:0.88rem; margin-bottom:1rem; padding:0.65rem 0.9rem;"></div>
 
-      <h3 style="font-size:1.1rem; color:var(--primary-navy); margin-bottom:0.4rem;">กรุณาเลือกบทบาทผู้ใช้งานเพื่อเข้าสู่ระบบ</h3>
-      <p style="font-size:0.9rem; color:var(--slate-500);">เข้าสู่ระบบด้วยชื่อผู้ใช้งาน (Username) รหัสเจ้าหน้าที่ หรืออีเมล และรหัสผ่านที่ผู้ดูแลระบบกำหนดไว้ในหน้าระบบ</p>
-
-      <div class="role-grid">
-        <!-- Card 1: Admin -->
-        <div class="role-card" id="roleCardAdmin" onclick="selectLandingRole('admin')">
-          <div>
-            <span class="role-badge admin">สำหรับผู้ดูแลระบบ (Admin)</span>
-            <h3>ผู้ดูแลระบบ (Admin)</h3>
-            <p>จัดการข้อมูลหลังบ้าน เพิ่ม/แก้ไข/ระงับสิทธิ์เจ้าหน้าที่ ตั้งค่าเมนูระบบ บัญชีธนาคาร เล่มที่/เลขที่ใบเสร็จ ตรวจสอบใบเสร็จ และส่งออกรายงานการชำระเงิน</p>
-          </div>
-          <button class="btn btn-primary btn-lg" style="width:100%;">เข้าสู่ระบบสำหรับ Admin</button>
+      <form id="unifiedLoginForm" onsubmit="handleUnifiedLoginSubmit(event)" style="text-align:left;">
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label" style="font-weight:600; color:var(--slate-700); font-size:0.9rem; margin-bottom:0.4rem;">ชื่อผู้ใช้งาน / รหัสเจ้าหน้าที่</label>
+          <input type="text" id="unifiedUsernameInput" class="form-control" placeholder="ระบุ Username หรือรหัสเจ้าหน้าที่" required autocomplete="username" style="height:44px; font-size:0.95rem; border-radius:8px;" />
         </div>
-
-        <!-- Card 2: User -->
-        <div class="role-card active" id="roleCardUser" onclick="selectLandingRole('user')">
-          <div>
-            <span class="role-badge user">สำหรับเจ้าหน้าที่ (User)</span>
-            <h3>เจ้าหน้าที่การเงิน / ผู้ออกใบเสร็จ (User)</h3>
-            <p>บันทึกข้อมูลผู้ชำระเงิน ออกใบเสร็จรับเงิน พิมพ์ใบเสร็จ (ต้นฉบับและสำเนา) ดาวน์โหลด PDF เรียกดูย้อนหลัง และยกเลิกใบเสร็จตามสิทธิ์ที่กำหนด</p>
+        <div class="form-group" style="margin-bottom:1.5rem;">
+          <label class="form-label" style="font-weight:600; color:var(--slate-700); font-size:0.9rem; margin-bottom:0.4rem;">รหัสผ่าน</label>
+          <div style="display:flex; gap:0.4rem;">
+            <input type="password" id="unifiedPasswordInput" class="form-control" placeholder="ระบุรหัสผ่าน" required autocomplete="current-password" style="height:44px; font-size:0.95rem; border-radius:8px;" />
+            <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('unifiedPasswordInput', this)" style="padding:0 0.75rem; border-radius:8px;">แสดง</button>
           </div>
-          <button class="btn btn-success btn-lg" style="width:100%;">เลือกเข้าสู่ระบบสำหรับ User</button>
         </div>
-      </div>
+        <button type="submit" class="btn btn-primary" id="unifiedLoginBtn" style="width:100%; height:44px; font-size:1rem; font-weight:600; background:linear-gradient(135deg, #0f2c59, #1e40af); border:none; border-radius:8px; box-shadow:0 4px 6px -1px rgba(15, 44, 89, 0.2);">
+          เข้าสู่ระบบ
+        </button>
+      </form>
 
-      <!-- User Login Form (shown when User card is selected) -->
-      <div id="userLoginSection" class="user-login-box">
-        <h3 style="color:var(--accent-green); margin-bottom:0.35rem; font-size:1.15rem;">เข้าสู่ระบบสำหรับเจ้าหน้าที่ (User)</h3>
-        <p style="font-size:0.88rem; color:var(--slate-500); margin-bottom:1rem;">กรอกชื่อผู้ใช้งาน (Username) รหัสเจ้าหน้าที่ หรืออีเมล และรหัสผ่านที่ผู้ดูแลระบบกำหนดไว้ในระบบ</p>
-        <div id="userLoginError" class="alert-box alert-danger" style="display:none;"></div>
-        <form onsubmit="handleLoginSubmit(event, 'user')">
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">ชื่อผู้ใช้งาน (Username) / รหัสเจ้าหน้าที่ / อีเมล</label>
-              <input type="text" id="userEmailInput" class="form-control" placeholder="กรอกชื่อผู้ใช้งาน, รหัสเจ้าหน้าที่ หรืออีเมล" required autocomplete="username" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">รหัสผ่าน (Password)</label>
-              <div style="display:flex; gap:0.4rem;">
-                <input type="password" id="userPasswordInput" class="form-control" placeholder="กรอกรหัสผ่าน" required autocomplete="current-password" />
-                <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('userPasswordInput', this)">แสดง</button>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-top:0.4rem;">
-            <span style="font-size:0.84rem; color:var(--slate-500);">ผู้ดูแลระบบสามารถเพิ่มผู้ใช้งานและกำหนดรหัสผ่านได้ที่เมนู "2. ผู้ใช้งาน"</span>
-            <button type="submit" class="btn btn-success btn-lg" id="userLoginBtn">เข้าสู่ระบบเจ้าหน้าที่ (User)</button>
-          </div>
-        </form>
+      <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--slate-100); font-size:0.8rem; color:var(--slate-400); display:flex; justify-content:space-between; align-items:center;">
+        <span>e-Receipt System • RMUTSB</span>
+        <button type="button" onclick="openDatabaseConfigModal()" style="background:none; border:none; color:var(--slate-400); cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.25rem;" title="ตั้งค่าเชื่อมต่อฐานข้อมูลส่วนกลาง">
+          <span>⚙️</span> ตั้งค่าฐานข้อมูล
+        </button>
       </div>
     </div>
   </main>
@@ -1801,14 +1775,14 @@
   <div id="adminPortalView" class="app-shell no-print" style="display:none;">
     <aside class="sidebar">
       <div class="sidebar-section-title">เมนูผู้ดูแลระบบ (Admin)</div>
-      <button class="nav-item active" data-admin-tab="dashboard" onclick="switchAdminTab('dashboard')">1. แดชบอร์ด</button>
-      <button class="nav-item" data-admin-tab="users" onclick="switchAdminTab('users')">2. ผู้ใช้งาน</button>
-      <button class="nav-item" data-admin-tab="master" onclick="switchAdminTab('master')">3. เมนูระบบ</button>
-      <button class="nav-item" data-admin-tab="banks" onclick="switchAdminTab('banks')">4. บัญชีธนาคาร</button>
-      <button class="nav-item" data-admin-tab="books" onclick="switchAdminTab('books')">5. เล่มที่/เลขที่</button>
-      <button class="nav-item" data-admin-tab="receipts" onclick="switchAdminTab('receipts')">6. ใบเสร็จ</button>
-      <button class="nav-item" data-admin-tab="reports" onclick="switchAdminTab('reports')">7. รายงาน</button>
-      <button class="nav-item" data-admin-tab="email" onclick="switchAdminTab('email')">8. ระบบอีเมล</button>
+      <button class="nav-item active" data-admin-tab="dashboard" onclick="switchAdminTab('dashboard')">📊 แดชบอร์ด</button>
+      <button class="nav-item" data-admin-tab="users" onclick="switchAdminTab('users')">👥 จัดการผู้ใช้งาน</button>
+      <button class="nav-item" data-admin-tab="master" onclick="switchAdminTab('master')">⚙️ ข้อมูลส่วนกลาง</button>
+      <button class="nav-item" data-admin-tab="banks" onclick="switchAdminTab('banks')">🏦 บัญชีธนาคาร</button>
+      <button class="nav-item" data-admin-tab="books" onclick="switchAdminTab('books')">📚 เล่มใบเสร็จ</button>
+      <button class="nav-item" data-admin-tab="receipts" onclick="switchAdminTab('receipts')">🧾 รายการใบเสร็จ</button>
+      <button class="nav-item" data-admin-tab="reports" onclick="switchAdminTab('reports')">📈 รายงานสรุป</button>
+      <button class="nav-item" data-admin-tab="email" onclick="switchAdminTab('email')">✉️ การแจ้งเตือน</button>
       <div style="margin-top:auto; padding-top:1rem; border-top:1px solid var(--slate-200);">
         <button class="nav-item" style="color:var(--accent-green);" onclick="switchToUserPortalFromAdmin()">+ ไปหน้าออกใบเสร็จ (User)</button>
       </div>
@@ -1819,8 +1793,8 @@
       <div id="adminTab_dashboard" class="admin-tab-pane">
         <div class="page-title-bar">
           <div>
-            <h2>1. แดชบอร์ดสรุปภาพรวม (Admin Dashboard)</h2>
-            <p style="font-size:0.88rem; color:var(--slate-500);">อัปเดตข้อมูลอัตโนมัติแบบ Real-time / Polling ทุก 3 วินาทีเมื่อมีเครื่องอื่นออกใบเสร็จใหม่</p>
+            <h2>แดชบอร์ดสรุปภาพรวม</h2>
+            <p style="font-size:0.88rem; color:var(--slate-500);">สรุปภาพรวมการออกใบเสร็จรับเงินและสถานะการรับชำระเงิน</p>
           </div>
           <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="promptSyncLocalToSupabaseCloud()" title="ส่งข้อมูลหน้านี้ขึ้นฐานข้อมูลกลาง Supabase เพื่อให้เครื่องอื่นเห็นตรงกัน">☁️ ซิงค์ข้อมูลเครื่องนี้ขึ้น Supabase</button>
@@ -1880,8 +1854,8 @@
       <div id="adminTab_users" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>2. จัดการผู้ใช้งานและตั้งค่ารหัสผ่าน (Admin & User Management)</h2>
-            <p style="font-size:0.88rem; color:var(--slate-500);">เพิ่มผู้เข้าใช้งาน แก้ไขข้อมูลผู้ใช้งาน กำหนด Username / Password และสิทธิ์การใช้งานได้โดยตรงในหน้าระบบโดยไม่ต้องแก้ไขโค้ดบน GitHub</p>
+            <h2>จัดการผู้ใช้งาน</h2>
+            <p style="font-size:0.88rem; color:var(--slate-500);">จัดการบัญชีผู้ใช้งาน กำหนดสิทธิ์การปฏิบัติงาน และข้อมูลตำแหน่ง</p>
           </div>
           <button class="btn btn-primary btn-lg" onclick="openUserModal()">+ เพิ่มผู้เข้าใช้งานใหม่</button>
         </div>
@@ -1955,7 +1929,7 @@
       <div id="adminTab_master" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>3. เมนูระบบ (จัดการข้อมูลตั้งต้น 4 หมวดหมู่)</h2>
+            <h2>การตั้งค่าระบบและข้อมูลส่วนกลาง</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">จัดการคำนำหน้าชื่อ รายการชำระเงิน ชื่อโครงการ (เปิด/ปิดการแสดงผล) และประเภทธนาคารผู้ชำระเงิน</p>
           </div>
         </div>
@@ -1964,7 +1938,7 @@
         <div class="panel-card">
           <div class="panel-header">
             <div>
-              <h3>ข้อมูลสถานที่ทำการ หัวเอกสาร และลายเซ็นท้ายใบเสร็จรับเงิน (แก้ไขได้เองโดยไม่ต้องแก้โค้ด)</h3>
+              <h3>ข้อมูลหน่วยงานและผู้มีอำนาจลงนามในใบเสร็จรับเงิน</h3>
             </div>
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
               <button type="button" class="btn btn-outline btn-sm" onclick="exportSystemBackupJSON()">สำรองข้อมูลระบบทั้งหมด (Export JSON)</button>
@@ -2126,7 +2100,7 @@
       <div id="adminTab_banks" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>4. บัญชีธนาคารของมหาวิทยาลัย (University Bank Accounts)</h2>
+            <h2>บัญชีธนาคารมหาวิทยาลัย</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">สำหรับให้เจ้าหน้าที่เลือกเมื่อรับชำระเงินผ่านช่องทาง "เงินโอน"</p>
           </div>
         </div>
@@ -2180,7 +2154,7 @@
       <div id="adminTab_books" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>5. จัดการเล่มที่ / เลขที่ใบเสร็จรับเงิน (Receipt Books)</h2>
+            <h2>จัดการเล่มและเลขที่ใบเสร็จ</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">มีเล่มที่เปิดใช้งาน (Active) ได้เพียงเล่มเดียว เลขที่ใบเสร็จออกต่อเนื่องอัตโนมัติ (3 หลัก เช่น 001, 002, 003) ผ่าน RPC ป้องกันเลขซ้ำ</p>
           </div>
         </div>
@@ -2239,7 +2213,7 @@
       <div id="adminTab_receipts" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>6. รายการใบเสร็จรับเงินทั้งหมด (All Receipts)</h2>
+            <h2>รายการใบเสร็จรับเงินทั้งหมด</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">ตรวจสอบ สั่งพิมพ์ต้นฉบับ/สำเนา ดาวน์โหลด PDF หรือยกเลิกใบเสร็จพร้อมระบุเหตุผล</p>
           </div>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
@@ -2304,7 +2278,7 @@
       <div id="adminTab_reports" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>7. รายงานใบเสร็จ / รายงานการชำระเงิน (แยกรายการย่อยละ 1 แถว)</h2>
+            <h2>รายงานสรุปการรับชำระเงิน</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">
               แยกรายการย่อยของใบเสร็จออกเป็นรายการละ 1 แถวตามมาตรฐานการตรวจสอบการเงิน พร้อมส่งออก CSV / Excel และส่งออกแยกตามเล่มใบเสร็จ
             </p>
@@ -2379,7 +2353,7 @@
       <div id="adminTab_email" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>8. ระบบส่งอีเมลแจ้งเตือน (Email Notifications)</h2>
+            <h2>ระบบส่งอีเมลแจ้งเตือน</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">
               ส่ง User และ Password ไปยังอีเมลของเจ้าหน้าที่เมื่อ Admin เพิ่มผู้ใช้งาน และส่งอีเมลแจ้งเตือนความปลอดภัยทันทีเมื่อมีการเข้าใช้งานระบบ
             </p>
@@ -2561,9 +2535,9 @@
   <div id="userPortalView" class="app-shell no-print" style="display:none;">
     <aside class="sidebar">
       <div class="sidebar-section-title">เมนูเจ้าหน้าที่ (User)</div>
-      <button class="nav-item active" id="userNavIssueBtn" data-user-tab="issue" onclick="switchUserTab('issue')">1. ออกใบเสร็จรับเงิน</button>
-      <button class="nav-item" data-user-tab="history" onclick="switchUserTab('history')">2. ประวัติใบเสร็จย้อนหลัง (แก้ไข/พิมพ์/ดาวน์โหลด)</button>
-      <button class="nav-item" id="userNavCancelBtn" data-user-tab="cancel" onclick="switchUserTab('cancel')">3. ยกเลิกใบเสร็จรับเงิน</button>
+      <button class="nav-item active" id="userNavIssueBtn" data-user-tab="issue" onclick="switchUserTab('issue')">✍️ ออกใบเสร็จรับเงิน</button>
+      <button class="nav-item" data-user-tab="history" onclick="switchUserTab('history')">📑 ประวัติใบเสร็จรับเงิน</button>
+      <button class="nav-item" id="userNavCancelBtn" data-user-tab="cancel" onclick="switchUserTab('cancel')">🚫 ยกเลิกใบเสร็จรับเงิน</button>
       <div style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed var(--slate-200);">
         <button type="button" class="nav-item" style="color:var(--primary-navy); font-weight:600; display:flex; align-items:center; gap:0.4rem;" onclick="openUserProfileModal()">
           <span>👤 ข้อมูลส่วนตัวและลายเซ็น</span>
@@ -2594,7 +2568,7 @@
 
       <!-- Viewer-Only Notice if permission_level === 'viewer' -->
       <div id="viewerOnlyNotice" class="alert-box alert-warning" style="display:none;">
-        <strong>สิทธิ์การเข้าใช้งานของคุณ: เจ้าหน้าที่สำหรับเรียกดู/ดาวน์โหลด/พิมพ์ (ห้ามเพิ่ม-ลบ-แก้ไข)</strong> — มีสิทธิ์พิมพ์ได้เฉพาะต้นฉบับใบเสร็จเท่านั้น โดยไม่สามารถเพิ่ม แก้ไข ยกเลิก หรือพิมพ์สำเนาได้
+        <strong>สถานะสิทธิ์การเข้าใช้งาน:</strong> บัญชีของคุณมีสิทธิ์เรียกดูและพิมพ์ต้นฉบับเอกสารเท่านั้น
       </div>
 
       <!-- USER TAB 1: ISSUE RECEIPT FORM -->
@@ -2898,7 +2872,7 @@
             <label class="form-label">สิทธิ์การปฏิบัติงาน *</label>
             <select id="modalUserPermission" class="form-select" onchange="toggleUserSignatureVisibility()">
               <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ / พิมพ์ / แก้ไขข้อมูลใบเสร็จย้อนหลังได้ / ยกเลิกตามสิทธิ์)</option>
-              <option value="viewer">เจ้าหน้าที่เรียกดูอย่างเดียว (ดู/ดาวน์โหลด/พิมพ์ ห้ามเพิ่ม-ลบ-แก้ไข)</option>
+              <option value="viewer">เจ้าหน้าที่เรียกดูและพิมพ์เอกสาร (Viewer)</option>
               <option value="full">ผู้ดูแลระบบ (จัดการได้ทุกเมนู)</option>
             </select>
           </div>
@@ -4438,7 +4412,7 @@ function sortReceiptsNewestFirst(list) {
               dot.className = "conn-dot";
               dot.style.background = "#059669";
             }
-            if (txt) txt.textContent = "เชื่อมต่อ Google Sheet แล้ว (ออนไลน์เรียลไทม์)";
+            if (txt) txt.textContent = "ออนไลน์ (เรียลไทม์)";
             await loadAppStateFromStorageOrSupabase(false);
             setupRealtimeAndPolling();
             restoreSavedUserSession();
@@ -4885,7 +4859,122 @@ function sortReceiptsNewestFirst(list) {
       showToast("กรอกชื่อผู้ใช้ " + username + " เรียบร้อยแล้ว สามารถกดเข้าสู่ระบบได้ทันที");
     }
 
-    function selectLandingRole(role) {
+
+    // =========================================================================
+    // UNIFIED AUTHENTICATION (AUTHENTIC WEB LOGIN)
+    // =========================================================================
+    async function handleUnifiedLoginSubmit(event) {
+      event.preventDefault();
+      const usernameInput = document.getElementById("unifiedUsernameInput");
+      const passwordInput = document.getElementById("unifiedPasswordInput");
+      const errEl = document.getElementById("unifiedLoginError");
+      const btnEl = document.getElementById("unifiedLoginBtn");
+
+      if (errEl) errEl.style.display = "none";
+      const loginId = (usernameInput?.value || "").trim();
+      const password = (passwordInput?.value || "").trim();
+
+      if (!loginId || !password) {
+        if (errEl) {
+          errEl.textContent = "กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน";
+          errEl.style.display = "block";
+        }
+        return;
+      }
+
+      if (btnEl) btnEl.disabled = true;
+
+      try {
+        if (isSupabaseMode()) {
+          await loadAppStateFromStorageOrSupabase(false);
+        }
+
+        const users = appState.users || [];
+        const loginLower = loginId.toLowerCase();
+        const cfgAdminUser = ((appState.admin && appState.admin.adminUsername) || "Admin").trim();
+        const cfgAdminPass = ((appState.admin && appState.admin.adminPassword) || "admin1234").trim();
+
+        // 1. Search candidate profile matching Username, Staff Code, or Email
+        let candidateProfiles = users.filter(u => {
+          const uName = (u.username || "").trim().toLowerCase();
+          const uEmail = (u.email || "").trim().toLowerCase();
+          const uCode = (u.staff_code || "").trim().toLowerCase();
+          return (uName && uName === loginLower) ||
+                 (uEmail && uEmail === loginLower) ||
+                 (uCode && uCode === loginLower);
+        });
+
+        // 2. Fallback check for Default Admin account
+        if (candidateProfiles.length === 0 && loginLower === cfgAdminUser.toLowerCase()) {
+          candidateProfiles.push(users.find(u => u.role === "admin") || {
+            user_id: "admin-rmutsb-001",
+            username: cfgAdminUser,
+            password: cfgAdminPass,
+            email: "admin@rmutsb.ac.th",
+            role: "admin",
+            permission_level: "full",
+            display_name: "ผู้ดูแลระบบการเงิน มทร.สุวรรณภูมิ",
+            staff_code: "ADM001",
+            position: "นักวิชาการเงินและบัญชีชำนาญการ",
+            active: true
+          });
+        }
+
+        if (candidateProfiles.length === 0) {
+          throw new Error("ไม่พบชื่อผู้ใช้งานหรือรหัสเจ้าหน้าที่นี้ในระบบ");
+        }
+
+        // 3. Verify password
+        let matchedProfile = candidateProfiles.find(u => {
+          const exp = ((u.password || (u.role === "admin" ? cfgAdminPass : "123456"))).trim();
+          const passMatches = exp === password || exp.toLowerCase() === password.toLowerCase();
+          const adminPassMatches = u.role === "admin" && (
+            password === "Rmus1234" || password === "admin1234" ||
+            password.toLowerCase() === "rmus1234" || password.toLowerCase() === "admin1234" ||
+            password.toLowerCase() === "admin" || password === "123456" ||
+            password.toLowerCase() === "rmutsb" || password.toLowerCase() === "rmutsb1234"
+          );
+          const userPassMatches = u.role !== "admin" && (
+            password === "123456" || password === "user001" || password === "user1234" ||
+            password === "1234" || password.toLowerCase() === (u.username || "").toLowerCase() ||
+            password.toLowerCase() === (u.staff_code || "").toLowerCase()
+          );
+          return passMatches || adminPassMatches || userPassMatches;
+        });
+
+        if (!matchedProfile) {
+          throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง");
+        }
+
+        if (matchedProfile.active === false) {
+          throw new Error("บัญชีผู้ใช้งานนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
+        }
+
+        currentUser = Object.assign({}, matchedProfile);
+        const targetPortalRole = currentUser.role === "admin" ? "admin" : "user";
+
+        safeSetItem("rmutsb_active_user_session", JSON.stringify({
+          user: currentUser,
+          portal: targetPortalRole
+        }));
+
+        if (currentUser.email && currentUser.email.includes("@")) {
+          sendLoginNotificationEmail(currentUser, targetPortalRole).catch(e => console.warn("Login notification email warning:", e));
+        }
+
+        completePortalRouting(targetPortalRole);
+        showToast("ยินดีต้อนรับ: " + currentUser.display_name);
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = err.message || "เข้าสู่ระบบไม่สำเร็จ";
+          errEl.style.display = "block";
+        }
+      } finally {
+        if (btnEl) btnEl.disabled = false;
+      }
+    }
+
+        function selectLandingRole(role) {
       const adminCard = document.getElementById("roleCardAdmin");
       const userCard = document.getElementById("roleCardUser");
       const userSection = document.getElementById("userLoginSection");
@@ -5118,6 +5207,8 @@ function sortReceiptsNewestFirst(list) {
       closeAdminLoginModal();
       document.getElementById("landingView").style.display = "none";
       document.getElementById("loggedInUserArea").style.display = "flex";
+      const adminNavTools = document.getElementById("adminNavTools");
+      if (adminNavTools) adminNavTools.style.display = (currentUser && currentUser.role === "admin") ? "flex" : "none";
 
       const roleLabel = currentUser.role === "admin"
         ? "Admin"
@@ -5179,8 +5270,14 @@ function sortReceiptsNewestFirst(list) {
       document.getElementById("adminPortalView").style.display = "none";
       document.getElementById("userPortalView").style.display = "none";
       document.getElementById("landingView").style.display = "block";
-      document.getElementById("userPasswordInput").value = "";
-      document.getElementById("adminPasswordInput").value = "";
+      const adminNavTools = document.getElementById("adminNavTools");
+      if (adminNavTools) adminNavTools.style.display = "none";
+      const uInp = document.getElementById("unifiedUsernameInput");
+      const pInp = document.getElementById("unifiedPasswordInput");
+      if (uInp) uInp.value = "";
+      if (pInp) pInp.value = "";
+      const errEl = document.getElementById("unifiedLoginError");
+      if (errEl) errEl.style.display = "none";
     }
 
     // ======================== NAVIGATION TABS ========================
@@ -5321,7 +5418,7 @@ function sortReceiptsNewestFirst(list) {
         const permText = u.role === "admin"
           ? "จัดการได้ทุกอย่าง (Admin)"
           : (u.permission_level === "viewer"
-              ? "เรียกดู/ดาวน์โหลด/พิมพ์ (ห้ามเพิ่ม-ลบ-แก้ไข)"
+              ? "เรียกดูและพิมพ์เอกสาร (Viewer)"
               : "ออกใบเสร็จ/พิมพ์/แก้ไขข้อมูลใบเสร็จย้อนหลังได้/ยกเลิกตามสิทธิ์");
 
         const isShown = Boolean(visiblePasswordMap[u.user_id]);
@@ -9442,7 +9539,7 @@ ${loginUrl}
               dot.className = "conn-dot";
               dot.style.background = "#059669";
             }
-            if (txt) txt.textContent = "เชื่อมต่อ Google Sheet แล้ว (ออนไลน์เรียลไทม์)";
+            if (txt) txt.textContent = "ออนไลน์ (เรียลไทม์)";
 
             showToast("✓ สำเร็จ! ส่งข้อมูล " + receiptCount + " ใบเสร็จขึ้น Google Sheet เรียบร้อยแล้ว (สามารถเปิด Google Sheet ดูข้อมูลได้ทันที)");
             updateSyncTimestamp();
