@@ -8239,7 +8239,7 @@ ${loginUrl}
             "จำนวนเงิน (บาท)",
             "วิธีชำระเงิน",
             "ธนาคารต้นทาง",
-            "วันที่โอน (ปปปป-ดด-วว)",
+            "วันที่โอน (วว/ดด/ปปปป)",
             "เวลาโอน (ชช:นน)",
             "เข้าบัญชีมหาวิทยาลัย",
             "โครงการอบรม"
@@ -8255,7 +8255,7 @@ ${loginUrl}
             4900,
             "เงินโอน",
             "ธนาคารกรุงไทย",
-            "2026-11-06",
+            "06/11/2569",
             "09:30",
             "ธนาคารกรุงไทย (128-0-79185-3)",
             "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
@@ -8271,7 +8271,7 @@ ${loginUrl}
             4900,
             "เงินโอน",
             "ธนาคารกสิกรไทย",
-            "2026-11-06",
+            "06/11/2569",
             "10:15",
             "ธนาคารกรุงไทย (128-0-79185-3)",
             "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
@@ -8287,7 +8287,7 @@ ${loginUrl}
             4900,
             "เงินโอน",
             "ธนาคารไทยพาณิชย์",
-            "2026-11-06",
+            "06/11/2569",
             "11:20",
             "ธนาคารกรุงไทย (128-0-79185-3)",
             "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
@@ -8309,6 +8309,17 @@ ${loginUrl}
       }
     }
 
+    function formatThaiBEDateDisplay(isoDateStr) {
+      if (!isoDateStr) return "-";
+      const p = String(isoDateStr).split("-");
+      if (p.length !== 3) return isoDateStr;
+      const y = parseInt(p[0], 10);
+      const m = p[1].padStart(2, "0");
+      const d = p[2].padStart(2, "0");
+      const yBE = y < 2400 ? y + 543 : y;
+      return `${d}/${m}/${yBE}`;
+    }
+
     function formatExcelDateVal(val) {
       if (val === undefined || val === null || val === "") return "";
       if (typeof val === "number") {
@@ -8321,7 +8332,30 @@ ${loginUrl}
       if (val instanceof Date) {
         return val.toISOString().slice(0, 10);
       }
-      return String(val).trim();
+      let s = String(val).trim();
+      // Handle Thai BE / CE formats: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+      const dmYMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+      if (dmYMatch) {
+        let day = parseInt(dmYMatch[1], 10);
+        let month = parseInt(dmYMatch[2], 10);
+        let year = parseInt(dmYMatch[3], 10);
+        if (year > 2400) {
+          year = year - 543;
+        }
+        return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+      // Handle YYYY-MM-DD or YYYY/MM/DD
+      const yMDMatch = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+      if (yMDMatch) {
+        let year = parseInt(yMDMatch[1], 10);
+        let month = parseInt(yMDMatch[2], 10);
+        let day = parseInt(yMDMatch[3], 10);
+        if (year > 2400) {
+          year = year - 543;
+        }
+        return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+      return s;
     }
 
     function formatExcelTimeVal(val) {
@@ -8517,7 +8551,7 @@ ${loginUrl}
             <td class="text-right" style="font-weight:600; color:var(--primary-blue);">${formatMoney(r.amount, true)}</td>
             <td>
               <div>${escapeHtml(r.paymentMethod)}</div>
-              <div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(r.transferDate)} ${escapeHtml(r.transferTime)}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatThaiBEDateDisplay(r.transferDate))} ${escapeHtml(r.transferTime)}</div>
             </td>
             <td>
               ${r.isValid 
