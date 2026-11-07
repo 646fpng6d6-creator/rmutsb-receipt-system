@@ -8,6 +8,7 @@
 
 const DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwJ7OsSMtAeSY_NTSyF3157yMq4IF3hA2w16lkRZMDQruWVLa88k03DmqPS31SHUWGpMA/exec";
 
 const SUPABASE_KEY_CANDIDATES = [
   DEFAULT_SUPABASE_ANON_KEY
@@ -58,7 +59,7 @@ function cleanGasUrl(u) {
 
   let savedUrl = cleanSupabaseUrl(getSaved("rmutsb_supabase_url"));
   let savedKey = cleanSupabaseKey(getSaved("rmutsb_supabase_anon_key"));
-  let savedGasUrl = cleanGasUrl(getSaved("rmutsb_gas_url"));
+  let savedGasUrl = cleanGasUrl(getSaved("rmutsb_gas_url") || DEFAULT_GAS_URL);
   let activeProvider = getSaved("rmutsb_active_db_provider") || (savedGasUrl ? "googlesheet" : "supabase");
 
   setSaved("rmutsb_supabase_url", savedUrl);

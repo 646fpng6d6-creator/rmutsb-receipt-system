@@ -4150,9 +4150,10 @@
     // ======================== SUPABASE & FALLBACK INITIALIZATION ========================
     const BUILTIN_DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
     const BUILTIN_DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
+    const BUILTIN_DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwJ7OsSMtAeSY_NTSyF3157yMq4IF3hA2w16lkRZMDQruWVLa88k03DmqPS31SHUWGpMA/exec";
 
-    let activeDbProvider = "fallback"; // "googlesheet" | "supabase" | "fallback"
-    let gasWebAppUrl = "";
+    let activeDbProvider = "googlesheet"; // "googlesheet" | "supabase" | "fallback"
+    let gasWebAppUrl = BUILTIN_DEFAULT_GAS_URL;
     let lastSupabaseStatus = "offline";
 
     function cleanSupabaseUrl(u) {
@@ -4271,7 +4272,7 @@
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
       }
 
-      gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url"));
+      gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url") || (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.getGasUrl && window.RMUTSB_DATABASE_CONFIG.getGasUrl()) || BUILTIN_DEFAULT_GAS_URL);
       const savedProvider = safeGetItem("rmutsb_active_db_provider") || (gasWebAppUrl ? "googlesheet" : "supabase");
 
       // 1. ลองเชื่อมต่อ Google Sheet Web App หากมีการตั้งค่าไว้
