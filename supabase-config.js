@@ -1,18 +1,12 @@
 /**
  * ============================================================================
- * การตั้งค่าการเชื่อมต่อฐานข้อมูลกลาง Supabase (supabase-config.js)
+ * การตั้งค่าการเชื่อมต่อฐานข้อมูลส่วนกลาง (supabase-config.js)
+ * รองรับทั้ง Google Sheets Web App และ Supabase Cloud
  * ระบบออกใบเสร็จรับเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ
  * ============================================================================
- *
- * ระบบจะลองเชื่อมต่อด้วยคีย์ทั้ง 2 รูปแบบโดยอัตโนมัติ:
- *   1. Publishable Key (รูปแบบใหม่ sb_publishable_...)
- *   2. Legacy JWT anon Key (รูปแบบเดิม eyJ...)
- * ทุกเครื่องจะใช้ฐานข้อมูลเดียวกันโดยไม่ต้องตั้งค่าใดๆ เพิ่มเติม
  */
 
 const DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
-
-// คีย์ Anon Key สำหรับโปรเจกต์ใหม่ (โควต้าเต็ม 5 GB ใหม่)
 const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
 
 const SUPABASE_KEY_CANDIDATES = [
@@ -22,10 +16,8 @@ const SUPABASE_KEY_CANDIDATES = [
 function cleanSupabaseUrl(u) {
   if (!u) return DEFAULT_SUPABASE_URL;
   const str = String(u).trim();
-  // สกัดเอาเฉพาะ Origin เช่น https://qrjkcsadqinujtpnsdvi.supabase.co ตัด path /rest/v1 ทิ้งอัตโนมัติ
   const match = str.match(/https?:\/\/[a-z0-9_-]+\.supabase\.co/i);
   if (match) {
-    // หากเป็นโปรเจกต์เดิมที่โควต้าเต็ม ให้สลับเป็นโปรเจกต์ใหม่
     if (match[0].includes("vuhihimohaheveiwfyyb")) {
       return DEFAULT_SUPABASE_URL;
     }
@@ -43,7 +35,17 @@ function cleanSupabaseKey(k) {
   return str;
 }
 
-(function initRMUTSBSupabaseConfig() {
+function cleanGasUrl(u) {
+  if (!u) return "";
+  const str = String(u).trim();
+  // สกัด URL ที่ถูกต้องของ Google Apps Script exec
+  const match = str.match(/https?:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_\-]+\/exec/i);
+  if (match) return match[0];
+  if (str.startsWith("https://script.google.com/")) return str.replace(/\/?(\?.*)?$/, "");
+  return str;
+}
+
+(function initRMUTSBUnifiedDbConfig() {
   function getSaved(k) {
     try { return localStorage.getItem(k); } catch (e) { return null; }
   }
@@ -56,11 +58,40 @@ function cleanSupabaseKey(k) {
 
   let savedUrl = cleanSupabaseUrl(getSaved("rmutsb_supabase_url"));
   let savedKey = cleanSupabaseKey(getSaved("rmutsb_supabase_anon_key"));
+  let savedGasUrl = cleanGasUrl(getSaved("rmutsb_gas_url"));
+  let activeProvider = getSaved("rmutsb_active_db_provider") || (savedGasUrl ? "googlesheet" : "supabase");
 
-  // อัปเดต localStorage ด้วยค่าที่สะอาดและถูกต้องเสมอ
   setSaved("rmutsb_supabase_url", savedUrl);
   setSaved("rmutsb_supabase_anon_key", savedKey);
+  if (savedGasUrl) setSaved("rmutsb_gas_url", savedGasUrl);
+  setSaved("rmutsb_active_db_provider", activeProvider);
 
+  window.RMUTSB_DATABASE_CONFIG = {
+    activeProvider: activeProvider, // "googlesheet" | "supabase" | "fallback"
+    gasUrl: savedGasUrl,
+    supabaseUrl: savedUrl,
+    supabaseAnonKey: savedKey,
+    pollingIntervalMs: 15000,
+    
+    getGasUrl: function() {
+      return cleanGasUrl(getSaved("rmutsb_gas_url") || this.gasUrl);
+    },
+    saveGasUrl: function(url) {
+      const clean = cleanGasUrl(url);
+      setSaved("rmutsb_gas_url", clean);
+      this.gasUrl = clean;
+      this.setActiveProvider("googlesheet");
+    },
+    getActiveProvider: function() {
+      return getSaved("rmutsb_active_db_provider") || this.activeProvider || "supabase";
+    },
+    setActiveProvider: function(provider) {
+      setSaved("rmutsb_active_db_provider", provider);
+      this.activeProvider = provider;
+    }
+  };
+
+  // รักษาความเข้ากันได้ย้อนหลัง (Backward Compatibility) กับตัวแปรเดิม
   window.RMUTSB_SUPABASE_CONFIG = {
     url: cleanSupabaseUrl(savedUrl),
     anonKey: savedKey.trim(),
@@ -76,6 +107,9 @@ function cleanSupabaseKey(k) {
       setSaved("rmutsb_supabase_anon_key", cleanKey);
       this.url = cleanUrl;
       this.anonKey = cleanKey;
+      window.RMUTSB_DATABASE_CONFIG.supabaseUrl = cleanUrl;
+      window.RMUTSB_DATABASE_CONFIG.supabaseAnonKey = cleanKey;
+      window.RMUTSB_DATABASE_CONFIG.setActiveProvider("supabase");
     },
     clearConfig: function () {
       removeSaved("rmutsb_supabase_url");
@@ -85,7 +119,6 @@ function cleanSupabaseKey(k) {
       setSaved("rmutsb_supabase_url", DEFAULT_SUPABASE_URL);
       setSaved("rmutsb_supabase_anon_key", DEFAULT_SUPABASE_ANON_KEY);
     },
-    // จำคีย์ที่ใช้เชื่อมต่อสำเร็จไว้เพื่อใช้ครั้งต่อไป
     markWorkingKey: function (key) {
       if (key && key !== this.anonKey) {
         this.anonKey = key;

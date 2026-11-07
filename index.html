@@ -1300,18 +1300,18 @@
       </div>
     </div>
     <div class="nav-actions">
-      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อฐานข้อมูลส่วนกลาง (คลิกเพื่อดูรายละเอียด)" onclick="handleConnBadgeClick()" style="cursor:pointer;">
+      <div class="conn-badge" id="connStatusBadge" title="สถานะการเชื่อมต่อฐานข้อมูลส่วนกลาง (คลิกเพื่อดูรายละเอียด / ตั้งค่า)" onclick="openDatabaseConfigModal()" style="cursor:pointer;">
         <span class="conn-dot" id="connDot"></span>
         <span id="connStatusText">กำลังตรวจสอบฐานข้อมูล...</span>
       </div>
-      <button class="btn btn-primary btn-sm" style="background:#2563eb; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.35rem;" onclick="promptSyncLocalToSupabaseCloud()" title="อัปโหลดข้อมูลจากหน้านี้ขึ้นสู่ฐานข้อมูลกลาง Supabase (ใช้หน้านี้เป็นฐานข้อมูลหลัก)">
-        ☁️ ซิงค์ข้อมูลขึ้น Supabase
+      <button class="btn btn-primary btn-sm" style="background:#059669; color:#ffffff; border:none; display:inline-flex; align-items:center; gap:0.35rem;" onclick="promptSyncLocalToActiveDatabase()" title="อัปโหลดข้อมูลจากหน้านี้ขึ้นสู่ฐานข้อมูลส่วนกลาง (Google Sheet / Supabase)">
+        ☁️ ซิงค์ข้อมูลขึ้นคลาวด์
+      </button>
+      <button class="btn btn-ghost-light" onclick="openDatabaseConfigModal()" title="ตั้งค่าเชื่อมต่อ Google Sheet หรือ Supabase">
+        📊 ฐานข้อมูล Google Sheet / Supabase
       </button>
       <button class="btn btn-ghost-light" onclick="openDirectDataTransferModal()" title="ถ่ายโอนข้อมูลข้ามเครื่องหรือสำรองข้อมูล">
         🔄 ถ่ายโอนข้อมูล
-      </button>
-      <button class="btn btn-ghost-light" onclick="openSupabaseConfigModal()">
-        ตั้งค่าฐานข้อมูล Supabase
       </button>
       <div id="loggedInUserArea" style="display:none; align-items:center; gap:0.5rem;">
         <span class="user-pill" id="currentUserBadge"></span>
@@ -1417,39 +1417,130 @@
     </div>
   </div>
 
-  <!-- ======================== SUPABASE CONFIG MODAL ======================== -->
-  <div class="modal-backdrop no-print" id="supabaseConfigModal">
-    <div class="modal-box">
+  <!-- ======================== UNIFIED DATABASE CONFIG MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="databaseConfigModal">
+    <div class="modal-box" style="max-width:760px; max-height:90vh; overflow-y:auto;">
       <div class="modal-header">
-        <h3>ตั้งค่าการเชื่อมต่อฐานข้อมูลกลาง Supabase</h3>
-        <button class="btn btn-outline btn-sm" onclick="closeSupabaseConfigModal()">ปิด</button>
+        <h3 style="display:flex; align-items:center; gap:0.5rem; color:var(--primary-navy);">
+          <span>⚙️</span> ตั้งค่าการเชื่อมต่อฐานข้อมูลส่วนกลาง
+        </h3>
+        <button class="btn btn-outline btn-sm" onclick="closeDatabaseConfigModal()">ปิด</button>
       </div>
-      <p style="font-size:0.87rem; color:var(--slate-500); margin-bottom:1rem;">
-        ระบุค่า <strong>Project URL</strong> และ <strong>anon public key / publishable key</strong> จากโปรเจกต์ Supabase ของคุณ (ระบบกำหนดค่าเริ่มต้นจากหน้าต่างหลักให้เรียบร้อยแล้ว ทุกเครื่องจะใช้ฐานข้อมูลเดียวกัน)
-      </p>
-      <div class="form-group">
-        <label class="form-label">Supabase Project URL</label>
-        <input type="url" id="cfgSupabaseUrl" class="form-control" placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co" />
+
+      <!-- Tab Buttons -->
+      <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; border-bottom:1px solid var(--slate-200); padding-bottom:0.75rem; flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm db-tab-btn active" id="tabBtnGas" onclick="switchDbModalTab('gas')" style="background:#059669; color:#fff; border:none; display:inline-flex; align-items:center; gap:0.4rem;">
+          <span>📊</span> Google Sheets Web App (แนะนำสูงสุด)
+        </button>
+        <button type="button" class="btn btn-sm btn-outline db-tab-btn" id="tabBtnSupabase" onclick="switchDbModalTab('supabase')" style="display:inline-flex; align-items:center; gap:0.4rem;">
+          <span>☁️</span> Supabase Cloud
+        </button>
+        <button type="button" class="btn btn-sm btn-outline db-tab-btn" id="tabBtnFallback" onclick="switchDbModalTab('fallback')" style="display:inline-flex; align-items:center; gap:0.4rem;">
+          <span>💾</span> โหมดในเครื่อง (Local Mode)
+        </button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Supabase Anon Public Key / Publishable Key</label>
-        <input type="text" id="cfgSupabaseKey" class="form-control" placeholder="sb_publishable_... หรือ eyJhbGciOi..." />
-      </div>
-      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem; font-size:0.83rem; color:#1e40af; margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
-        <div>
-          <strong>คำแนะนำ:</strong> หากยังไม่เคยสร้างตารางบน Supabase ต้องรัน SQL เพื่อเปิดให้ทุกเครื่องบันทึกข้อมูลร่วมกัน
+
+      <!-- Tab Content: Google Sheets Web App -->
+      <div id="tabContentGas" class="db-tab-content">
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:0.95rem; font-size:0.87rem; color:#065f46; margin-bottom:1rem; line-height:1.65;">
+          <strong>⭐ ข้อดีสูงสุดของการเชื่อมต่อผ่าน Google Sheet:</strong><br>
+          • <strong>ฟรี 100% ตลอดไป:</strong> ไม่มีข้อจำกัดเรื่องปริมาณข้อมูล (Egress Quota 5 GB) แบบคลาวด์อื่น ไม่ต้องเสียค่าบริการใดๆ<br>
+          • <strong>ดูและจัดการข้อมูลใบเสร็จได้โดยตรง:</strong> ข้อมูลใบเสร็จทุกใบจะถูกบันทึกลงในแท็บ <em>"ใบเสร็จรับเงิน"</em> ใน Google Sheet สามารถเปิดดู ค้นหา หรือส่งออก Excel ได้ทันที<br>
+          • <strong>ซิงค์เรียลไทม์ทุกเครื่อง:</strong> ทุกเครื่องเชื่อมต่อและเห็นข้อมูลใบเสร็จ โครงการ และเลขที่ล่าสุดตรงกันทันที
         </div>
-        <button type="button" class="btn btn-outline btn-sm" style="font-size:0.78rem; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="openSqlSchemaHelperModal()">📋 ดูคำสั่ง SQL สร้างตาราง</button>
+
+        <div class="form-group">
+          <label class="form-label" style="font-weight:600; color:var(--primary-navy);">Google Apps Script Web App URL (ลงท้ายด้วย /exec)</label>
+          <input type="url" id="cfgGasUrl" class="form-control" placeholder="https://script.google.com/macros/s/AKfycb.../exec" style="font-family:monospace; font-size:0.88rem;" />
+          <small style="color:var(--slate-500); display:block; margin-top:0.35rem;">
+            * เมื่อ Deploy Web App ใน Google Sheets ให้เลือก <strong>Execute as: "Me"</strong> และ <strong>Who has access: "Anyone"</strong>
+          </small>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+          <button type="button" class="btn btn-sm" style="background:#2563eb; color:#fff;" onclick="testGasConnectionFromModal()">⚡ 1. ทดสอบการเชื่อมต่อ</button>
+          <button type="button" class="btn btn-sm" style="background:#d97706; color:#fff;" onclick="syncCurrentStateToGoogleSheetFromModal()">🚀 2. ซิงค์ข้อมูลทั้งหมดขึ้น Sheet ทันที</button>
+          <button type="button" class="btn btn-sm" style="background:#059669; color:#fff;" onclick="saveGasConfigFromModal()">💾 3. บันทึกและเปิดใช้งาน Google Sheet</button>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid var(--slate-200); border-radius:8px; padding:1rem; font-size:0.85rem; line-height:1.65; margin-bottom:1rem;">
+          <strong style="color:var(--primary-navy); font-size:0.9rem;">📋 วิธีติดตั้งสคริปต์ลง Google Sheets ใน 3 ขั้นตอน (ใช้เวลาเพียง 2 นาที):</strong>
+          <ol style="margin-left:1.25rem; margin-top:0.4rem;">
+            <li>เปิด <a href="https://sheets.new" target="_blank" style="color:#2563eb; text-decoration:underline; font-weight:600;">Google Sheets ใหม่ (sheets.new) ↗</a> แล้วไปที่เมนู <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong></li>
+            <li>ลบโค้ดเดิมออกทั้งหมด นำโค้ด Google Apps Script มาวางแล้วกด <strong>บันทึก (Ctrl+S หรือ Cmd+S)</strong></li>
+            <li>คลิกปุ่มสีน้ำเงิน <strong>"การทำให้ใช้งานได้" (Deploy) &gt; "การทำให้ใช้งานได้รายการใหม่" (New deployment)</strong> เลือกประเภท <strong>"เว็บแอป" (Web app)</strong> กำหนดสิทธิ์การเข้าถึงเป็น <strong>"ทุกคน" (Anyone)</strong> แล้วนำ URL ที่ได้มาวางในช่องด้านบน</li>
+          </ol>
+          <div style="margin-top:0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" style="background:#fff; color:#1e40af; border-color:#93c5fd; font-weight:600;" onclick="openGasCodeModal()">📋 ดูและคัดลอกโค้ด Google Apps Script (Code.gs)</button>
+            <a href="https://sheets.new" target="_blank" class="btn btn-outline btn-sm" style="background:#fff; color:#059669; border-color:#a7f3d0;">สร้าง Google Sheet ใหม่ ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Supabase Cloud -->
+      <div id="tabContentSupabase" class="db-tab-content" style="display:none;">
+        <p style="font-size:0.87rem; color:var(--slate-500); margin-bottom:1rem;">
+          เชื่อมต่อฐานข้อมูล Supabase Cloud โดยระบุ Project URL และ anon key (รองรับทั้งโควต้าเดิมและใหม่):
+        </p>
+        <div class="form-group">
+          <label class="form-label">Supabase Project URL</label>
+          <input type="url" id="cfgSupabaseUrl" class="form-control" placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Supabase Anon Public Key / Publishable Key</label>
+          <input type="text" id="cfgSupabaseKey" class="form-control" placeholder="sb_publishable_... หรือ eyJhbGciOi..." />
+        </div>
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem; font-size:0.83rem; color:#1e40af; margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap;">
+          <div>
+            <strong>คำแนะนำ:</strong> หากยังไม่เคยสร้างตารางบน Supabase ต้องรัน SQL เพื่อเปิดให้ทุกเครื่องบันทึกข้อมูลร่วมกัน
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" style="font-size:0.78rem; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="openSqlSchemaHelperModal()">📋 ดูคำสั่ง SQL สร้างตาราง</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; align-items:center; margin-top:1rem;">
+          <button type="button" class="btn btn-sm" style="background:#059669; color:#fff;" onclick="resetToDefaultSupabaseConfig()">⚡ เชื่อมต่อโปรเจกต์ Supabase กลาง</button>
+          <button type="button" class="btn btn-primary" onclick="saveSupabaseConfigFromModal()">บันทึกและเชื่อมต่อ Supabase</button>
+        </div>
+      </div>
+
+      <!-- Tab Content: Fallback Local Mode -->
+      <div id="tabContentFallback" class="db-tab-content" style="display:none;">
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.95rem; font-size:0.86rem; color:#92400e; line-height:1.6; margin-bottom:1rem;">
+          <strong>โหมดฐานข้อมูลในระบบเว็บ (Local Mode):</strong><br>
+          ข้อมูลใบเสร็จทั้งหมดจะถูกบันทึกและทำงานในเบราว์เซอร์เครื่องนี้เท่านั้น หากต้องการให้เครื่องอื่นและบุคคลอื่นเห็นข้อมูลตรงกัน แนะนำให้เชื่อมต่อกับ <strong>Google Sheets Web App</strong> หรือ <strong>Supabase</strong> ครับ
+        </div>
+        <button type="button" class="btn btn-outline" onclick="resetToFallbackMode()">สลับใช้โหมดในเครื่อง (Fallback)</button>
+      </div>
+
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--slate-200);">
+        <button type="button" class="btn btn-outline" onclick="closeDatabaseConfigModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backward-compatible Supabase Modal Alias -->
+  <div class="modal-backdrop no-print" id="supabaseConfigModal" style="display:none;"></div>
+
+  <!-- ======================== GOOGLE APPS SCRIPT CODE MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="gasCodeModal">
+    <div class="modal-box" style="max-width:820px; max-height:92vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3 style="color:var(--primary-navy); display:flex; align-items:center; gap:0.5rem;">
+          <span>📊</span> โค้ด Google Apps Script (Code.gs)
+        </h3>
+        <button class="btn btn-outline btn-sm" onclick="closeGasCodeModal()">ปิด</button>
+      </div>
+      <p style="font-size:0.88rem; color:var(--slate-600); margin-bottom:0.75rem;">
+        คัดลอกโค้ดด้านล่างนี้ ไปวางใน Google Sheets &gt; <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong> แล้วกด <strong>Deploy (การทำให้ใช้งานได้) &gt; Web app (สิทธิ์เข้าถึง: ทุกคน / Anyone)</strong>:
+      </p>
+      <div style="position:relative; flex:1; min-height:360px; margin-bottom:1rem;">
+        <textarea id="gasCodeArea" class="form-control" rows="16" readonly style="font-family:monospace; font-size:0.82rem; background:#0f172a; color:#34d399; line-height:1.45; width:100%; height:100%; resize:vertical;"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" id="btnCopyGasCode" style="position:absolute; top:8px; right:8px; background:#059669; border-color:#059669;" onclick="copyGasCode()">📋 คัดลอกโค้ดทั้งหมด</button>
       </div>
       <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; align-items:center;">
-        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          <button type="button" class="btn btn-sm" style="background:#059669; color:#fff;" onclick="resetToDefaultSupabaseConfig()">⚡ เชื่อมต่อโปรเจกต์กลางทันที</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="resetToFallbackMode()">สลับโหมดทดสอบสำรอง (Fallback)</button>
+        <div style="font-size:0.82rem; color:var(--slate-500);">
+          ✓ ระบบจะสร้างแท็บ <strong>"ใบเสร็จรับเงิน"</strong> และ <strong>"ข้อมูลระบบ"</strong> พร้อมจัดรูปแบบตารางอัตโนมัติ
         </div>
-        <div style="display:flex; gap:0.5rem;">
-          <button type="button" class="btn btn-outline" onclick="closeSupabaseConfigModal()">ยกเลิก</button>
-          <button type="button" class="btn btn-primary" onclick="saveSupabaseConfigFromModal()">บันทึกและเชื่อมต่อ</button>
-        </div>
+        <button type="button" class="btn btn-outline" onclick="closeGasCodeModal()">ปิดหน้าต่าง</button>
       </div>
     </div>
   </div>
@@ -4060,6 +4151,10 @@
     const BUILTIN_DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
     const BUILTIN_DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
 
+    let activeDbProvider = "fallback"; // "googlesheet" | "supabase" | "fallback"
+    let gasWebAppUrl = "";
+    let lastSupabaseStatus = "offline";
+
     function cleanSupabaseUrl(u) {
       if (!u) return BUILTIN_DEFAULT_SUPABASE_URL;
       const str = String(u).trim();
@@ -4080,35 +4175,77 @@
       return str;
     }
 
-    let lastSupabaseStatus = "offline";
+    function cleanGasUrl(u) {
+      if (!u) return "";
+      const str = String(u).trim();
+      const match = str.match(/https?:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_\-]+\/exec/i);
+      if (match) return match[0];
+      if (str.startsWith("https://script.google.com/")) return str.replace(/\/?(\?.*)?$/, "");
+      return str;
+    }
 
     function handleConnBadgeClick() {
-      if (lastSupabaseStatus === "quota_exceeded") {
-        openSupabaseQuotaExceededModal();
-      } else if (lastSupabaseStatus === "paused") {
-        openSupabaseFailedToFetchModal();
-      } else if (lastSupabaseStatus === "need_schema") {
-        openSqlSchemaHelperModal();
-      } else {
-        openSupabaseConfigModal();
-      }
+      openDatabaseConfigModal();
+    }
+
+    function isGoogleSheetMode() {
+      return Boolean(activeDbProvider === "googlesheet" && gasWebAppUrl && gasWebAppUrl.startsWith("http"));
     }
 
     function isSupabaseMode() {
-      return supabaseClient !== null;
+      return Boolean(activeDbProvider === "supabase" && supabaseClient !== null);
+    }
+
+    function isCloudDbConnected() {
+      return isGoogleSheetMode() || isSupabaseMode();
+    }
+
+    async function pingGasWebapp(url) {
+      const u = cleanGasUrl(url);
+      if (!u) throw new Error("URL ของ Google Apps Script ไม่ถูกต้อง (ต้องขึ้นต้นด้วย https://script.google.com/.../exec)");
+      const fullUrl = u + (u.includes("?") ? "&" : "?") + "action=ping&_t=" + Date.now();
+      const resp = await fetch(fullUrl, { method: "GET" });
+      if (!resp.ok) throw new Error("เซิร์ฟเวอร์ Google ตอบกลับ HTTP " + resp.status);
+      const json = await resp.json();
+      return json;
+    }
+
+    async function fetchStateFromGas(url) {
+      const u = cleanGasUrl(url || gasWebAppUrl);
+      if (!u) throw new Error("ไม่มี URL Google Apps Script");
+      const fullUrl = u + (u.includes("?") ? "&" : "?") + "action=getState&_t=" + Date.now();
+      const resp = await fetch(fullUrl, { method: "GET" });
+      const json = await resp.json();
+      if (json && json.status === "success") {
+        return json;
+      }
+      throw new Error((json && json.message) || "ไม่สามารถอ่านข้อมูลจาก Google Sheet ได้");
+    }
+
+    async function persistStateToGas(url, stateObj) {
+      const u = cleanGasUrl(url || gasWebAppUrl);
+      if (!u) return;
+      const payload = {
+        action: "syncState",
+        data: stateObj,
+        updated_at: new Date().toISOString()
+      };
+      const resp = await fetch(u, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      try {
+        return await resp.json();
+      } catch(e) {
+        return { status: "success" };
+      }
     }
 
     async function initDatabaseConnection() {
-      const cfg = window.RMUTSB_SUPABASE_CONFIG || {
+      const cfg = window.RMUTSB_DATABASE_CONFIG || window.RMUTSB_SUPABASE_CONFIG || {
         url: BUILTIN_DEFAULT_SUPABASE_URL,
-        anonKey: BUILTIN_DEFAULT_SUPABASE_ANON_KEY,
-        isConfigured: () => true,
-        saveConfig: (u, k) => {
-          try {
-            localStorage.setItem("rmutsb_supabase_url", u);
-            localStorage.setItem("rmutsb_supabase_anon_key", k);
-          } catch(e){}
-        }
+        anonKey: BUILTIN_DEFAULT_SUPABASE_ANON_KEY
       };
       const dot = document.getElementById("connDot");
       const txt = document.getElementById("connStatusText");
@@ -4134,15 +4271,47 @@
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
       }
 
+      gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url"));
+      const savedProvider = safeGetItem("rmutsb_active_db_provider") || (gasWebAppUrl ? "googlesheet" : "supabase");
+
+      // 1. ลองเชื่อมต่อ Google Sheet Web App หากมีการตั้งค่าไว้
+      if (gasWebAppUrl && (savedProvider === "googlesheet" || !savedProvider)) {
+        try {
+          if (txt) txt.textContent = "กำลังเชื่อมต่อ Google Sheet...";
+          const pingRes = await pingGasWebapp(gasWebAppUrl);
+          if (pingRes && (pingRes.status === "success" || pingRes.status === "ok")) {
+            activeDbProvider = "googlesheet";
+            if (dot) {
+              dot.className = "conn-dot";
+              dot.style.background = "#059669";
+            }
+            if (txt) txt.textContent = "เชื่อมต่อ Google Sheet แล้ว (ออนไลน์เรียลไทม์)";
+            await loadAppStateFromStorageOrSupabase(false);
+            setupRealtimeAndPolling();
+            restoreSavedUserSession();
+            checkAndHandleUrlLoginParams();
+
+            // เชื่อมต่อ Supabase เงียบๆ ในพื้นหลัง เพื่อเป็นระบบ Dual-Backup สำรอง
+            if (window.supabase) {
+              try {
+                const sUrl = cleanSupabaseUrl(safeGetItem("rmutsb_supabase_url") || BUILTIN_DEFAULT_SUPABASE_URL);
+                const sKey = cleanSupabaseKey(safeGetItem("rmutsb_supabase_anon_key") || BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+                supabaseClient = window.supabase.createClient(sUrl, sKey);
+              } catch(e) {}
+            }
+            return;
+          }
+        } catch (gasErr) {
+          console.warn("GAS connection ping failed:", gasErr);
+        }
+      }
+
+      // 2. หากไม่ได้ใช้ Google Sheet หรือล้มเหลว ให้ลองเชื่อมต่อ Supabase
       let lastAttemptErr = null;
       if (window.supabase) {
-        // รายการ URL และ Key ที่จะทดลองเชื่อมต่อ โดยอัตโนมัติ
-        const primaryUrl = cleanSupabaseUrl(cfg.url);
-        const primaryKey = cleanSupabaseKey(cfg.anonKey);
-
-        const candidates = [
-          { url: primaryUrl, key: primaryKey }
-        ];
+        const primaryUrl = cleanSupabaseUrl(cfg.supabaseUrl || cfg.url);
+        const primaryKey = cleanSupabaseKey(cfg.supabaseAnonKey || cfg.anonKey);
+        const candidates = [{ url: primaryUrl, key: primaryKey }];
         if (primaryUrl !== BUILTIN_DEFAULT_SUPABASE_URL || primaryKey !== BUILTIN_DEFAULT_SUPABASE_ANON_KEY) {
           candidates.push({ url: BUILTIN_DEFAULT_SUPABASE_URL, key: BUILTIN_DEFAULT_SUPABASE_ANON_KEY });
         }
@@ -4158,41 +4327,25 @@
               .maybeSingle();
 
             if (!testErr) {
-              // เชื่อมต่อสำเร็จ
               supabaseClient = client;
-              if (cfg.saveConfig) cfg.saveConfig(cand.url, cand.key);
-              dot.className = "conn-dot";
-              txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
+              activeDbProvider = "supabase";
+              if (dot) {
+                dot.className = "conn-dot";
+                dot.style.background = "#2563eb";
+              }
+              if (txt) txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
               lastSupabaseStatus = "connected";
               connected = true;
               break;
             }
-
             lastAttemptErr = testErr;
-            // ตาราง app_state ยังไม่มี → เชื่อมต่อ API สำเร็จแต่ต้องรัน SQL ก่อน
-            if (testErr.code === "42P01" || testErr.code === "PGRST205" || (testErr.message && (testErr.message.includes("relation") || testErr.message.includes("does not exist") || testErr.message.includes("Could not find the table")))) {
-              supabaseClient = client;
-              if (cfg.saveConfig) cfg.saveConfig(cand.url, cand.key);
-              dot.className = "conn-dot warning";
-              txt.textContent = "เชื่อมต่อ Supabase แล้ว แต่ยังไม่ได้สร้างตาราง (คลิกเพื่อดูวิธีตั้งค่า)";
-              lastSupabaseStatus = "need_schema";
-              connected = true;
-              break;
-            }
-
-            console.warn("Connection attempt failed:", cand.url, testErr.message || testErr);
-          } catch (e) {
+          } catch(e) {
             lastAttemptErr = e;
-            console.warn("Connection attempt exception:", cand.url, e);
           }
         }
 
         if (connected) {
-          try {
-            await loadAppStateFromStorageOrSupabase(false);
-          } catch (loadErr) {
-            console.warn("Load state after connect:", loadErr);
-          }
+          await loadAppStateFromStorageOrSupabase(false);
           setupRealtimeAndPolling();
           restoreSavedUserSession();
           checkAndHandleUrlLoginParams();
@@ -4200,19 +4353,14 @@
         }
       }
 
+      // 3. โหมด Fallback ในเครื่อง
+      activeDbProvider = "fallback";
       supabaseClient = null;
-      dot.className = "conn-dot fallback";
-      const errMsg = String((lastAttemptErr && (lastAttemptErr.message || lastAttemptErr)) || "");
-      if (errMsg.includes("exceed_egress_quota") || (lastAttemptErr && lastAttemptErr.status === 402) || errMsg.includes("spend caps")) {
-        txt.textContent = "Supabase เกินโควต้า Egress ชั่วคราว (คลิกดูวิธีแก้ / ใช้งานโหมดเว็บได้ปกติ)";
-        lastSupabaseStatus = "quota_exceeded";
-      } else if (errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError") || (lastAttemptErr && lastAttemptErr.name === "TypeError")) {
-        txt.textContent = "โหมดฐานข้อมูลในเครื่อง (Supabase อยู่ในสถานะ Pause - คลิกเพื่อดูวิธีเปิด)";
-        lastSupabaseStatus = "paused";
-      } else {
-        txt.textContent = "โหมดฐานข้อมูลในระบบเว็บ (พร้อมใช้งานทันที / คลิกเพื่อตั้งค่า Supabase)";
-        lastSupabaseStatus = "offline";
+      if (dot) {
+        dot.className = "conn-dot fallback";
+        dot.style.background = "#eab308";
       }
+      if (txt) txt.textContent = "โหมดฐานข้อมูลในระบบเว็บ (คลิกเพื่อเชื่อมต่อ Google Sheet หรือ Supabase)";
       setupRealtimeAndPolling();
       restoreSavedUserSession();
       checkAndHandleUrlLoginParams();
@@ -4227,7 +4375,6 @@
         const u = params.get("u") || params.get("user") || params.get("username");
         if (!portal && !u) return;
 
-        // If user is already logged in with this username, do not re-prompt
         if (currentUser && u && (
           (currentUser.username || "").toLowerCase() === u.toLowerCase() ||
           (currentUser.staff_code || "").toLowerCase() === u.toLowerCase() ||
@@ -4279,15 +4426,49 @@
       } catch (e) {}
     }
 
-        async function loadAppStateFromStorageOrSupabase(forceToast = false) {
-      if (isPersistingState && !forceToast) {
-        return; // ห้ามดึงข้อมูลเก่ามาเขียนทับ ขณะที่กำลังบันทึกข้อมูลขึ้น Supabase
+    async function loadAppStateFromStorageOrSupabase(forceToast = false) {
+      if (isPersistingState && !forceToast) return;
+
+      // ก. กรณีใช้ Google Sheet Web App
+      if (isGoogleSheetMode()) {
+        try {
+          const res = await fetchStateFromGas(gasWebAppUrl);
+          if (res && res.data) {
+            const cloudState = res.data;
+            const cloudReceipts = Array.isArray(cloudState.receipts) ? cloudState.receipts : [];
+            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+
+            const mergedMap = new Map();
+            cloudReceipts.forEach(r => {
+              if (r) {
+                const k = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
+                mergedMap.set(k, r);
+              }
+            });
+            localReceipts.forEach(r => {
+              if (r) {
+                const k = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
+                if (!mergedMap.has(k)) mergedMap.set(k, r);
+              }
+            });
+
+            cloudState.receipts = Array.from(mergedMap.values());
+            appState = normalizeAndMigrateAppState(cloudState);
+            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+            lastStateUpdatedAt = res.updated_at || new Date().toISOString();
+            refreshAllVisibleViewsPreservingForms();
+            updateSyncTimestamp();
+            if (forceToast) showToast("อัปเดตข้อมูลจาก Google Sheet เรียบร้อยแล้ว");
+            return;
+          }
+        } catch(e) {
+          console.warn("Load state from Google Sheet warning:", e);
+        }
       }
 
+      // ข. กรณีใช้ Supabase
       if (isSupabaseMode()) {
         try {
-          // หากเป็นการ polling อัตโนมัติ (ไม่ใช่การกด refresh หรือโหลดครั้งแรก)
-          // ให้ตรวจเช็คเฉพาะ updated_at ก่อน (ใช้ข้อมูลขนาดเล็กมาก ไม่เปลือง Data Egress)
           if (!forceToast && lastStateUpdatedAt) {
             const { data: checkRow, error: checkErr } = await supabaseClient
               .from("app_state")
@@ -4295,175 +4476,61 @@
               .eq("id", "main")
               .maybeSingle();
 
-            if (checkErr) {
-              const errMsg = checkErr.message || "";
-              if (errMsg.includes("exceed_egress_quota") || checkErr.status === 402) {
-                lastSupabaseStatus = "quota_exceeded";
-                const txt = document.getElementById("connStatusText");
-                if (txt) txt.textContent = "Supabase เกินโควต้า Egress ชั่วคราว (คลิกดูวิธีแก้ / ใช้งานโหมดเว็บได้ปกติ)";
-              }
-              return;
-            }
-
             if (checkRow && checkRow.updated_at) {
               const cloudTs = new Date(checkRow.updated_at).getTime();
               const localTs = new Date(lastStateUpdatedAt).getTime();
-              if (cloudTs <= (localTs + 500)) {
-                // ข้อมูลบนคลาวด์ยังเหมือนเดิม ไม่จำเป็นต้องดาวน์โหลดซ้ำ
-                return;
-              }
+              if (cloudTs <= (localTs + 500)) return;
             }
           }
 
-          // ดึง app_state และ profiles เมื่อมีข้อมูลใหม่จริงๆ หรือกดรีเฟรช
           const [stateRes, profRes] = await Promise.allSettled([
             supabaseClient.from("app_state").select("data, updated_at").eq("id", "main").maybeSingle(),
             supabaseClient.from("profiles").select("*").order("created_at", { ascending: true })
           ]);
 
           const stateRow = (stateRes.status === "fulfilled" && !stateRes.value.error) ? stateRes.value.data : null;
-          const dbProfiles = (profRes.status === "fulfilled" && !profRes.value.error && Array.isArray(profRes.value.data)) ? profRes.value.data : [];
-
           if (stateRow && stateRow.data) {
             const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts : [];
             const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
-            
-            // ป้องกันข้อมูลสูญหาย: ผสาน (Merge) ข้อมูลใบเสร็จจากทั้งสองฝั่ง ไม่ให้ฝั่งใดฝั่งหนึ่งเขียนทับหายไป
+
             const mergedReceiptsMap = new Map();
-            // นำเข้าข้อมูลคลาวด์ก่อน
             cloudReceipts.forEach(r => {
               if (r) {
                 const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
                 mergedReceiptsMap.set(key, r);
               }
             });
-            // นำเข้าข้อมูลในเครื่อง ถ้าในคลาวด์ยังไม่มี ให้เพิ่มเข้าไป
-            let hasUnsyncedLocal = false;
             localReceipts.forEach(r => {
               if (r) {
                 const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
-                if (!mergedReceiptsMap.has(key)) {
-                  mergedReceiptsMap.set(key, r);
-                  hasUnsyncedLocal = true;
-                }
+                if (!mergedReceiptsMap.has(key)) mergedReceiptsMap.set(key, r);
               }
             });
-            const mergedReceiptsList = Array.from(mergedReceiptsMap.values());
 
-            // ผสานข้อมูลเล่มใบเสร็จ (books) เช่นเดียวกัน
-            const cloudBooks = Array.isArray(stateRow.data.books) ? stateRow.data.books : [];
-            const localBooks = Array.isArray(appState.books) ? appState.books : [];
-            const mergedBooksMap = new Map();
-            cloudBooks.forEach(b => { if (b && b.bookNo) mergedBooksMap.set(String(b.bookNo).toUpperCase(), b); });
-            let hasUnsyncedBooks = false;
-            localBooks.forEach(b => {
-              if (b && b.bookNo) {
-                const bKey = String(b.bookNo).toUpperCase();
-                if (!mergedBooksMap.has(bKey)) {
-                  mergedBooksMap.set(bKey, b);
-                  hasUnsyncedBooks = true;
-                } else {
-                  // ถ้ามีเล่มซ้ำ ให้ดูว่าเครื่องไหนเลขล่าสุด (latest) เดินหน้าไปไกลกว่า ให้ใช้ค่านั้น
-                  const existing = mergedBooksMap.get(bKey);
-                  if (Number(b.latest || 0) > Number(existing.latest || 0)) {
-                    mergedBooksMap.set(bKey, Object.assign({}, existing, { latest: b.latest }));
-                    hasUnsyncedBooks = true;
-                  }
-                }
-              }
-            });
-            const mergedBooksList = Array.from(mergedBooksMap.values());
-
-            const cloudTs = stateRow.updated_at ? new Date(stateRow.updated_at).getTime() : 0;
-            const localTs = lastStateUpdatedAt ? new Date(lastStateUpdatedAt).getTime() : 0;
-            const isCloudNewer = cloudTs > (localTs + 500);
-
-            if (isCloudNewer || forceToast || !lastStateUpdatedAt || hasUnsyncedLocal || hasUnsyncedBooks) {
-              lastStateUpdatedAt = stateRow.updated_at;
-              // ฐานข้อมูลรวมกันอย่างปลอดภัย
-              const baseState = Object.assign({}, stateRow.data, {
-                receipts: mergedReceiptsList,
-                books: mergedBooksList.length > 0 ? mergedBooksList : (stateRow.data.books || [])
-              });
-              appState = normalizeAndMigrateAppState(baseState, dbProfiles);
-              safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-              refreshAllVisibleViewsPreservingForms();
-
-              // หากมีข้อมูลจากในเครื่องที่คลาวด์ยังไม่มี ให้อัปโหลดซิงค์ขึ้นคลาวด์ทันที
-              if (hasUnsyncedLocal || hasUnsyncedBooks) {
-                persistAppState();
-              }
-            } else if (dbProfiles.length > 0) {
-              // ตรวจสอบว่าใน profiles มีผู้ใช้ที่ใน appState ยังไม่มีหรือไม่
-              const currentCodes = new Set((appState.users || []).map(u => (u.staff_code || u.username || u.user_id || "").toUpperCase()));
-              const hasNewProfile = dbProfiles.some(p => !currentCodes.has((p.staff_code || p.username || p.user_id || "").toUpperCase()));
-              if (hasNewProfile) {
-                appState = normalizeAndMigrateAppState(appState, dbProfiles);
-                safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-                refreshAllVisibleViewsPreservingForms();
-              }
-            }
-
-            if (currentUser && appState.users) {
-              const myProf = appState.users.find(
-                p => p.user_id === currentUser.user_id ||
-                     (p.username && currentUser.username && p.username.toLowerCase() === currentUser.username.toLowerCase())
-              );
-              if (myProf && myProf.active === false) {
-                showToast("บัญชีของคุณถูกผู้ดูแลระบบปิดการใช้งาน (active = false)", true);
-                await handleLogout();
-                return;
-              }
-              if (myProf) {
-                currentUser = Object.assign({}, currentUser, myProf);
-              }
-            }
-          } else if (!stateRow) {
-            // First time initialization in Supabase app_state
-            try {
-              await supabaseClient
-                .from("app_state")
-                .upsert({
-                  id: "main",
-                  data: appState,
-                  updated_at: new Date().toISOString()
-                });
-            } catch (seedErr) {
-              console.warn("Supabase initial seed warning:", seedErr);
-            }
-          }
-          updateSyncTimestamp();
-          if (forceToast) showToast("อัปเดตข้อมูลจากฐานข้อมูลกลาง Supabase เรียบร้อย");
-        } catch (err) {
-          console.error("Load state error:", err);
-        }
-      } else {
-        const rawLocal = safeGetItem("rmutsb_fallback_app_state");
-        if (rawLocal) {
-          try {
-            appState = normalizeAndMigrateAppState(JSON.parse(rawLocal));
-          } catch (e) {
-            appState = normalizeAndMigrateAppState(appState);
-          }
-        }
-        if (currentUser && appState.users) {
-          const myProf = appState.users.find(
-            u => u.user_id === currentUser.user_id ||
-                 (u.username && currentUser.username && u.username.toLowerCase() === currentUser.username.toLowerCase())
-          );
-          if (myProf && myProf.active === false) {
-            showToast("บัญชีผู้ใช้งานของคุณถูกระงับการใช้งาน (active = false)", true);
-            await handleLogout();
+            stateRow.data.receipts = Array.from(mergedReceiptsMap.values());
+            appState = normalizeAndMigrateAppState(stateRow.data);
+            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+            lastStateUpdatedAt = stateRow.updated_at || new Date().toISOString();
+            refreshAllVisibleViewsPreservingForms();
+            updateSyncTimestamp();
+            if (forceToast) showToast("อัปเดตข้อมูลจาก Supabase เรียบร้อย");
             return;
           }
-          if (myProf) {
-            currentUser = Object.assign({}, currentUser, myProf);
-          }
+        } catch(err) {
+          console.error("Load state Supabase error:", err);
         }
-        refreshAllVisibleViewsPreservingForms();
-        updateSyncTimestamp();
-        if (forceToast) showToast("รีเฟรชข้อมูลเรียบร้อยแล้ว");
       }
+
+      // ค. โหมดในเครื่อง
+      const rawLocal = safeGetItem("rmutsb_fallback_app_state");
+      if (rawLocal) {
+        try {
+          appState = normalizeAndMigrateAppState(JSON.parse(rawLocal));
+        } catch(e) {}
+      }
+      refreshAllVisibleViewsPreservingForms();
+      updateSyncTimestamp();
+      if (forceToast) showToast("รีเฟรชข้อมูลเรียบร้อยแล้ว");
     }
 
     async function persistAppState(customNewState = null) {
@@ -4482,22 +4549,26 @@
         const nowIso = new Date().toISOString();
         lastStateUpdatedAt = nowIso;
 
-        if (isSupabaseMode()) {
+        // บันทึกขึ้น Google Sheet Web App หากเปิดใช้งานอยู่
+        if (isGoogleSheetMode()) {
+          persistStateToGas(gasWebAppUrl, appState).catch(e => console.warn("GAS background sync warning:", e));
+        }
+
+        // หากมี supabaseClient อยู่ ให้บันทึกขึ้น Supabase เป็น Dual Backup ด้วย
+        if (supabaseClient) {
           try {
-            const { error } = await supabaseClient
+            await supabaseClient
               .from("app_state")
               .upsert({
                 id: "main",
                 data: appState,
                 updated_at: nowIso
               });
-            if (error) {
-              console.warn("Supabase app_state sync warning:", error.message);
-            }
-          } catch (e) {
-            console.warn("Supabase persist fallback to localStorage:", e);
+          } catch(e) {
+            console.warn("Supabase dual-sync warning:", e);
           }
         }
+
         if (broadcastChannel) {
           broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
         }
@@ -8574,6 +8645,180 @@ ${loginUrl}
       document.getElementById("supabaseConfigModal").classList.remove("open");
     }
 
+    const GAS_WEBAPP_CODE = "/**\n * ============================================================================\n * Google Apps Script \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e23\u0e30\u0e1a\u0e1a\u0e2d\u0e2d\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1a\u0e40\u0e07\u0e34\u0e19 \u0e21\u0e17\u0e23.\u0e2a\u0e38\u0e27\u0e23\u0e23\u0e13\u0e20\u0e39\u0e21\u0e34 (RMUTSB)\n * \u0e23\u0e2d\u0e07\u0e23\u0e31\u0e1a\u0e01\u0e32\u0e23\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e41\u0e1a\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e25\u0e44\u0e17\u0e21\u0e4c\u0e1c\u0e48\u0e32\u0e19 Google Sheet Web App\n * ============================================================================\n * \n * \u0e27\u0e34\u0e18\u0e35\u0e01\u0e32\u0e23\u0e19\u0e33\u0e44\u0e1b\u0e15\u0e34\u0e14\u0e15\u0e31\u0e49\u0e07\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19:\n * 1. \u0e40\u0e1b\u0e34\u0e14 Google Sheets \u0e40\u0e1b\u0e25\u0e48\u0e32\u0e43\u0e2b\u0e21\u0e48\u0e02\u0e36\u0e49\u0e19\u0e21\u0e32 1 \u0e44\u0e1f\u0e25\u0e4c (\u0e2b\u0e23\u0e37\u0e2d\u0e44\u0e1f\u0e25\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e2d\u0e22\u0e39\u0e48\u0e41\u0e25\u0e49\u0e27)\n * 2. \u0e44\u0e1b\u0e17\u0e35\u0e48\u0e40\u0e21\u0e19\u0e39 \"\u0e2a\u0e48\u0e27\u0e19\u0e02\u0e22\u0e32\u0e22\" (Extensions) -> \"Apps Script\"\n * 3. \u0e25\u0e1a\u0e42\u0e04\u0e49\u0e14\u0e40\u0e14\u0e34\u0e21\u0e2d\u0e2d\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 \u0e41\u0e25\u0e49\u0e27\u0e27\u0e32\u0e07\u0e42\u0e04\u0e49\u0e14\u0e43\u0e19\u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49\u0e25\u0e07\u0e44\u0e1b\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 \u0e41\u0e25\u0e49\u0e27\u0e01\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01 (Ctrl+S \u0e2b\u0e23\u0e37\u0e2d Cmd+S)\n * 4. \u0e04\u0e25\u0e34\u0e01\u0e1b\u0e38\u0e48\u0e21\u0e2a\u0e35\u0e19\u0e49\u0e33\u0e40\u0e07\u0e34\u0e19 \"\u0e01\u0e32\u0e23\u0e17\u0e33\u0e43\u0e2b\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e44\u0e14\u0e49\" (Deploy) -> \"\u0e01\u0e32\u0e23\u0e17\u0e33\u0e43\u0e2b\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e44\u0e14\u0e49\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e43\u0e2b\u0e21\u0e48\" (New deployment)\n * 5. \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17 (\u0e23\u0e39\u0e1b\u0e1f\u0e31\u0e19\u0e40\u0e1f\u0e37\u0e2d\u0e07): \"\u0e40\u0e27\u0e47\u0e1a\u0e41\u0e2d\u0e1b\" (Web app)\n * 6. \u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e14\u0e31\u0e07\u0e19\u0e35\u0e49:\n *    - \u0e04\u0e33\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22: \u0e23\u0e30\u0e1a\u0e1a\u0e2d\u0e2d\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08 RMUTSB\n *    - \u0e14\u0e33\u0e40\u0e19\u0e34\u0e19\u0e01\u0e32\u0e23\u0e43\u0e19\u0e10\u0e32\u0e19\u0e30 (Execute as): \"\u0e09\u0e31\u0e19 (\u0e2d\u0e35\u0e40\u0e21\u0e25\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13)\" (Me)\n *    - \u0e1c\u0e39\u0e49\u0e17\u0e35\u0e48\u0e21\u0e35\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e40\u0e02\u0e49\u0e32\u0e16\u0e36\u0e07 (Who has access): \"\u0e17\u0e38\u0e01\u0e04\u0e19\" (Anyone)   <-- \u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e21\u0e32\u0e01! \u0e15\u0e49\u0e2d\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01 Anyone\n * 7. \u0e04\u0e25\u0e34\u0e01 \"\u0e01\u0e32\u0e23\u0e17\u0e33\u0e43\u0e2b\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e44\u0e14\u0e49\" (Deploy) -> \u0e43\u0e2b\u0e49\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e40\u0e02\u0e49\u0e32\u0e16\u0e36\u0e07 (Authorize access)\n * 8. \u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01 \"URL \u0e02\u0e2d\u0e07\u0e40\u0e27\u0e47\u0e1a\u0e41\u0e2d\u0e1b\" (Web app URL) \u0e17\u0e35\u0e48\u0e44\u0e14\u0e49 (\u0e02\u0e36\u0e49\u0e19\u0e15\u0e49\u0e19\u0e14\u0e49\u0e27\u0e22 https://script.google.com/macros/s/.../exec)\n * 9. \u0e19\u0e33 URL \u0e44\u0e1b\u0e43\u0e2a\u0e48\u0e43\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e15\u0e48\u0e32\u0e07 \"\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e10\u0e32\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 Google Sheet\" \u0e1a\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e40\u0e27\u0e47\u0e1a\u0e23\u0e30\u0e1a\u0e1a\u0e2d\u0e2d\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\n */\n\nconst SHEET_RECEIPTS = \"\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1a\u0e40\u0e07\u0e34\u0e19\";\nconst SHEET_SYSTEM_STATE = \"\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a\";\n\n// ======================== API ENDPOINTS ========================\n\nfunction doGet(e) {\n  try {\n    const action = (e && e.parameter && e.parameter.action) || \"getState\";\n    \n    if (action === \"ping\") {\n      return jsonResponse({ status: \"success\", message: \"RMUTSB Google Sheet API is online\", timestamp: new Date().toISOString() });\n    }\n    \n    if (action === \"getState\") {\n      const state = loadSystemState();\n      return jsonResponse({\n        status: \"success\",\n        updated_at: state.updated_at || new Date().toISOString(),\n        data: state.data || null\n      });\n    }\n\n    if (action === \"getReceipts\") {\n      const receipts = getReceiptsFromSheet();\n      return jsonResponse({ status: \"success\", count: receipts.length, receipts: receipts });\n    }\n\n    return jsonResponse({ status: \"success\", message: \"RMUTSB Receipt System Web App is ready\" });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  }\n}\n\nfunction doPost(e) {\n  try {\n    let payload = null;\n    if (e && e.postData && e.postData.contents) {\n      try {\n        payload = JSON.parse(e.postData.contents);\n      } catch (jsonErr) {\n        payload = e.parameter;\n      }\n    } else if (e && e.parameter) {\n      payload = e.parameter;\n    }\n\n    if (!payload) {\n      return jsonResponse({ status: \"error\", message: \"No data payload received\" });\n    }\n\n    const action = payload.action || \"syncState\";\n\n    // 1. \u0e0b\u0e34\u0e07\u0e04\u0e4c\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e31\u0e49\u0e07\u0e23\u0e30\u0e1a\u0e1a (\u0e23\u0e27\u0e21\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14, \u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23, \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e18\u0e19\u0e32\u0e04\u0e32\u0e23, \u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19, \u0e25\u0e32\u0e22\u0e40\u0e0b\u0e47\u0e19)\n    if (action === \"syncState\" || action === \"saveState\") {\n      const appStateData = payload.data || payload.appState || payload;\n      const nowIso = new Date().toISOString();\n      \n      // \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e23\u0e30\u0e1a\u0e1a\u0e25\u0e07\u0e0a\u0e35\u0e15\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a\n      saveSystemState(appStateData, nowIso);\n      \n      // \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e2b\u0e23\u0e37\u0e2d\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e25\u0e07\u0e0a\u0e35\u0e15\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1a\u0e40\u0e07\u0e34\u0e19\u0e41\u0e1a\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e07\u0e41\u0e16\u0e27\n      let receiptsCount = 0;\n      if (appStateData && Array.isArray(appStateData.receipts)) {\n        syncReceiptsToSheet(appStateData.receipts);\n        receiptsCount = appStateData.receipts.length;\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e02\u0e36\u0e49\u0e19 Google Sheet \u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\",\n        receiptsCount: receiptsCount,\n        updated_at: nowIso\n      });\n    }\n\n    // 2. \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e43\u0e1a\u0e43\u0e2b\u0e21\u0e48\u0e17\u0e31\u0e19\u0e17\u0e35 (Fast Add Receipt)\n    if (action === \"addReceipt\") {\n      const receipt = payload.receipt;\n      if (!receipt) {\n        return jsonResponse({ status: \"error\", message: \"No receipt object provided\" });\n      }\n      appendReceiptRow(receipt);\n      \n      // \u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15 state \u0e14\u0e49\u0e27\u0e22\u0e2b\u0e32\u0e01\u0e2a\u0e48\u0e07\u0e21\u0e32\u0e14\u0e49\u0e27\u0e22\n      if (payload.appState) {\n        saveSystemState(payload.appState, new Date().toISOString());\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48 \" + (receipt.no || \"\") + \" \u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22\u0e41\u0e25\u0e49\u0e27\",\n        receiptNo: receipt.no\n      });\n    }\n\n    // 3. \u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e08\u0e31\u0e14\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1a\u0e15\u0e32\u0e23\u0e32\u0e07 (Init/Format Sheet)\n    if (action === \"initSheet\") {\n      formatAllSheets();\n      return jsonResponse({ status: \"success\", message: \"\u0e08\u0e31\u0e14\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1a\u0e15\u0e32\u0e23\u0e32\u0e07\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08\" });\n    }\n\n    return jsonResponse({ status: \"error\", message: \"Unknown action: \" + action });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  }\n}\n\n// ======================== HELPER FUNCTIONS ========================\n\nfunction jsonResponse(data) {\n  return ContentService.createTextOutput(JSON.stringify(data))\n    .setMimeType(ContentService.MimeType.JSON);\n}\n\nfunction getOrCreateSheet(sheetName) {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  let sheet = ss.getSheetByName(sheetName);\n  if (!sheet) {\n    sheet = ss.insertSheet(sheetName);\n  }\n  return sheet;\n}\n\n/**\n * \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e23\u0e30\u0e1a\u0e1a (appState) \u0e25\u0e07\u0e41\u0e17\u0e47\u0e1a \"\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a\"\n * \u0e23\u0e2d\u0e07\u0e23\u0e31\u0e1a\u0e01\u0e32\u0e23\u0e41\u0e1a\u0e48\u0e07 Chunk \u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e30 40,000 \u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29\u0e23 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19\u0e02\u0e49\u0e2d\u0e08\u0e33\u0e01\u0e31\u0e14 50,000 \u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e15\u0e48\u0e2d\u0e40\u0e0b\u0e25\u0e25\u0e4c\u0e02\u0e2d\u0e07 Google Sheets\n */\nfunction saveSystemState(stateObj, updatedIso) {\n  const sheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  \n  // \u0e2a\u0e23\u0e49\u0e32\u0e07 Header \u0e16\u0e49\u0e32\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\n  if (sheet.getLastRow() < 1) {\n    sheet.getRange(1, 1, 1, 3).setValues([[\"\u0e25\u0e33\u0e14\u0e31\u0e1a Chunk\", \"\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a (System State JSON)\", \"\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\"]]);\n    sheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n    sheet.setFrozenRows(1);\n  }\n\n  const jsonStr = JSON.stringify(stateObj);\n  const chunkSize = 40000;\n  const chunks = [];\n  for (let i = 0; i < jsonStr.length; i += chunkSize) {\n    chunks.push([\n      Math.floor(i / chunkSize) + 1,\n      jsonStr.substring(i, i + chunkSize),\n      updatedIso\n    ]);\n  }\n\n  // \u0e25\u0e49\u0e32\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e40\u0e14\u0e34\u0e21\u0e41\u0e16\u0e27\u0e17\u0e35\u0e48 2 \u0e40\u0e1b\u0e47\u0e19\u0e15\u0e49\u0e19\u0e44\u0e1b\n  const lastRow = Math.max(sheet.getLastRow(), 2);\n  sheet.getRange(2, 1, lastRow, 3).clearContent();\n\n  // \u0e40\u0e02\u0e35\u0e22\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 Chunk \u0e43\u0e2b\u0e21\u0e48\u0e25\u0e07\u0e44\u0e1b\n  if (chunks.length > 0) {\n    sheet.getRange(2, 1, chunks.length, 3).setValues(chunks);\n  }\n}\n\n/**\n * \u0e42\u0e2b\u0e25\u0e14\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e32\u0e01\u0e41\u0e17\u0e47\u0e1a \"\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a\" \u0e42\u0e14\u0e22\u0e23\u0e27\u0e21 Chunk \u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e01\u0e25\u0e31\u0e1a\u0e04\u0e37\u0e19\u0e40\u0e1b\u0e47\u0e19 JSON\n */\nfunction loadSystemState() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheet = ss.getSheetByName(SHEET_SYSTEM_STATE);\n  if (!sheet || sheet.getLastRow() < 2) {\n    return { updated_at: null, data: null };\n  }\n\n  const lastRow = sheet.getLastRow();\n  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();\n  \n  let jsonStr = \"\";\n  let updatedIso = \"\";\n  for (let i = 0; i < values.length; i++) {\n    jsonStr += (values[i][1] || \"\");\n    if (values[i][2]) updatedIso = values[i][2];\n  }\n\n  try {\n    const data = JSON.parse(jsonStr);\n    return { updated_at: updatedIso, data: data };\n  } catch (e) {\n    return { updated_at: updatedIso, data: null, error: e.toString() };\n  }\n}\n\n/**\n * \u0e2b\u0e31\u0e27\u0e04\u0e2d\u0e25\u0e31\u0e21\u0e19\u0e4c\u0e02\u0e2d\u0e07\u0e41\u0e17\u0e47\u0e1a \"\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1a\u0e40\u0e07\u0e34\u0e19\"\n */\nconst RECEIPT_HEADERS = [\n  \"\u0e25\u0e33\u0e14\u0e31\u0e1a\",\n  \"\u0e40\u0e25\u0e48\u0e21\u0e17\u0e35\u0e48\",\n  \"\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\",\n  \"\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e2d\u0e01\",\n  \"\u0e40\u0e27\u0e25\u0e32\",\n  \"\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19\",\n  \"\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e1c\u0e39\u0e49\u0e0a\u0e33\u0e23\u0e30\",\n  \"\u0e2a\u0e31\u0e07\u0e01\u0e31\u0e14/\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19 (\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14 1)\",\n  \"\u0e17\u0e35\u0e48\u0e2d\u0e22\u0e39\u0e48/\u0e08\u0e31\u0e07\u0e2b\u0e27\u0e31\u0e14 (\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14 2)\",\n  \"\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e0a\u0e33\u0e23\u0e30\",\n  \"\u0e42\u0e04\u0e23\u0e07\u0e01\u0e32\u0e23\",\n  \"\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e23\u0e27\u0e21 (\u0e1a\u0e32\u0e17)\",\n  \"\u0e27\u0e34\u0e18\u0e35\u0e0a\u0e33\u0e23\u0e30\u0e40\u0e07\u0e34\u0e19\",\n  \"\u0e18\u0e19\u0e32\u0e04\u0e32\u0e23\u0e15\u0e49\u0e19\u0e17\u0e32\u0e07\",\n  \"\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e42\u0e2d\u0e19\",\n  \"\u0e40\u0e27\u0e25\u0e32\u0e42\u0e2d\u0e19\",\n  \"\u0e40\u0e02\u0e49\u0e32\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e21\u0e2b\u0e32\u0e27\u0e34\u0e17\u0e22\u0e32\u0e25\u0e31\u0e22\",\n  \"\u0e2a\u0e16\u0e32\u0e19\u0e30\",\n  \"\u0e40\u0e2b\u0e15\u0e38\u0e1c\u0e25\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\",\n  \"\u0e1c\u0e39\u0e49\u0e2d\u0e2d\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\",\n  \"\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e1c\u0e39\u0e49\u0e2d\u0e2d\u0e01\",\n  \"\u0e23\u0e2b\u0e31\u0e2a\u0e40\u0e08\u0e49\u0e32\u0e2b\u0e19\u0e49\u0e32\u0e17\u0e35\u0e48\",\n  \"\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e02\u0e49\u0e32\u0e23\u0e30\u0e1a\u0e1a\",\n  \"Receipt ID\"\n];\n\nfunction initReceiptSheetHeaders(sheet) {\n  sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS]);\n  const headerRange = sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length);\n  headerRange.setBackground(\"#1e3a8a\");\n  headerRange.setFontColor(\"#ffffff\");\n  headerRange.setFontWeight(\"bold\");\n  headerRange.setHorizontalAlignment(\"center\");\n  headerRange.setWrap(true);\n  sheet.setFrozenRows(1);\n  sheet.setRowHeight(1, 38);\n}\n\nfunction receiptToRow(r, index) {\n  let itemName = \"\";\n  let projectName = \"\";\n  if (r.items && Array.isArray(r.items) && r.items.length > 0) {\n    itemName = r.items.map(it => it.paymentItem || \"\").filter(Boolean).join(\", \");\n    projectName = r.items.map(it => it.projectName || \"\").filter(Boolean).join(\", \");\n  }\n\n  return [\n    index,\n    r.bookNo || \"\",\n    r.no || \"\",\n    r.date || \"\",\n    r.time || \"\",\n    r.payerFullName || ((r.title || \"\") + (r.firstName || \"\") + \" \" + (r.lastName || \"\")).trim(),\n    r.payerType || \"\u0e1a\u0e38\u0e04\u0e04\u0e25\u0e17\u0e31\u0e48\u0e27\u0e44\u0e1b\",\n    r.detailLine1 || \"\",\n    r.detailLine2 || \"\",\n    itemName || \"\u0e04\u0e48\u0e32\u0e25\u0e07\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\",\n    projectName || \"\",\n    Number(r.totalAmount) || 0,\n    r.paymentMethod || \"\u0e40\u0e07\u0e34\u0e19\u0e42\u0e2d\u0e19\",\n    r.payerBank || \"\",\n    r.transferDate || \"\",\n    r.transferTime || \"\",\n    r.universityBank || \"\",\n    r.status || \"\u0e1b\u0e01\u0e15\u0e34\",\n    r.cancelReason || \"\",\n    r.issuerName || \"\",\n    r.issuerPosition || \"\",\n    r.issuerStaffCode || \"\",\n    r.createdAt || \"\",\n    r.id || \"\"\n  ];\n}\n\n/**\n * \u0e0b\u0e34\u0e07\u0e04\u0e4c\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e25\u0e07\u0e0a\u0e35\u0e15 \"\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e23\u0e31\u0e1a\u0e40\u0e07\u0e34\u0e19\" \u0e41\u0e1a\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e07\u0e15\u0e32\u0e21\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\n */\nfunction syncReceiptsToSheet(receipts) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(sheet);\n\n  if (!receipts || receipts.length === 0) return;\n\n  // \u0e40\u0e23\u0e35\u0e22\u0e07\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e15\u0e32\u0e21\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48\n  const sorted = receipts.slice().sort((a, b) => {\n    const bookCmp = String(a.bookNo || \"\").localeCompare(String(b.bookNo || \"\"));\n    if (bookCmp !== 0) return bookCmp;\n    return (Number(a.no) || 0) - (Number(b.no) || 0);\n  });\n\n  const rows = [];\n  for (let i = 0; i < sorted.length; i++) {\n    rows.push(receiptToRow(sorted[i], i + 1));\n  }\n\n  // \u0e25\u0e49\u0e32\u0e07\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32\u0e40\u0e14\u0e34\u0e21 (\u0e15\u0e31\u0e49\u0e07\u0e41\u0e15\u0e48\u0e41\u0e16\u0e27\u0e17\u0e35\u0e48 2)\n  const maxClear = Math.max(sheet.getLastRow(), rows.length + 1);\n  if (maxClear >= 2) {\n    sheet.getRange(2, 1, maxClear, RECEIPT_HEADERS.length).clearContent();\n  }\n\n  // \u0e40\u0e02\u0e35\u0e22\u0e19\u0e41\u0e16\u0e27\u0e43\u0e2b\u0e21\u0e48\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\n  sheet.getRange(2, 1, rows.length, RECEIPT_HEADERS.length).setValues(rows);\n\n  // \u0e01\u0e33\u0e2b\u0e19\u0e14\u0e23\u0e39\u0e1b\u0e41\u0e1a\u0e1a\u0e15\u0e31\u0e27\u0e40\u0e25\u0e02\u0e40\u0e07\u0e34\u0e19\u0e43\u0e19\u0e04\u0e2d\u0e25\u0e31\u0e21\u0e19\u0e4c 12 (\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e23\u0e27\u0e21) \u0e40\u0e1b\u0e47\u0e19 #,##0.00\n  sheet.getRange(2, 12, rows.length, 1).setNumberFormat(\"#,##0.00\");\n  \n  // \u0e08\u0e31\u0e14\u0e01\u0e36\u0e48\u0e07\u0e01\u0e25\u0e32\u0e07\u0e04\u0e2d\u0e25\u0e31\u0e21\u0e19\u0e4c \u0e25\u0e33\u0e14\u0e31\u0e1a, \u0e40\u0e25\u0e48\u0e21\u0e17\u0e35\u0e48, \u0e40\u0e25\u0e02\u0e17\u0e35\u0e48, \u0e27\u0e31\u0e19\u0e17\u0e35\u0e48, \u0e2a\u0e16\u0e32\u0e19\u0e30\n  sheet.getRange(2, 1, rows.length, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment(\"center\");\n}\n\n/**\n * \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e16\u0e27\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e43\u0e1a\u0e43\u0e2b\u0e21\u0e48\u0e15\u0e48\u0e2d\u0e17\u0e49\u0e32\u0e22\u0e17\u0e31\u0e19\u0e17\u0e35 (\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e15\u0e2d\u0e19\u0e01\u0e14\u0e2d\u0e2d\u0e01\u0e43\u0e1a\u0e40\u0e2a\u0e23\u0e47\u0e08\u0e41\u0e1a\u0e1a Real-time)\n */\nfunction appendReceiptRow(r) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  if (sheet.getLastRow() < 1) {\n    initReceiptSheetHeaders(sheet);\n  }\n  const nextIndex = sheet.getLastRow();\n  const row = receiptToRow(r, nextIndex);\n  sheet.appendRow(row);\n\n  const newRowIndex = sheet.getLastRow();\n  sheet.getRange(newRowIndex, 12).setNumberFormat(\"#,##0.00\");\n  sheet.getRange(newRowIndex, 1, 1, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(newRowIndex, 18).setHorizontalAlignment(\"center\");\n}\n\nfunction formatAllSheets() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const rSheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(rSheet);\n  const sSheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  if (sSheet.getLastRow() < 1) {\n    sSheet.getRange(1, 1, 1, 3).setValues([[\"\u0e25\u0e33\u0e14\u0e31\u0e1a Chunk\", \"\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e23\u0e30\u0e1a\u0e1a (System State JSON)\", \"\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\"]]);\n    sSheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n  }\n}\n";
+
+    function openDatabaseConfigModal(defaultTab = null) {
+      const gasUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url"));
+      const gasInp = document.getElementById("cfgGasUrl");
+      if (gasInp) gasInp.value = gasUrl || "";
+
+      const sUrl = (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.supabaseUrl) || BUILTIN_DEFAULT_SUPABASE_URL;
+      const sKey = (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.supabaseAnonKey) || BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
+      const urlInp = document.getElementById("cfgSupabaseUrl");
+      const keyInp = document.getElementById("cfgSupabaseKey");
+      if (urlInp) urlInp.value = sUrl;
+      if (keyInp) keyInp.value = sKey;
+
+      const modal = document.getElementById("databaseConfigModal");
+      if (modal) modal.classList.add("open");
+
+      const activeProvider = safeGetItem("rmutsb_active_db_provider") || (gasUrl ? "googlesheet" : "supabase");
+      switchDbModalTab(defaultTab || (activeProvider === "googlesheet" ? "gas" : (activeProvider === "supabase" ? "supabase" : "gas")));
+    }
+
+    function closeDatabaseConfigModal() {
+      const modal = document.getElementById("databaseConfigModal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    function switchDbModalTab(tabId) {
+      const tabs = ["gas", "supabase", "fallback"];
+      tabs.forEach(t => {
+        const btn = document.getElementById("tabBtn" + (t === "gas" ? "Gas" : (t === "supabase" ? "Supabase" : "Fallback")));
+        const content = document.getElementById("tabContent" + (t === "gas" ? "Gas" : (t === "supabase" ? "Supabase" : "Fallback")));
+        if (t === tabId) {
+          if (btn) {
+            btn.classList.add("active");
+            btn.style.background = (t === "gas" ? "#059669" : (t === "supabase" ? "#2563eb" : "#475569"));
+            btn.style.color = "#ffffff";
+            btn.style.border = "none";
+          }
+          if (content) content.style.display = "block";
+        } else {
+          if (btn) {
+            btn.classList.remove("active");
+            btn.style.background = "transparent";
+            btn.style.color = "var(--slate-700)";
+            btn.style.border = "1px solid var(--slate-300)";
+          }
+          if (content) content.style.display = "none";
+        }
+      });
+    }
+
+    async function testGasConnectionFromModal() {
+      const inp = document.getElementById("cfgGasUrl");
+      const url = cleanGasUrl(inp ? inp.value : "");
+      if (!url) {
+        showToast("กรุณากรอก Google Apps Script Web App URL ก่อนกดทดสอบ", true);
+        if (inp) inp.focus();
+        return;
+      }
+      showToast("กำลังทดสอบการเชื่อมต่อไปยัง Google Sheet Web App...");
+      try {
+        const res = await pingGasWebapp(url);
+        if (res && (res.status === "success" || res.status === "ok")) {
+          showToast("✓ เชื่อมต่อ Google Sheet สำเร็จ! พร้อมใช้งานและซิงค์ข้อมูลได้ทันที");
+        } else {
+          showToast("เซิร์ฟเวอร์ตอบกลับแต่สถานะไม่ใช่ success: " + JSON.stringify(res), true);
+        }
+      } catch (err) {
+        console.error("Test GAS error:", err);
+        showToast("ไม่สามารถเชื่อมต่อ Google Sheet ได้: " + (err.message || err) + " (ตรวจสอบว่าตั้งค่า Who has access เป็น Anyone หรือยัง)", true);
+      }
+    }
+
+    async function syncCurrentStateToGoogleSheetFromModal() {
+      const inp = document.getElementById("cfgGasUrl");
+      const url = cleanGasUrl(inp ? inp.value : (safeGetItem("rmutsb_gas_url") || ""));
+      if (!url) {
+        showToast("กรุณาระบุ URL Google Apps Script ก่อนทำการซิงค์", true);
+        return;
+      }
+
+      const receiptCount = (appState.receipts || []).length;
+      openGenericConfirmModal(
+        "ยืนยันการซิงค์ข้อมูลทั้งหมดขึ้น Google Sheet",
+        "คุณต้องการส่งข้อมูลทั้งหมดในระบบ ได้แก่:\n• ใบเสร็จรับเงิน " + receiptCount + " รายการ (สร้างแถวแยกให้ในชีต)\n• โครงการอบรม, ข้อมูลผู้ใช้งาน และลายเซ็น\nขึ้นสู่ Google Sheet ทันทีใช่หรือไม่?",
+        async () => {
+          showToast("กำลังส่งข้อมูลทั้งหมดขึ้น Google Sheet (อาจใช้เวลาประมาณ 2-3 วินาที)...");
+          try {
+            const res = await persistStateToGas(url, appState);
+            safeSetItem("rmutsb_gas_url", url);
+            safeSetItem("rmutsb_active_db_provider", "googlesheet");
+            gasWebAppUrl = url;
+            activeDbProvider = "googlesheet";
+
+            const dot = document.getElementById("connDot");
+            const txt = document.getElementById("connStatusText");
+            if (dot) {
+              dot.className = "conn-dot";
+              dot.style.background = "#059669";
+            }
+            if (txt) txt.textContent = "เชื่อมต่อ Google Sheet แล้ว (ออนไลน์เรียลไทม์)";
+
+            showToast("✓ สำเร็จ! ส่งข้อมูล " + receiptCount + " ใบเสร็จขึ้น Google Sheet เรียบร้อยแล้ว (สามารถเปิด Google Sheet ดูข้อมูลได้ทันที)");
+            updateSyncTimestamp();
+          } catch(e) {
+            console.error("Sync to GAS error:", e);
+            showToast("การซิงค์ข้อมูลขึ้น Google Sheet ล้มเหลว: " + (e.message || e), true);
+          }
+        }
+      );
+    }
+
+    async function saveGasConfigFromModal() {
+      const inp = document.getElementById("cfgGasUrl");
+      const url = cleanGasUrl(inp ? inp.value : "");
+      if (!url) {
+        showToast("กรุณากรอก Google Apps Script Web App URL", true);
+        return;
+      }
+      safeSetItem("rmutsb_gas_url", url);
+      safeSetItem("rmutsb_active_db_provider", "googlesheet");
+      gasWebAppUrl = url;
+      activeDbProvider = "googlesheet";
+
+      showToast("บันทึกการตั้งค่า Google Sheet เรียบร้อย กำลังเริ่มต้นเชื่อมต่อ...");
+      closeDatabaseConfigModal();
+      await initDatabaseConnection();
+      showToast("✓ เปิดใช้งานฐานข้อมูล Google Sheet เรียบร้อยแล้ว ข้อมูลจะเชื่อมต่อเรียลไทม์");
+    }
+
+    function openGasCodeModal() {
+      const modal = document.getElementById("gasCodeModal");
+      const area = document.getElementById("gasCodeArea");
+      if (area) area.value = GAS_WEBAPP_CODE;
+      if (modal) modal.classList.add("open");
+    }
+
+    function closeGasCodeModal() {
+      const modal = document.getElementById("gasCodeModal");
+      if (modal) modal.classList.remove("open");
+    }
+
+    function copyGasCode() {
+      const area = document.getElementById("gasCodeArea");
+      if (area) {
+        area.select();
+        navigator.clipboard.writeText(area.value).then(() => {
+          showToast("✓ คัดลอกโค้ด Google Apps Script (Code.gs) เรียบร้อยแล้ว! นำไปวางใน Apps Script ได้เลย");
+          const btn = document.getElementById("btnCopyGasCode");
+          if (btn) {
+            const oldT = btn.textContent;
+            btn.textContent = "✓ คัดลอกแล้ว!";
+            btn.style.background = "#10b981";
+            setTimeout(() => {
+              btn.textContent = oldT;
+              btn.style.background = "#059669";
+            }, 2000);
+          }
+        }).catch(e => {
+          document.execCommand("copy");
+          showToast("✓ คัดลอกโค้ด Google Apps Script เรียบร้อยแล้ว");
+        });
+      }
+    }
+
+    // Supabase Backward-compatibility functions
+    function openSupabaseConfigModal() {
+      openDatabaseConfigModal("supabase");
+    }
+
+    function closeSupabaseConfigModal() {
+      closeDatabaseConfigModal();
+    }
+
     async function saveSupabaseConfigFromModal() {
       const rawUrl = document.getElementById("cfgSupabaseUrl").value.trim();
       const rawKey = document.getElementById("cfgSupabaseKey").value.trim();
@@ -8583,30 +8828,33 @@ ${loginUrl}
         showToast("กรุณากรอกทั้ง Supabase Project URL และ Anon Key", true);
         return;
       }
+      safeSetItem("rmutsb_supabase_url", url);
+      safeSetItem("rmutsb_supabase_anon_key", key);
+      safeSetItem("rmutsb_active_db_provider", "supabase");
       if (window.RMUTSB_SUPABASE_CONFIG) {
         window.RMUTSB_SUPABASE_CONFIG.saveConfig(url, key);
       }
-      closeSupabaseConfigModal();
+      closeDatabaseConfigModal();
       await initDatabaseConnection();
       showToast("บันทึกการตั้งค่าและเชื่อมต่อ Supabase เรียบร้อยแล้ว");
     }
 
     async function resetToDefaultSupabaseConfig() {
+      safeSetItem("rmutsb_supabase_url", BUILTIN_DEFAULT_SUPABASE_URL);
+      safeSetItem("rmutsb_supabase_anon_key", BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+      safeSetItem("rmutsb_active_db_provider", "supabase");
       if (window.RMUTSB_SUPABASE_CONFIG) {
         window.RMUTSB_SUPABASE_CONFIG.saveConfig(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
       }
-      document.getElementById("cfgSupabaseUrl").value = BUILTIN_DEFAULT_SUPABASE_URL;
-      document.getElementById("cfgSupabaseKey").value = BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
-      closeSupabaseConfigModal();
+      closeDatabaseConfigModal();
       await initDatabaseConnection();
       showToast("เชื่อมต่อฐานข้อมูลกลาง Supabase เรียบร้อยแล้ว");
     }
 
     async function resetToFallbackMode() {
-      if (window.RMUTSB_SUPABASE_CONFIG) {
-        window.RMUTSB_SUPABASE_CONFIG.clearConfig();
-      }
-      closeSupabaseConfigModal();
+      safeSetItem("rmutsb_active_db_provider", "fallback");
+      activeDbProvider = "fallback";
+      closeDatabaseConfigModal();
       await initDatabaseConnection();
       showToast("สลับเป็นโหมดสำรองในเครื่องเรียบร้อยแล้ว");
     }
@@ -8627,13 +8875,12 @@ create table if not exists public.profiles (
   username text,
   password text,
   email text,
-  role text not null default 'user',
-  permission_level text not null default 'issuer',
-  display_name text not null,
+  role text,
+  permission_level integer,
+  display_name text,
   staff_code text,
   position text,
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
+  active boolean default true,
   updated_at timestamptz not null default now()
 );
 
@@ -8642,23 +8889,27 @@ alter table public.profiles enable row level security;
 
 drop policy if exists "Allow public read write app_state" on public.app_state;
 create policy "Allow public read write app_state"
-  on public.app_state for all
-  using (true) with check (true);
+on public.app_state for all
+using (true)
+with check (true);
 
 drop policy if exists "Allow public read write profiles" on public.profiles;
 create policy "Allow public read write profiles"
-  on public.profiles for all
-  using (true) with check (true);
+on public.profiles for all
+using (true)
+with check (true);
 `;
 
     function openSqlSchemaHelperModal() {
+      const modal = document.getElementById("sqlSchemaHelperModal");
       const area = document.getElementById("sqlSchemaCodeArea");
       if (area) area.value = SUPABASE_SCHEMA_SQL_CODE;
-      document.getElementById("sqlSchemaHelperModal").classList.add("open");
+      if (modal) modal.classList.add("open");
     }
 
     function closeSqlSchemaHelperModal() {
-      document.getElementById("sqlSchemaHelperModal").classList.remove("open");
+      const modal = document.getElementById("sqlSchemaHelperModal");
+      if (modal) modal.classList.remove("open");
     }
 
     function copySqlSchemaCode() {
@@ -8666,81 +8917,45 @@ create policy "Allow public read write profiles"
       if (area) {
         area.select();
         navigator.clipboard.writeText(area.value).then(() => {
-          showToast("📋 คัดลอกคำสั่ง SQL แล้ว นำไปวางในหน้า Supabase SQL Editor ได้เลย");
-        }).catch(() => {
+          showToast("คัดลอกคำสั่ง SQL เรียบร้อยแล้ว! นำไปรันใน Supabase SQL Editor ได้เลย");
+        }).catch(e => {
           document.execCommand("copy");
-          showToast("📋 คัดลอกคำสั่ง SQL แล้ว");
+          showToast("คัดลอกคำสั่ง SQL เรียบร้อยแล้ว");
         });
       }
     }
 
-    async function promptSyncLocalToSupabaseCloud() {
+    function promptSyncLocalToActiveDatabase() {
       const receiptCount = (appState.receipts || []).length;
-      const userCount = (appState.users || []).length;
+      const isGas = isGoogleSheetMode();
+      const targetName = isGas ? "Google Sheet" : "Supabase";
 
       openGenericConfirmModal(
-        "ยืนยันการตั้งข้อมูลหน้านี้เป็นฐานข้อมูลหลัก (Master Database)",
-        `คุณต้องการนำข้อมูลทั้งหมดในหน้านี้ (ใบเสร็จ ${receiptCount} รายการ, ผู้ใช้งาน ${userCount} ท่าน และการตั้งค่าทั้งหมด) อัปโหลดขึ้นสู่ฐานข้อมูลกลาง Supabase ใช่หรือไม่?\n\nเมื่อซิงค์สำเร็จแล้ว เครื่องอื่นและบุคคลอื่นที่เปิดเข้าสู่ระบบ จะเห็นข้อมูลชุดนี้ตรงกันทันที!`,
+        "ยืนยันการซิงค์ข้อมูลขึ้น " + targetName,
+        "คุณต้องการนำข้อมูลทั้งหมดในหน้านี้ (ใบเสร็จ " + receiptCount + " รายการ และการตั้งค่าทั้งหมด) อัปโหลดขึ้นสู่ " + targetName + " ใช่หรือไม่?\n\nเมื่อซิงค์สำเร็จแล้ว เครื่องอื่นและบุคคลอื่นที่เปิดเข้าสู่ระบบ จะเห็นข้อมูลชุดนี้ตรงกันทันที!",
         async () => {
-          showToast("กำลังอัปโหลดข้อมูลขึ้นสู่ฐานข้อมูลกลาง Supabase...");
+          showToast("กำลังอัปโหลดข้อมูลขึ้นสู่ " + targetName + "...");
           try {
-            // ตรวจสอบให้แน่ใจว่ามี supabaseClient ที่ใช้งานได้
-            if (!supabaseClient) {
-              // สร้าง client ใหม่ด้วย reinit
-              await initDatabaseConnection();
-              if (!supabaseClient && window.supabase) {
-                // บังคับเชื่อมต่อไปยังโปรเจกต์หลักอัตโนมัติ
+            if (isGas) {
+              await persistStateToGas(gasWebAppUrl, appState);
+              if (supabaseClient) {
                 try {
-                  const forcedClient = window.supabase.createClient(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
-                  const { error: chkErr } = await forcedClient.from("app_state").select("updated_at").eq("id", "main").maybeSingle();
-                  if (!chkErr) {
-                    supabaseClient = forcedClient;
-                    if (window.RMUTSB_SUPABASE_CONFIG) {
-                      window.RMUTSB_SUPABASE_CONFIG.saveConfig(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
-                    }
-                  }
+                  await supabaseClient.from("app_state").upsert({ id: "main", data: appState, updated_at: new Date().toISOString() });
                 } catch(e) {}
               }
-              if (!supabaseClient) {
-                if (lastSupabaseStatus === "quota_exceeded") {
-                  openSupabaseQuotaExceededModal();
-                  throw new Error("Supabase แจ้งเตือน: โควต้าข้อมูลรับส่ง (Egress Quota 5 GB) เต็มแล้ว กรุณาดูวิธีแก้ไขในหน้าต่างที่ปรากฏ");
-                }
-                throw new Error("ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบ Project URL และ Key");
+              showToast("✓ สำเร็จ! อัปโหลดข้อมูล " + receiptCount + " ใบเสร็จขึ้น Google Sheet เรียบร้อยแล้ว");
+            } else {
+              if (!supabaseClient && window.supabase) {
+                await initDatabaseConnection();
               }
-            }
-
-            const { error: upsertErr } = await supabaseClient
-              .from("app_state")
-              .upsert({
+              if (!supabaseClient) throw new Error("ไม่สามารถเชื่อมต่อ Supabase ได้ กรุณาตรวจสอบการตั้งค่า");
+              const { error: upsertErr } = await supabaseClient.from("app_state").upsert({
                 id: "main",
                 data: appState,
                 updated_at: new Date().toISOString()
               });
-
-            if (upsertErr) {
-              throw upsertErr;
-            }
-
-            // Sync user profiles
-            if (Array.isArray(appState.users)) {
-              for (const u of appState.users) {
-                try {
-                  await supabaseClient.from("profiles").upsert({
-                    user_id: u.user_id,
-                    username: u.username,
-                    password: u.password,
-                    email: u.email,
-                    role: u.role,
-                    permission_level: u.permission_level,
-                    display_name: u.display_name,
-                    staff_code: u.staff_code,
-                    position: u.position,
-                    active: u.active,
-                    updated_at: new Date().toISOString()
-                  });
-                } catch (e) {}
-              }
+              if (upsertErr) throw upsertErr;
+              showToast("✓ สำเร็จ! อัปโหลดข้อมูล " + receiptCount + " ใบเสร็จขึ้นฐานข้อมูล Supabase แล้ว");
             }
 
             lastStateUpdatedAt = new Date().toISOString();
@@ -8748,32 +8963,16 @@ create policy "Allow public read write profiles"
             if (broadcastChannel) {
               broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
             }
-            const dot = document.getElementById("connDot");
-            const txt = document.getElementById("connStatusText");
-            if (dot) dot.className = "conn-dot";
-            if (txt) txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
-            lastSupabaseStatus = "connected";
             updateSyncTimestamp();
-            showToast(`✓ สำเร็จ! อัปโหลดข้อมูล ${receiptCount} ใบเสร็จขึ้นฐานข้อมูลกลาง Supabase แล้ว ทุกเครื่องจะเห็นข้อมูลตรงกันทันที`);
-          } catch (err) {
-            console.error("Sync to cloud error:", err);
-            const errMsg = String((err && (err.message || err)) || "");
-            if (err.code === "42P01" || err.code === "PGRST205" || (errMsg.includes("app_state") && (errMsg.includes("does not exist") || errMsg.includes("not find") || errMsg.includes("schema cache")))) {
-              showToast("ยังไม่ได้สร้างตารางบน Supabase กรุณารัน SQL ก่อน (เปิดหน้าต่างคำสั่งให้แล้ว)", true);
-              openSqlSchemaHelperModal();
-            } else if (errMsg.includes("exceed_egress_quota") || err.status === 402 || errMsg.includes("spend caps") || errMsg.includes("Egress Quota")) {
-              showToast("Supabase เกินโควต้าปริมาณข้อมูล Egress (5 GB) ของแพ็กเกจฟรีแล้ว", true);
-              openSupabaseQuotaExceededModal();
-            } else if (errMsg.includes("Failed to fetch") || errMsg.includes("NetworkError") || err.name === "TypeError") {
-              showToast("ไม่สามารถเชื่อมต่อ Supabase ได้ (Failed to fetch): โปรเจกต์อาจถูกระงับชั่วคราว (Paused)", true);
-              openSupabaseFailedToFetchModal();
-            } else {
-              showToast("ไม่สามารถซิงค์ขึ้น Supabase ได้: " + errMsg, true);
-            }
+          } catch(err) {
+            console.error("Sync error:", err);
+            showToast("การซิงค์ล้มเหลว: " + (err.message || err), true);
           }
         }
       );
     }
+
+    const promptSyncLocalToSupabaseCloud = promptSyncLocalToActiveDatabase;
 
     function openSupabaseQuotaExceededModal() {
       const modal = document.getElementById("supabaseQuotaExceededModal");
