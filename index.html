@@ -6928,7 +6928,7 @@ ${loginUrl}
             <td>${nextPad}</td>
             <td>${statusBadge}</td>
             <td class="text-right" style="white-space:nowrap;">
-              ${!b.closed && !b.active && !isFull ? `<button class="btn btn-success btn-sm" onclick="setActiveBook('${escapeAttr(b.bookNo)}')">ตั้งเป็นเล่ม Active</button>` : ""}
+              ${!b.closed && !b.active ? `<button class="btn btn-success btn-sm" onclick="setActiveBook('${escapeAttr(b.bookNo)}')">ตั้งเป็นเล่ม Active</button>` : ""}
               <button class="btn btn-outline btn-sm" onclick="openBookEditModal('${escapeAttr(b.bookNo)}')">แก้ไขเล่ม</button>
               ${!b.closed ? `<button class="btn btn-warning btn-sm" onclick="closeReceiptBook('${escapeAttr(b.bookNo)}')">ปิดเล่ม</button>` : `<button class="btn btn-outline btn-sm" onclick="reopenReceiptBook('${escapeAttr(b.bookNo)}')">เปิดเล่มอีกครั้ง</button>`}
               <button class="btn btn-outline btn-sm" onclick="exportSingleBookCSV('${escapeAttr(b.bookNo)}')">Export (CSV)</button>
@@ -7568,10 +7568,7 @@ ${loginUrl}
         if (activeBook) {
           const digits = Math.max(Number(activeBook.digits || 3), 3);
           const nextNum = Math.max(Number(activeBook.latest || 0) + 1, Number(activeBook.start || 1));
-          const isFull = nextNum > Number(activeBook.end || 100);
-          bookBanner.textContent = isFull
-            ? `เล่มที่ ${activeBook.bookNo} (เลขครบเล่มแล้ว กรุณาแจ้ง Admin เปลี่ยนเล่มใหม่)`
-            : `เล่มที่ ${activeBook.bookNo} | เลขที่ถัดไปที่จะออก: ${String(nextNum).padStart(digits, "0")} (สิ้นสุด ${String(activeBook.end).padStart(digits, "0")})`;
+          bookBanner.textContent = `เล่มที่ ${activeBook.bookNo} | เลขที่ถัดไปที่จะออก: ${String(nextNum).padStart(digits, "0")}`;
         } else {
           bookBanner.textContent = "ยังไม่มีเล่มใบเสร็จที่เปิดใช้งาน (กรุณาแจ้ง Admin เปิดเล่มใบเสร็จ)";
         }
@@ -7902,7 +7899,8 @@ ${loginUrl}
           const nextNum = Math.max(latest + 1, start);
 
           if (nextNum > end) {
-            throw new Error(`เลขใบเสร็จในเล่มที่ ${activeBook.bookNo} ครบจำนวนแล้ว (${end}) กรุณาเปลี่ยนเล่มใหม่`);
+            // ขยายจำนวนเลขสูงสุดของเล่มโดยอัตโนมัติ เพื่อไม่ให้การออกใบเสร็จสะดุด
+            activeBook.end = Math.max(end + 500, nextNum + 100);
           }
 
           const receiptNo = String(nextNum).padStart(digits, "0");
