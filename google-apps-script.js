@@ -353,3 +353,40 @@ function formatAllSheets() {
     sSheet.getRange(1, 1, 1, 3).setBackground("#1e3a8a").setFontColor("#ffffff").setFontWeight("bold");
   }
 }
+
+
+/**
+ * ดึงรายการใบเสร็จทั้งหมดจากแท็บ "ใบเสร็จรับเงิน"
+ */
+function getReceiptsFromSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_RECEIPTS);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RECEIPT_HEADERS.length).getValues();
+  return rows.map(r => ({
+    noIndex: r[0],
+    bookNo: r[1],
+    no: String(r[2]),
+    date: r[3],
+    time: r[4],
+    payerFullName: r[5],
+    payerType: r[6],
+    detailLine1: r[7],
+    detailLine2: r[8],
+    paymentItem: r[9],
+    projectName: r[10],
+    totalAmount: r[11],
+    paymentMethod: r[12],
+    payerBank: r[13],
+    transferDate: r[14],
+    transferTime: r[15],
+    universityBank: r[16],
+    status: r[17],
+    cancelReason: r[18],
+    issuerName: r[19],
+    issuerPosition: r[20],
+    issuerStaffCode: r[21],
+    createdAt: r[22],
+    id: r[23]
+  }));
+}
