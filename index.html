@@ -1332,28 +1332,7 @@
         </div>
       </div>
 
-      <!-- Quick Login Alert Banner -->
-      <div id="landingSupabaseNotice" class="alert-box alert-success" style="display:block; margin-bottom:1.25rem; border:1px solid #86efac; background:#f0fdf4; box-shadow:0 2px 6px rgba(16,185,129,0.08); padding:1rem 1.25rem;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
-          <div>
-            <div style="font-size:0.95rem; font-weight:700; color:#166534; display:flex; align-items:center; gap:0.35rem;">
-              <span>⚡ เข้าสู่ระบบแบบด่วน (คลิกเดียวเข้าใช้งานได้ทันที):</span>
-            </div>
-            <div style="font-size:0.85rem; color:#15803d; margin-top:0.3rem; line-height:1.5;">
-              • <strong>ผู้ดูแลระบบ (Admin)</strong>: บัญชี <code>Admin</code> (รหัสผ่าน <code>admin1234</code> หรือ <code>Rmus1234</code>)<br/>
-              • <strong>เจ้าหน้าที่การเงิน (User)</strong>: รหัสเจ้าหน้าที่ <code>stf001</code> ถึง <code>stf016</code> (รหัสผ่าน <code>user001</code> ถึง <code>user016</code>)
-            </div>
-          </div>
-          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-            <button type="button" class="btn btn-primary" style="background:#1e40af; border:none; padding:0.55rem 1.15rem; font-weight:600; display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer;" onclick="quickFallbackLogin('admin')">
-              🔑 เข้าหน้า Admin ทันที
-            </button>
-            <button type="button" class="btn btn-success" style="background:#059669; border:none; padding:0.55rem 1.15rem; font-weight:600; display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer;" onclick="quickFallbackLogin('issuer')">
-              📝 เข้าหน้า User (ออกใบเสร็จ) ทันที
-            </button>
-          </div>
-        </div>
-      </div>
+      <div id="landingSupabaseNotice" class="alert-box alert-success" style="display:none;"></div>
 
       <h3 style="font-size:1.1rem; color:var(--primary-navy); margin-bottom:0.4rem;">กรุณาเลือกบทบาทผู้ใช้งานเพื่อเข้าสู่ระบบ</h3>
       <p style="font-size:0.9rem; color:var(--slate-500);">เข้าสู่ระบบด้วยชื่อผู้ใช้งาน (Username) รหัสเจ้าหน้าที่ หรืออีเมล และรหัสผ่านที่ผู้ดูแลระบบกำหนดไว้ในหน้าระบบ</p>
@@ -1400,10 +1379,7 @@
             </div>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-top:0.4rem;">
-            <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
-              <button type="button" class="btn btn-outline btn-sm" onclick="quickFallbackLogin('issuer')" style="color:#059669; border-color:#86efac; background:#f0fdf4;">⚡ เข้าสู่ระบบทันที (ไม่ต้องพิมพ์)</button>
-              <span style="font-size:0.84rem; color:var(--slate-500);">ผู้ดูแลระบบสามารถเพิ่มผู้ใช้งานและกำหนดรหัสผ่านได้ที่เมนู "2. ผู้ใช้งาน"</span>
-            </div>
+            <span style="font-size:0.84rem; color:var(--slate-500);">ผู้ดูแลระบบสามารถเพิ่มผู้ใช้งานและกำหนดรหัสผ่านได้ที่เมนู "2. ผู้ใช้งาน"</span>
             <button type="submit" class="btn btn-success btn-lg" id="userLoginBtn">เข้าสู่ระบบเจ้าหน้าที่ (User)</button>
           </div>
         </form>
@@ -1431,8 +1407,7 @@
             <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('adminPasswordInput', this)">แสดง</button>
           </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-top:1.25rem;">
-          <button type="button" class="btn btn-sm" style="background:#059669; color:#fff;" onclick="quickFallbackLogin('admin')">⚡ เข้าสู่ระบบ Admin ทันที</button>
+        <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:0.65rem; margin-top:1.25rem;">
           <div style="display:flex; gap:0.65rem;">
             <button type="button" class="btn btn-outline" onclick="closeAdminLoginModal()">ยกเลิก</button>
             <button type="submit" class="btn btn-primary" id="adminLoginBtn">เข้าสู่ระบบ Admin</button>
@@ -4220,10 +4195,6 @@
           }
           setupRealtimeAndPolling();
           restoreSavedUserSession();
-          checkAndHandleUrlLoginParams();
-          return;
-        }
-      }
           checkAndHandleUrlLoginParams();
           return;
         }
