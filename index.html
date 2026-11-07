@@ -4702,8 +4702,8 @@ function sortReceiptsNewestFirst(list) {
         const nowIso = new Date().toISOString();
         lastStateUpdatedAt = nowIso;
 
-        // บันทึกขึ้น Google Sheet Web App หากเปิดใช้งานอยู่
-        if (isGoogleSheetMode()) {
+        // บันทึกขึ้น Google Sheet Web App หากมีการระบุ URL ไว้ (รองรับ Real-time Dual-Sync ทุกโหมด)
+        if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
           persistStateToGas(gasWebAppUrl, appState).catch(e => console.warn("GAS background sync warning:", e));
         }
 
@@ -7923,11 +7923,16 @@ ${loginUrl}
       return projects.filter(p => p.active !== false);
     }
 
-    function addPaymentRowInForm(defaultItem = "", defaultProj = "ไม่ระบุโครงการ", defaultAmt = "") {
+    function addPaymentRowInForm(defaultItem = "", defaultProj = "", defaultAmt = "") {
       const container = document.getElementById("paymentItemsContainer");
       const rowId = "payrow-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
       const paymentItems = appState.paymentItems || [];
       const activeProjects = getActiveProjectsForUser();
+
+      if (!defaultProj || defaultProj === "ไม่ระบุโครงการ") {
+        const preferred = activeProjects.find(p => p.name !== "ไม่ระบุโครงการ" && p.active !== false);
+        defaultProj = preferred ? preferred.name : "ไม่ระบุโครงการ";
+      }
 
       const div = document.createElement("div");
       div.className = "payment-item-row";
@@ -8151,6 +8156,7 @@ ${loginUrl}
               safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
             }
             issuedReceipt = data.receipt;
+            await persistAppState();
           }
         }
         if (!issuedReceipt) {
@@ -8922,6 +8928,7 @@ ${loginUrl}
             safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
             refreshAllVisibleViewsPreservingForms();
             cancelledViaRpc = true;
+            await persistAppState();
           }
         }
         if (!cancelledViaRpc) {
