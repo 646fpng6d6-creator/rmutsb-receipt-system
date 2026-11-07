@@ -1797,9 +1797,10 @@
             <p style="font-size:0.88rem; color:var(--slate-500);">สรุปภาพรวมการออกใบเสร็จรับเงินและสถานะการรับชำระเงิน</p>
           </div>
           <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="promptSyncLocalToSupabaseCloud()" title="ส่งข้อมูลหน้านี้ขึ้นฐานข้อมูลกลาง Supabase เพื่อให้เครื่องอื่นเห็นตรงกัน">☁️ ซิงค์ข้อมูลเครื่องนี้ขึ้น Supabase</button>
             <span id="lastSyncTimeBadge" style="font-size:0.82rem; color:var(--slate-500);"></span>
-            <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูลทันที</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="manualRefreshState()" style="display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>🔄</span> Refresh ข้อมูลล่าสุด
+            </button>
           </div>
         </div>
 
@@ -9725,16 +9726,19 @@ with check (true);
     }
 
     function promptSyncLocalToActiveDatabase() {
-      const receiptCount = (appState.receipts || []).length;
       const isGas = isGoogleSheetMode();
       const targetName = isGas ? "Google Sheet" : "Supabase";
 
       openGenericConfirmModal(
-        "ยืนยันการซิงค์ข้อมูลขึ้น " + targetName,
-        "คุณต้องการนำข้อมูลทั้งหมดในหน้านี้ (ใบเสร็จ " + receiptCount + " รายการ และการตั้งค่าทั้งหมด) อัปโหลดขึ้นสู่ " + targetName + " ใช่หรือไม่?\n\nเมื่อซิงค์สำเร็จแล้ว เครื่องอื่นและบุคคลอื่นที่เปิดเข้าสู่ระบบ จะเห็นข้อมูลชุดนี้ตรงกันทันที!",
+        "ยืนยันการซิงค์ข้อมูลกับ " + targetName,
+        "ระบบจะทำการตรวจสอบและซิงค์ข้อมูลใบเสร็จรับเงินและการตั้งค่าทั้งหมดให้ตรงกับฐานข้อมูลกลาง " + targetName + " เพื่อให้ทุกเครื่องทำงานประสานกันอย่างสมบูรณ์",
         async () => {
-          showToast("กำลังอัปโหลดข้อมูลขึ้นสู่ " + targetName + "...");
+          showToast("กำลังซิงค์ข้อมูลกับ " + targetName + "...");
           try {
+            // ดึงข้อมูลล่าสุดจากคลาวด์มาผสานรวมก่อน เพื่อป้องกันข้อมูลประวัติสูญหาย
+            await loadAppStateFromStorageOrSupabase(false);
+            const receiptCount = (appState.receipts || []).length;
+
             if (isGas) {
               await persistStateToGas(gasWebAppUrl, appState);
               if (supabaseClient) {
@@ -9742,7 +9746,7 @@ with check (true);
                   await supabaseClient.from("app_state").upsert({ id: "main", data: appState, updated_at: new Date().toISOString() });
                 } catch(e) {}
               }
-              showToast("✓ สำเร็จ! อัปโหลดข้อมูล " + receiptCount + " ใบเสร็จขึ้น Google Sheet เรียบร้อยแล้ว");
+              showToast("✓ ซิงค์ข้อมูลเรียบร้อยแล้ว (" + receiptCount + " ใบเสร็จ)");
             } else {
               if (!supabaseClient && window.supabase) {
                 await initDatabaseConnection();
