@@ -20,8 +20,27 @@ const SUPABASE_KEY_CANDIDATES = [
 ];
 
 function cleanSupabaseUrl(u) {
-  if (!u) return "";
-  return u.trim().replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
+  if (!u) return DEFAULT_SUPABASE_URL;
+  const str = String(u).trim();
+  // สกัดเอาเฉพาะ Origin เช่น https://qrjkcsadqinujtpnsdvi.supabase.co ตัด path /rest/v1 ทิ้งอัตโนมัติ
+  const match = str.match(/https?:\/\/[a-z0-9_-]+\.supabase\.co/i);
+  if (match) {
+    // หากเป็นโปรเจกต์เดิมที่โควต้าเต็ม ให้สลับเป็นโปรเจกต์ใหม่
+    if (match[0].includes("vuhihimohaheveiwfyyb")) {
+      return DEFAULT_SUPABASE_URL;
+    }
+    return match[0];
+  }
+  return DEFAULT_SUPABASE_URL;
+}
+
+function cleanSupabaseKey(k) {
+  if (!k) return DEFAULT_SUPABASE_ANON_KEY;
+  const str = String(k).trim();
+  if (str.includes("UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg") || str.includes("k3Y5miInDeiBdVhYrnG4") || str.length < 20) {
+    return DEFAULT_SUPABASE_ANON_KEY;
+  }
+  return str;
 }
 
 (function initRMUTSBSupabaseConfig() {
@@ -36,15 +55,11 @@ function cleanSupabaseUrl(u) {
   }
 
   let savedUrl = cleanSupabaseUrl(getSaved("rmutsb_supabase_url"));
-  let savedKey = (getSaved("rmutsb_supabase_anon_key") || "").trim();
+  let savedKey = cleanSupabaseKey(getSaved("rmutsb_supabase_anon_key"));
 
-  // หากเป็น URL หรือ Key ของโปรเจกต์เดิมที่โควต้าเต็ม (vuhihimohaheveiwfyyb) หรือยังไม่มี ให้อัปเกรดเป็นโปรเจกต์ใหม่ทันที
-  if (!savedUrl || savedUrl.includes("vuhihimohaheveiwfyyb") || !savedKey || savedKey.includes("UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg") || savedKey.includes("k3Y5miInDeiBdVhYrnG4")) {
-    savedUrl = DEFAULT_SUPABASE_URL;
-    savedKey = DEFAULT_SUPABASE_ANON_KEY;
-    setSaved("rmutsb_supabase_url", savedUrl);
-    setSaved("rmutsb_supabase_anon_key", savedKey);
-  }
+  // อัปเดต localStorage ด้วยค่าที่สะอาดและถูกต้องเสมอ
+  setSaved("rmutsb_supabase_url", savedUrl);
+  setSaved("rmutsb_supabase_anon_key", savedKey);
 
   window.RMUTSB_SUPABASE_CONFIG = {
     url: cleanSupabaseUrl(savedUrl),
@@ -56,7 +71,7 @@ function cleanSupabaseUrl(u) {
     },
     saveConfig: function (newUrl, newAnonKey) {
       const cleanUrl = cleanSupabaseUrl(newUrl);
-      const cleanKey = (newAnonKey || "").trim();
+      const cleanKey = cleanSupabaseKey(newAnonKey);
       setSaved("rmutsb_supabase_url", cleanUrl);
       setSaved("rmutsb_supabase_anon_key", cleanKey);
       this.url = cleanUrl;
@@ -66,7 +81,9 @@ function cleanSupabaseUrl(u) {
       removeSaved("rmutsb_supabase_url");
       removeSaved("rmutsb_supabase_anon_key");
       this.url = DEFAULT_SUPABASE_URL;
-      this.anonKey = SUPABASE_KEY_CANDIDATES[0];
+      this.anonKey = DEFAULT_SUPABASE_ANON_KEY;
+      setSaved("rmutsb_supabase_url", DEFAULT_SUPABASE_URL);
+      setSaved("rmutsb_supabase_anon_key", DEFAULT_SUPABASE_ANON_KEY);
     },
     // จำคีย์ที่ใช้เชื่อมต่อสำเร็จไว้เพื่อใช้ครั้งต่อไป
     markWorkingKey: function (key) {

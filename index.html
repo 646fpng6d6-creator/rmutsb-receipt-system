@@ -11,7 +11,7 @@
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Built-in & LocalStorage Config for GitHub Pages and Supabase -->
-  <script src="supabase-config.js"></script>
+  <script src="supabase-config.js?v=20261107_1900"></script>
 
   <style>
     :root {
@@ -1453,8 +1453,11 @@
         </div>
         <button type="button" class="btn btn-outline btn-sm" style="font-size:0.78rem; background:#ffffff; color:#1e40af; border-color:#93c5fd;" onclick="openSqlSchemaHelperModal()">📋 ดูคำสั่ง SQL สร้างตาราง</button>
       </div>
-      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
-        <button type="button" class="btn btn-outline btn-sm" onclick="resetToFallbackMode()">สลับโหมดทดสอบสำรอง (Fallback)</button>
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm" style="background:#059669; color:#fff;" onclick="resetToDefaultSupabaseConfig()">⚡ เชื่อมต่อโปรเจกต์กลางทันที</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="resetToFallbackMode()">สลับโหมดทดสอบสำรอง (Fallback)</button>
+        </div>
         <div style="display:flex; gap:0.5rem;">
           <button type="button" class="btn btn-outline" onclick="closeSupabaseConfigModal()">ยกเลิก</button>
           <button type="button" class="btn btn-primary" onclick="saveSupabaseConfigFromModal()">บันทึกและเชื่อมต่อ</button>
@@ -4066,6 +4069,29 @@
     }
 
     // ======================== SUPABASE & FALLBACK INITIALIZATION ========================
+    const BUILTIN_DEFAULT_SUPABASE_URL = "https://qrjkcsadqinujtpnsdvi.supabase.co";
+    const BUILTIN_DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_mBEYicRTTxEo0JNlf3TLFg_1w7he-Gw";
+
+    function cleanSupabaseUrl(u) {
+      if (!u) return BUILTIN_DEFAULT_SUPABASE_URL;
+      const str = String(u).trim();
+      const match = str.match(/https?:\/\/[a-z0-9_-]+\.supabase\.co/i);
+      if (match) {
+        if (match[0].includes("vuhihimohaheveiwfyyb")) return BUILTIN_DEFAULT_SUPABASE_URL;
+        return match[0];
+      }
+      return BUILTIN_DEFAULT_SUPABASE_URL;
+    }
+
+    function cleanSupabaseKey(k) {
+      if (!k) return BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
+      const str = String(k).trim();
+      if (str.includes("UH3sGkz2QXJBoaNRfFE3YkFA58DaVSm8WHH9TCXqlCg") || str.includes("k3Y5miInDeiBdVhYrnG4") || str.length < 20) {
+        return BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
+      }
+      return str;
+    }
+
     let lastSupabaseStatus = "offline";
 
     function handleConnBadgeClick() {
@@ -4081,11 +4107,21 @@
     }
 
     function isSupabaseMode() {
-      return window.RMUTSB_SUPABASE_CONFIG && window.RMUTSB_SUPABASE_CONFIG.isConfigured() && supabaseClient !== null;
+      return supabaseClient !== null;
     }
 
     async function initDatabaseConnection() {
-      const cfg = window.RMUTSB_SUPABASE_CONFIG;
+      const cfg = window.RMUTSB_SUPABASE_CONFIG || {
+        url: BUILTIN_DEFAULT_SUPABASE_URL,
+        anonKey: BUILTIN_DEFAULT_SUPABASE_ANON_KEY,
+        isConfigured: () => true,
+        saveConfig: (u, k) => {
+          try {
+            localStorage.setItem("rmutsb_supabase_url", u);
+            localStorage.setItem("rmutsb_supabase_anon_key", k);
+          } catch(e){}
+        }
+      };
       const dot = document.getElementById("connDot");
       const txt = document.getElementById("connStatusText");
 
@@ -4111,17 +4147,22 @@
       }
 
       let lastAttemptErr = null;
-      if (cfg && cfg.isConfigured() && window.supabase) {
-        // รวบรวมคีย์ทั้งหมดที่ต้องลอง (คีย์ปัจจุบัน + คีย์สำรอง) ไม่ซ้ำกัน
-        const keysToTry = [cfg.anonKey];
-        if (Array.isArray(cfg.keyCandidates)) {
-          cfg.keyCandidates.forEach(k => { if (k && !keysToTry.includes(k)) keysToTry.push(k); });
+      if (window.supabase) {
+        // รายการ URL และ Key ที่จะทดลองเชื่อมต่อ โดยอัตโนมัติ
+        const primaryUrl = cleanSupabaseUrl(cfg.url);
+        const primaryKey = cleanSupabaseKey(cfg.anonKey);
+
+        const candidates = [
+          { url: primaryUrl, key: primaryKey }
+        ];
+        if (primaryUrl !== BUILTIN_DEFAULT_SUPABASE_URL || primaryKey !== BUILTIN_DEFAULT_SUPABASE_ANON_KEY) {
+          candidates.push({ url: BUILTIN_DEFAULT_SUPABASE_URL, key: BUILTIN_DEFAULT_SUPABASE_ANON_KEY });
         }
 
         let connected = false;
-        for (const tryKey of keysToTry) {
+        for (const cand of candidates) {
           try {
-            const client = window.supabase.createClient(cfg.url, tryKey);
+            const client = window.supabase.createClient(cand.url, cand.key);
             const { data: testRow, error: testErr } = await client
               .from("app_state")
               .select("updated_at")
@@ -4129,10 +4170,9 @@
               .maybeSingle();
 
             if (!testErr) {
-              // เชื่อมต่อสำเร็จด้วยคีย์นี้
+              // เชื่อมต่อสำเร็จ
               supabaseClient = client;
-              cfg.anonKey = tryKey;
-              if (cfg.markWorkingKey) cfg.markWorkingKey(tryKey);
+              if (cfg.saveConfig) cfg.saveConfig(cand.url, cand.key);
               dot.className = "conn-dot";
               txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
               lastSupabaseStatus = "connected";
@@ -4144,8 +4184,7 @@
             // ตาราง app_state ยังไม่มี → เชื่อมต่อ API สำเร็จแต่ต้องรัน SQL ก่อน
             if (testErr.code === "42P01" || testErr.code === "PGRST205" || (testErr.message && (testErr.message.includes("relation") || testErr.message.includes("does not exist") || testErr.message.includes("Could not find the table")))) {
               supabaseClient = client;
-              cfg.anonKey = tryKey;
-              if (cfg.markWorkingKey) cfg.markWorkingKey(tryKey);
+              if (cfg.saveConfig) cfg.saveConfig(cand.url, cand.key);
               dot.className = "conn-dot warning";
               txt.textContent = "เชื่อมต่อ Supabase แล้ว แต่ยังไม่ได้สร้างตาราง (คลิกเพื่อดูวิธีตั้งค่า)";
               lastSupabaseStatus = "need_schema";
@@ -4153,10 +4192,10 @@
               break;
             }
 
-            console.warn("Key attempt failed:", tryKey.substring(0, 20) + "...", testErr.message || testErr);
+            console.warn("Connection attempt failed:", cand.url, testErr.message || testErr);
           } catch (e) {
             lastAttemptErr = e;
-            console.warn("Key attempt exception:", tryKey.substring(0, 20) + "...", e);
+            console.warn("Connection attempt exception:", cand.url, e);
           }
         }
 
@@ -4168,6 +4207,10 @@
           }
           setupRealtimeAndPolling();
           restoreSavedUserSession();
+          checkAndHandleUrlLoginParams();
+          return;
+        }
+      }
           checkAndHandleUrlLoginParams();
           return;
         }
@@ -8530,8 +8573,10 @@ ${loginUrl}
     // ======================== SUPABASE CONFIG MODAL HANDLERS ========================
     function openSupabaseConfigModal() {
       const cfg = window.RMUTSB_SUPABASE_CONFIG;
-      document.getElementById("cfgSupabaseUrl").value = (cfg && cfg.url) || "";
-      document.getElementById("cfgSupabaseKey").value = (cfg && cfg.anonKey) || "";
+      const currentUrl = (cfg && cfg.url) ? cleanSupabaseUrl(cfg.url) : BUILTIN_DEFAULT_SUPABASE_URL;
+      const currentKey = (cfg && cfg.anonKey) ? cleanSupabaseKey(cfg.anonKey) : BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
+      document.getElementById("cfgSupabaseUrl").value = currentUrl;
+      document.getElementById("cfgSupabaseKey").value = currentKey;
       document.getElementById("supabaseConfigModal").classList.add("open");
     }
 
@@ -8540,20 +8585,37 @@ ${loginUrl}
     }
 
     async function saveSupabaseConfigFromModal() {
-      const url = document.getElementById("cfgSupabaseUrl").value.trim();
-      const key = document.getElementById("cfgSupabaseKey").value.trim();
+      const rawUrl = document.getElementById("cfgSupabaseUrl").value.trim();
+      const rawKey = document.getElementById("cfgSupabaseKey").value.trim();
+      const url = cleanSupabaseUrl(rawUrl);
+      const key = cleanSupabaseKey(rawKey);
       if (!url || !key) {
         showToast("กรุณากรอกทั้ง Supabase Project URL และ Anon Key", true);
         return;
       }
-      window.RMUTSB_SUPABASE_CONFIG.saveConfig(url, key);
+      if (window.RMUTSB_SUPABASE_CONFIG) {
+        window.RMUTSB_SUPABASE_CONFIG.saveConfig(url, key);
+      }
       closeSupabaseConfigModal();
       await initDatabaseConnection();
       showToast("บันทึกการตั้งค่าและเชื่อมต่อ Supabase เรียบร้อยแล้ว");
     }
 
+    async function resetToDefaultSupabaseConfig() {
+      if (window.RMUTSB_SUPABASE_CONFIG) {
+        window.RMUTSB_SUPABASE_CONFIG.saveConfig(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+      }
+      document.getElementById("cfgSupabaseUrl").value = BUILTIN_DEFAULT_SUPABASE_URL;
+      document.getElementById("cfgSupabaseKey").value = BUILTIN_DEFAULT_SUPABASE_ANON_KEY;
+      closeSupabaseConfigModal();
+      await initDatabaseConnection();
+      showToast("เชื่อมต่อฐานข้อมูลกลาง Supabase เรียบร้อยแล้ว");
+    }
+
     async function resetToFallbackMode() {
-      window.RMUTSB_SUPABASE_CONFIG.clearConfig();
+      if (window.RMUTSB_SUPABASE_CONFIG) {
+        window.RMUTSB_SUPABASE_CONFIG.clearConfig();
+      }
       closeSupabaseConfigModal();
       await initDatabaseConnection();
       showToast("สลับเป็นโหมดสำรองในเครื่องเรียบร้อยแล้ว");
@@ -8634,12 +8696,21 @@ create policy "Allow public read write profiles"
           try {
             // ตรวจสอบให้แน่ใจว่ามี supabaseClient ที่ใช้งานได้
             if (!supabaseClient) {
-              const cfg = window.RMUTSB_SUPABASE_CONFIG;
-              if (!cfg || !cfg.isConfigured() || !window.supabase) {
-                throw new Error("ยังไม่ได้กำหนดค่าการเชื่อมต่อ Supabase กรุณาตั้งค่าก่อน");
-              }
               // สร้าง client ใหม่ด้วย reinit
               await initDatabaseConnection();
+              if (!supabaseClient && window.supabase) {
+                // บังคับเชื่อมต่อไปยังโปรเจกต์หลักอัตโนมัติ
+                try {
+                  const forcedClient = window.supabase.createClient(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+                  const { error: chkErr } = await forcedClient.from("app_state").select("updated_at").eq("id", "main").maybeSingle();
+                  if (!chkErr) {
+                    supabaseClient = forcedClient;
+                    if (window.RMUTSB_SUPABASE_CONFIG) {
+                      window.RMUTSB_SUPABASE_CONFIG.saveConfig(BUILTIN_DEFAULT_SUPABASE_URL, BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+                    }
+                  }
+                } catch(e) {}
+              }
               if (!supabaseClient) {
                 if (lastSupabaseStatus === "quota_exceeded") {
                   openSupabaseQuotaExceededModal();
