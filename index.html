@@ -8698,9 +8698,15 @@ ${loginUrl}
 
     async function testGasConnectionFromModal() {
       const inp = document.getElementById("cfgGasUrl");
-      const url = cleanGasUrl(inp ? inp.value : "");
+      const rawVal = (inp ? inp.value : "").trim();
+      if (rawVal.includes("docs.google.com/spreadsheets")) {
+        showToast("คุณใส่ลิงก์ Google Sheets: ระบบต้องการ URL เว็บแอป (ลงท้ายด้วย /exec) ที่ได้จากการกด Deploy ใน Extensions > Apps Script ของชีตนี้ครับ", true, 6000);
+        if (inp) inp.focus();
+        return;
+      }
+      const url = cleanGasUrl(rawVal);
       if (!url) {
-        showToast("กรุณากรอก Google Apps Script Web App URL ก่อนกดทดสอบ", true);
+        showToast("กรุณากรอก Google Apps Script Web App URL (ลงท้ายด้วย /exec) ก่อนกดทดสอบ", true);
         if (inp) inp.focus();
         return;
       }
@@ -8720,9 +8726,14 @@ ${loginUrl}
 
     async function syncCurrentStateToGoogleSheetFromModal() {
       const inp = document.getElementById("cfgGasUrl");
-      const url = cleanGasUrl(inp ? inp.value : (safeGetItem("rmutsb_gas_url") || ""));
+      const rawVal = (inp ? inp.value : (safeGetItem("rmutsb_gas_url") || "")).trim();
+      if (rawVal.includes("docs.google.com/spreadsheets")) {
+        showToast("คุณใส่ลิงก์ Google Sheets: ระบบต้องการ URL เว็บแอป (ลงท้ายด้วย /exec) ที่ได้จาก Deploy ในชีตนี้ครับ", true, 6000);
+        return;
+      }
+      const url = cleanGasUrl(rawVal);
       if (!url) {
-        showToast("กรุณาระบุ URL Google Apps Script ก่อนทำการซิงค์", true);
+        showToast("กรุณาระบุ URL Google Apps Script Web App (ลงท้ายด้วย /exec) ก่อนทำการซิงค์", true);
         return;
       }
 
@@ -8759,9 +8770,14 @@ ${loginUrl}
 
     async function saveGasConfigFromModal() {
       const inp = document.getElementById("cfgGasUrl");
-      const url = cleanGasUrl(inp ? inp.value : "");
+      const rawVal = (inp ? inp.value : "").trim();
+      if (rawVal.includes("docs.google.com/spreadsheets")) {
+        showToast("คุณใส่ลิงก์ Google Sheets: กรุณานำ URL เว็บแอป (ที่ได้จาก Deploy ใน Apps Script ลงท้ายด้วย /exec) มาวางครับ", true, 6000);
+        return;
+      }
+      const url = cleanGasUrl(rawVal);
       if (!url) {
-        showToast("กรุณากรอก Google Apps Script Web App URL", true);
+        showToast("กรุณากรอก Google Apps Script Web App URL (ลงท้ายด้วย /exec)", true);
         return;
       }
       safeSetItem("rmutsb_gas_url", url);
