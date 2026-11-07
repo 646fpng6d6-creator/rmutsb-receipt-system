@@ -3599,13 +3599,23 @@
         ],
         books: [
           {
+            id: "book-rus70001",
+            bookNo: "RUS70001",
+            start: 1,
+            end: 1000,
+            latest: 123,
+            digits: 4,
+            active: true,
+            closed: false
+          },
+          {
             id: "book-an704001",
             bookNo: "AN704001",
             start: 1,
             end: 100,
             latest: 54,
             digits: 4,
-            active: true,
+            active: false,
             closed: false
           },
           {
@@ -3872,10 +3882,15 @@
             merged.receipts.unshift(rcp54);
           }
         }
-        // ตรวจสอบว่าเล่ม AN704001 เป็น latest อย่างน้อย 54
+        // ตรวจสอบว่าเล่ม AN704001 และ RUS70001 มีค่าล่าสุดอย่างถูกต้อง
         if (Array.isArray(merged.books)) {
           const book = merged.books.find(b => b.bookNo === "AN704001");
           if (book && book.latest < 54) book.latest = 54;
+          const rusBook = merged.books.find(b => b.bookNo === "RUS70001");
+          if (rusBook) {
+            if (rusBook.latest < 123) rusBook.latest = 123;
+            if (rusBook.end < 1000) rusBook.end = 1000;
+          }
         }
       }
       merged.emailConfig = Object.assign({}, def.emailConfig, (rawState && rawState.emailConfig) || {});
@@ -4275,24 +4290,74 @@
           const dbProfiles = (profRes.status === "fulfilled" && !profRes.value.error && Array.isArray(profRes.value.data)) ? profRes.value.data : [];
 
           if (stateRow && stateRow.data) {
-            const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts.length : 0;
-            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts.length : 0;
-            if (localReceipts > cloudReceipts && cloudReceipts === 0) {
-              await persistAppState();
-              showToast("✓ อัปโหลดข้อมูลใบเสร็จในเครื่องนี้ขึ้นฐานข้อมูลกลาง Supabase ให้เรียบร้อยแล้ว");
-              return;
-            }
+            const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts : [];
+            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+            
+            // ป้องกันข้อมูลสูญหาย: ผสาน (Merge) ข้อมูลใบเสร็จจากทั้งสองฝั่ง ไม่ให้ฝั่งใดฝั่งหนึ่งเขียนทับหายไป
+            const mergedReceiptsMap = new Map();
+            // นำเข้าข้อมูลคลาวด์ก่อน
+            cloudReceipts.forEach(r => {
+              if (r) {
+                const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
+                mergedReceiptsMap.set(key, r);
+              }
+            });
+            // นำเข้าข้อมูลในเครื่อง ถ้าในคลาวด์ยังไม่มี ให้เพิ่มเข้าไป
+            let hasUnsyncedLocal = false;
+            localReceipts.forEach(r => {
+              if (r) {
+                const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
+                if (!mergedReceiptsMap.has(key)) {
+                  mergedReceiptsMap.set(key, r);
+                  hasUnsyncedLocal = true;
+                }
+              }
+            });
+            const mergedReceiptsList = Array.from(mergedReceiptsMap.values());
+
+            // ผสานข้อมูลเล่มใบเสร็จ (books) เช่นเดียวกัน
+            const cloudBooks = Array.isArray(stateRow.data.books) ? stateRow.data.books : [];
+            const localBooks = Array.isArray(appState.books) ? appState.books : [];
+            const mergedBooksMap = new Map();
+            cloudBooks.forEach(b => { if (b && b.bookNo) mergedBooksMap.set(String(b.bookNo).toUpperCase(), b); });
+            let hasUnsyncedBooks = false;
+            localBooks.forEach(b => {
+              if (b && b.bookNo) {
+                const bKey = String(b.bookNo).toUpperCase();
+                if (!mergedBooksMap.has(bKey)) {
+                  mergedBooksMap.set(bKey, b);
+                  hasUnsyncedBooks = true;
+                } else {
+                  // ถ้ามีเล่มซ้ำ ให้ดูว่าเครื่องไหนเลขล่าสุด (latest) เดินหน้าไปไกลกว่า ให้ใช้ค่านั้น
+                  const existing = mergedBooksMap.get(bKey);
+                  if (Number(b.latest || 0) > Number(existing.latest || 0)) {
+                    mergedBooksMap.set(bKey, Object.assign({}, existing, { latest: b.latest }));
+                    hasUnsyncedBooks = true;
+                  }
+                }
+              }
+            });
+            const mergedBooksList = Array.from(mergedBooksMap.values());
 
             const cloudTs = stateRow.updated_at ? new Date(stateRow.updated_at).getTime() : 0;
             const localTs = lastStateUpdatedAt ? new Date(lastStateUpdatedAt).getTime() : 0;
             const isCloudNewer = cloudTs > (localTs + 500);
 
-            // หากคลาวด์ใหม่กว่า หรือกดรีเฟรชเอง หรือยังไม่เคยโหลด
-            if (isCloudNewer || forceToast || !lastStateUpdatedAt) {
+            if (isCloudNewer || forceToast || !lastStateUpdatedAt || hasUnsyncedLocal || hasUnsyncedBooks) {
               lastStateUpdatedAt = stateRow.updated_at;
-              appState = normalizeAndMigrateAppState(stateRow.data, dbProfiles);
+              // ฐานข้อมูลรวมกันอย่างปลอดภัย
+              const baseState = Object.assign({}, stateRow.data, {
+                receipts: mergedReceiptsList,
+                books: mergedBooksList.length > 0 ? mergedBooksList : (stateRow.data.books || [])
+              });
+              appState = normalizeAndMigrateAppState(baseState, dbProfiles);
               safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
               refreshAllVisibleViewsPreservingForms();
+
+              // หากมีข้อมูลจากในเครื่องที่คลาวด์ยังไม่มี ให้อัปโหลดซิงค์ขึ้นคลาวด์ทันที
+              if (hasUnsyncedLocal || hasUnsyncedBooks) {
+                persistAppState();
+              }
             } else if (dbProfiles.length > 0) {
               // ตรวจสอบว่าใน profiles มีผู้ใช้ที่ใน appState ยังไม่มีหรือไม่
               const currentCodes = new Set((appState.users || []).map(u => (u.staff_code || u.username || u.user_id || "").toUpperCase()));
