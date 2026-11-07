@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS (xlsx) for Batch Excel/CSV Import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Built-in & LocalStorage Config for GitHub Pages and Supabase -->
   <script src="supabase-config.js?v=20261107_1900"></script>
 
@@ -1678,6 +1680,123 @@
     </div>
   </div>
 
+
+  <!-- ======================== BATCH IMPORT EXCEL / CSV MODAL ======================== -->
+  <div class="modal-backdrop no-print" id="batchImportModal" style="display:none;">
+    <div class="modal-box" style="max-width:860px; max-height:92vh; display:flex; flex-direction:column; padding:1.5rem;">
+      <div class="modal-header" style="margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--slate-200);">
+        <h3 style="display:flex; align-items:center; gap:0.5rem; color:var(--primary-navy); margin:0; font-size:1.15rem;">
+          <span>📥</span> นำเข้ารายชื่อและออกใบเสร็จรับเงินอัตโนมัติ (Batch Import Excel / CSV)
+        </h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeBatchImportModal()">ปิด</button>
+      </div>
+
+      <div style="flex:1; overflow-y:auto; padding-right:4px;">
+        <!-- Card 1: Download Templates -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+          <h4 style="margin:0 0 0.4rem 0; font-size:0.95rem; color:var(--primary-navy); display:flex; align-items:center; gap:0.4rem;">
+            <span>📄</span> ขั้นตอนที่ 1: ดาวน์โหลดไฟล์แม่แบบมาตรฐาน (Template)
+          </h4>
+          <p style="font-size:0.84rem; color:var(--slate-600); margin:0 0 0.75rem 0; line-height:1.5;">
+            กรุณากรอกข้อมูลตามหัวคอลัมน์ของไฟล์แม่แบบ ระบบจะจับคู่ข้อมูล ตรวจสอบความถูกต้อง และออกใบเสร็จรับเงินเรียงเลขที่ให้อัตโนมัติทันที
+          </p>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <a href="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" download="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" class="btn btn-outline btn-sm" style="background:#fff; border-color:#059669; color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>📊</span> ดาวน์โหลดแม่แบบ Excel (.xlsx)
+            </a>
+            <a href="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.csv" download="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.csv" class="btn btn-outline btn-sm" style="background:#fff; border-color:#0284c7; color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem;">
+              <span>📄</span> ดาวน์โหลดแม่แบบ CSV (.csv)
+            </a>
+            <button type="button" class="btn btn-outline btn-sm" onclick="downloadBatchTemplateDynamically()" style="font-size:0.8rem; color:var(--slate-600);">
+              ⚡ สร้างไฟล์แม่แบบสำรอง (SheetJS)
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Upload File -->
+        <div style="background:#eff6ff; border:1.5px dashed #3b82f6; border-radius:8px; padding:1.25rem; text-align:center; margin-bottom:1rem;">
+          <h4 style="margin:0 0 0.35rem 0; font-size:0.95rem; color:#1e40af;">
+            📂 ขั้นตอนที่ 2: เลือกไฟล์ Excel หรือ CSV ที่กรอกข้อมูลเสร็จแล้ว
+          </h4>
+          <p style="font-size:0.82rem; color:var(--slate-600); margin-bottom:0.75rem;">
+            รองรับไฟล์นามสกุล <strong>.xlsx, .xls, .csv</strong> (ระบบจะอ่านข้อมูลแถวแรกเป็นชื่อหัวคอลัมน์)
+          </p>
+          <input type="file" id="batchImportFileInput" accept=".xlsx, .xls, .csv" style="display:none;" onchange="handleBatchFileSelect(event)" />
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('batchImportFileInput').click()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+            <span>📁</span> คลิกเลือกไฟล์จากเครื่อง...
+          </button>
+          <div id="batchFileNameDisplay" style="margin-top:0.6rem; font-size:0.88rem; font-weight:600; color:var(--primary-navy);"></div>
+        </div>
+
+        <!-- Card 3: Preview & Validation (Shown after file uploaded) -->
+        <div id="batchPreviewSection" style="display:none; margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <h4 style="margin:0; font-size:0.95rem; color:var(--primary-navy); display:flex; align-items:center; gap:0.4rem;">
+              <span>📋</span> ขั้นตอนที่ 3: ตรวจสอบรายการข้อมูลก่อนยืนยันออกใบเสร็จ
+            </h4>
+            <div id="batchTargetBookBadge" style="font-size:0.85rem; background:#fef3c7; border:1px solid #fde047; color:#854d0e; padding:4px 10px; border-radius:6px; font-weight:600;"></div>
+          </div>
+
+          <!-- Summary Stats -->
+          <div class="grid-4" style="margin-bottom:0.85rem;">
+            <div class="stat-card" style="padding:0.75rem;">
+              <div class="stat-label">รายการที่พบทั้งหมด</div>
+              <div class="stat-value" id="batchTotalCount" style="font-size:1.4rem;">0</div>
+            </div>
+            <div class="stat-card" style="padding:0.75rem;">
+              <div class="stat-label">รายการพร้อมออก</div>
+              <div class="stat-value" id="batchValidCount" style="font-size:1.4rem; color:var(--accent-green);">0</div>
+            </div>
+            <div class="stat-card" style="padding:0.75rem;">
+              <div class="stat-label">ยอดเงินรวมทั้งสิ้น</div>
+              <div class="stat-value" id="batchTotalAmount" style="font-size:1.3rem; color:var(--primary-blue);">฿0.00</div>
+            </div>
+            <div class="stat-card" style="padding:0.75rem;">
+              <div class="stat-label">ช่วงเลขที่ที่จะออก</div>
+              <div class="stat-value" id="batchReceiptRange" style="font-size:1.15rem; color:#d97706;">-</div>
+            </div>
+          </div>
+
+          <!-- Preview Table -->
+          <div class="table-container" style="max-height:280px; overflow-y:auto; border:1px solid var(--slate-200); border-radius:6px;">
+            <table class="table" style="font-size:0.82rem; margin:0;">
+              <thead>
+                <tr>
+                  <th style="width:40px;">ที่</th>
+                  <th>เลขที่ที่จะได้</th>
+                  <th>ชื่อ-นามสกุล / สังกัด</th>
+                  <th>รายการ</th>
+                  <th class="text-right">จำนวนเงิน</th>
+                  <th>วิธีชำระ / เวลาโอน</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="batchPreviewTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Progress Bar (Shown during issuance) -->
+        <div id="batchProgressSection" style="display:none; margin-bottom:1rem; text-align:center;">
+          <div style="font-weight:600; color:var(--primary-navy); margin-bottom:0.4rem;" id="batchProgressText">กำลังประมวลผลออกใบเสร็จ...</div>
+          <div style="background:#e2e8f0; border-radius:10px; height:14px; overflow:hidden;">
+            <div id="batchProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #059669); transition:width 0.2s;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--slate-200);">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeBatchImportModal()">ยกเลิก</button>
+        <div style="display:flex; gap:0.5rem;">
+          <button type="button" id="batchConfirmBtn" class="btn btn-success" disabled onclick="executeBatchIssue()">
+            🚀 ยืนยันออกใบเสร็จทั้งหมดทันที
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== 2. ADMIN PORTAL VIEW ======================== -->
   <div id="adminPortalView" class="app-shell no-print" style="display:none;">
     <aside class="sidebar">
@@ -2123,9 +2242,12 @@
             <h2>6. รายการใบเสร็จรับเงินทั้งหมด (All Receipts)</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">ตรวจสอบ สั่งพิมพ์ต้นฉบับ/สำเนา ดาวน์โหลด PDF หรือยกเลิกใบเสร็จพร้อมระบุเหตุผล</p>
           </div>
-          <div style="display:flex; gap:0.5rem;">
-            <button class="btn btn-outline" onclick="openCancelReceiptModal('', '')">ยกเลิกใบเสร็จด้วยเลขที่</button>
-            <button class="btn btn-primary" onclick="manualRefreshState()">Refresh ข้อมูล</button>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openBatchImportModal()" style="display:inline-flex; align-items:center; gap:0.4rem; background:linear-gradient(135deg, #1e40af, #0284c7); border:none;">
+              <span>📥</span> นำเข้ารายชื่อออกใบเสร็จ (Excel / CSV)
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openCancelReceiptModal('', '')">ยกเลิกใบเสร็จด้วยเลขที่</button>
+            <button class="btn btn-primary btn-sm" onclick="manualRefreshState()">Refresh ข้อมูล</button>
           </div>
         </div>
 
@@ -2480,7 +2602,12 @@
         <div class="panel-card">
           <div class="panel-header">
             <h3>บันทึกข้อมูลผู้ชำระเงินและออกใบเสร็จรับเงิน</h3>
-            <button type="button" class="btn btn-outline btn-sm" onclick="resetIssueReceiptForm()">ล้างฟอร์มเริ่มใหม่</button>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="openBatchImportModal()" style="display:inline-flex; align-items:center; gap:0.4rem; background:linear-gradient(135deg, #1e40af, #0284c7); border:none; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                <span>📥</span> นำเข้ารายชื่อออกใบเสร็จ (Excel / CSV)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="resetIssueReceiptForm()">ล้างฟอร์มเริ่มใหม่</button>
+            </div>
           </div>
 
           <form id="issueReceiptForm" onsubmit="handleIssueReceiptSubmit(event)">
@@ -8054,7 +8181,493 @@ ${loginUrl}
       }
     }
 
-    function resetIssueReceiptForm() {
+
+    // =========================================================================
+    // BATCH IMPORT EXCEL / CSV ENGINE
+    // =========================================================================
+    let batchParsedReceipts = [];
+
+    function openBatchImportModal() {
+      if (currentUser && currentUser.active === false) {
+        showToast("บัญชีผู้ใช้งานของคุณถูกปิดการใช้งาน ไม่สามารถออกใบเสร็จได้", true);
+        return;
+      }
+      if (currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin") {
+        showToast("บัญชีของคุณมีสิทธิ์เฉพาะเรียกดูและพิมพ์ใบเสร็จเท่านั้น", true);
+        return;
+      }
+
+      batchParsedReceipts = [];
+      const fileInput = document.getElementById("batchImportFileInput");
+      if (fileInput) fileInput.value = "";
+      const fileNameDisplay = document.getElementById("batchFileNameDisplay");
+      if (fileNameDisplay) fileNameDisplay.textContent = "";
+      const previewSec = document.getElementById("batchPreviewSection");
+      if (previewSec) previewSec.style.display = "none";
+      const progressSec = document.getElementById("batchProgressSection");
+      if (progressSec) progressSec.style.display = "none";
+      const confirmBtn = document.getElementById("batchConfirmBtn");
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "🚀 ยืนยันออกใบเสร็จทั้งหมดทันที";
+      }
+
+      const modal = document.getElementById("batchImportModal");
+      if (modal) modal.style.display = "flex";
+    }
+
+    function closeBatchImportModal() {
+      const modal = document.getElementById("batchImportModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function downloadBatchTemplateDynamically() {
+      try {
+        if (typeof XLSX === "undefined") {
+          showToast("ไม่สามารถสร้างไฟล์ได้เนื่องจากไลบรารี XLSX กำลังโหลด กรุณาลองใหม่อีกครั้ง", true);
+          return;
+        }
+        const wsData = [
+          [
+            "คำนำหน้า",
+            "ชื่อ",
+            "นามสกุล",
+            "ประเภทผู้ชำระ",
+            "สังกัด / หน่วยงาน (บรรทัด 1)",
+            "ที่อยู่ / จังหวัด (บรรทัด 2)",
+            "รายการชำระ",
+            "จำนวนเงิน (บาท)",
+            "วิธีชำระเงิน",
+            "ธนาคารต้นทาง",
+            "วันที่โอน (ปปปป-ดด-วว)",
+            "เวลาโอน (ชช:นน)",
+            "เข้าบัญชีมหาวิทยาลัย",
+            "โครงการอบรม"
+          ],
+          [
+            "นางสาว",
+            "กนกวรรณ",
+            "ใจดีงาม",
+            "บุคคลทั่วไป",
+            "องค์การบริหารส่วนตำบลดอนทอง",
+            "อำเภอเมือง จังหวัดพิษณุโลก",
+            "ค่าลงทะเบียน",
+            4900,
+            "เงินโอน",
+            "ธนาคารกรุงไทย",
+            "2026-11-06",
+            "09:30",
+            "ธนาคารกรุงไทย (128-0-79185-3)",
+            "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
+          ],
+          [
+            "นาย",
+            "สมชาย",
+            "รักชาติมั่นคง",
+            "บุคคลทั่วไป",
+            "เทศบาลตำบลหนองบัว",
+            "อำเภอเมือง จังหวัดอุดรธานี",
+            "ค่าลงทะเบียน",
+            4900,
+            "เงินโอน",
+            "ธนาคารกสิกรไทย",
+            "2026-11-06",
+            "10:15",
+            "ธนาคารกรุงไทย (128-0-79185-3)",
+            "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
+          ],
+          [
+            "นาง",
+            "วิภาดา",
+            "สุขสมบูรณ์",
+            "บุคคลทั่วไป",
+            "องค์การบริหารส่วนตำบลแม่ทะ",
+            "อำเภอแม่ทะ จังหวัดลำปาง",
+            "ค่าลงทะเบียน",
+            4900,
+            "เงินโอน",
+            "ธนาคารไทยพาณิชย์",
+            "2026-11-06",
+            "11:20",
+            "ธนาคารกรุงไทย (128-0-79185-3)",
+            "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569"
+          ]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws["!cols"] = [
+          { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 14 },
+          { wch: 30 }, { wch: 28 }, { wch: 16 }, { wch: 16 },
+          { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 14 },
+          { wch: 28 }, { wch: 35 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "รายชื่อออกใบเสร็จ");
+        XLSX.writeFile(wb, "แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx");
+        showToast("ดาวน์โหลดไฟล์แม่แบบ Excel สำเร็จ");
+      } catch (e) {
+        showToast("ไม่สามารถสร้างไฟล์แม่แบบได้: " + e.message, true);
+      }
+    }
+
+    function formatExcelDateVal(val) {
+      if (val === undefined || val === null || val === "") return "";
+      if (typeof val === "number") {
+        // Excel serial date number
+        const utcDays = Math.floor(val - 25569);
+        const utcValue = utcDays * 86400;
+        const d = new Date(utcValue * 1000);
+        return d.toISOString().slice(0, 10);
+      }
+      if (val instanceof Date) {
+        return val.toISOString().slice(0, 10);
+      }
+      return String(val).trim();
+    }
+
+    function formatExcelTimeVal(val) {
+      if (val === undefined || val === null || val === "") return "";
+      if (typeof val === "number" && val < 1) {
+        const totalMinutes = Math.round(val * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0");
+      }
+      return String(val).trim();
+    }
+
+    function handleBatchFileSelect(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const fileNameDisplay = document.getElementById("batchFileNameDisplay");
+      if (fileNameDisplay) fileNameDisplay.textContent = `📄 ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+      if (typeof XLSX === "undefined") {
+        showToast("กำลังโหลดไลบรารี XLSX กรุณารอสักครู่แล้วลองเลือกไฟล์ใหม่อีกครั้ง", true);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames.find(n => n.includes("รายชื่อ") || n.includes("Sheet1")) || workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+          if (!rawRows || rawRows.length < 2) {
+            showToast("ไม่พบข้อมูลในไฟล์ หรือไฟล์ไม่มีข้อมูลแถวรายการ", true);
+            return;
+          }
+
+          // ค้นหาแถวที่เป็น Header (มีคำว่า ชื่อ หรือ คำนำหน้า)
+          let headerIdx = rawRows.findIndex(r => Array.isArray(r) && r.some(cell => String(cell || "").includes("ชื่อ")));
+          if (headerIdx < 0) headerIdx = 0;
+          const headers = rawRows[headerIdx].map(h => String(h || "").trim());
+
+          const findCol = (...cands) => {
+            for (let c of cands) {
+              const idx = headers.findIndex(h => h.toLowerCase().includes(c.toLowerCase()));
+              if (idx !== -1) return idx;
+            }
+            return -1;
+          };
+
+          const colTitle = findCol("คำนำหน้า", "คำนำหน้านาม", "title", "prefix");
+          const colFirstName = headers.findIndex(h => (h === "ชื่อ" || h.includes("ชื่อผู้ชำระ") || h === "name" || h === "firstname") && !h.includes("ธนาคาร") && !h.includes("โครงการ"));
+          const colLastName = findCol("นามสกุล", "lastname", "surname");
+          const colPayerType = findCol("ประเภทผู้ชำระ", "ประเภท", "type");
+          const colDetail1 = findCol("บรรทัด 1", "สังกัด", "หน่วยงาน", "โรงเรียน", "อบต", "เทศบาล", "organization", "detail1");
+          const colDetail2 = findCol("บรรทัด 2", "ที่อยู่", "จังหวัด", "อำเภอ", "address", "detail2");
+          const colItem = findCol("รายการชำระ", "รายการ", "item");
+          const colAmount = findCol("จำนวนเงิน", "ยอดเงิน", "จำนวน", "amount", "total");
+          const colMethod = findCol("วิธีชำระ", "ช่องทาง", "method");
+          const colPayerBank = findCol("ธนาคารต้นทาง", "ธนาคารผู้โอน", "payerbank");
+          const colTransDate = findCol("วันที่โอน", "วันโอน", "transferdate", "วันที่", "date");
+          const colTransTime = findCol("เวลาโอน", "เวลา", "transfertime", "time");
+          const colUniBank = findCol("เข้าบัญชี", "มหาวิทยาลัย", "unibank");
+          const colProject = findCol("โครงการอบรม", "โครงการ", "project");
+
+          // Active defaults from system
+          const activeBook = (appState.books || []).find(b => b.active && !b.closed);
+          const activeProject = (appState.projects || []).find(p => p.active)?.name || "ไม่ระบุโครงการ";
+          const defaultUniBank = (appState.officeInfo && appState.officeInfo.universityBanks && appState.officeInfo.universityBanks[0] && (appState.officeInfo.universityBanks[0].bankName + " (" + appState.officeInfo.universityBanks[0].accountNo + ")")) || "ธนาคารกรุงไทย (128-0-79185-3)";
+
+          batchParsedReceipts = [];
+          for (let i = headerIdx + 1; i < rawRows.length; i++) {
+            const r = rawRows[i];
+            if (!r || r.length === 0) continue;
+
+            const firstName = colFirstName !== -1 ? String(r[colFirstName] || "").trim() : "";
+            const rawAmount = colAmount !== -1 ? r[colAmount] : 0;
+            const amount = typeof rawAmount === "number" ? rawAmount : parseFloat(String(rawAmount).replace(/[^0-9.]/g, "")) || 0;
+
+            // ข้ามแถวที่ไม่มีชื่อ และไม่มีจำนวนเงิน
+            if (!firstName && amount <= 0) continue;
+
+            const title = colTitle !== -1 ? String(r[colTitle] || "").trim() : "";
+            const lastName = colLastName !== -1 ? String(r[colLastName] || "").trim() : "";
+            const payerType = colPayerType !== -1 ? (String(r[colPayerType] || "").trim() || "บุคคลทั่วไป") : "บุคคลทั่วไป";
+            const detailLine1 = colDetail1 !== -1 ? String(r[colDetail1] || "").trim() : "";
+            const detailLine2 = colDetail2 !== -1 ? String(r[colDetail2] || "").trim() : "";
+            const paymentItem = (colItem !== -1 ? String(r[colItem] || "").trim() : "") || "ค่าลงทะเบียน";
+            const paymentMethod = (colMethod !== -1 ? String(r[colMethod] || "").trim() : "") || "เงินโอน";
+            const payerBank = colPayerBank !== -1 ? String(r[colPayerBank] || "").trim() : "";
+            const transferDate = colTransDate !== -1 ? formatExcelDateVal(r[colTransDate]) : "";
+            const transferTime = colTransTime !== -1 ? formatExcelTimeVal(r[colTransTime]) : "";
+            const universityBank = (colUniBank !== -1 ? String(r[colUniBank] || "").trim() : "") || defaultUniBank;
+            const projectName = (colProject !== -1 ? String(r[colProject] || "").trim() : "") || activeProject;
+
+            const isValid = firstName.length > 0 && amount > 0;
+
+            batchParsedReceipts.push({
+              index: batchParsedReceipts.length + 1,
+              isValid,
+              errorReason: !firstName ? "ไม่มีชื่อผู้ชำระ" : (amount <= 0 ? "จำนวนเงินไม่ถูกต้อง" : ""),
+              title,
+              firstName,
+              lastName,
+              payerType,
+              detailLine1,
+              detailLine2,
+              paymentItem,
+              amount,
+              paymentMethod,
+              payerBank,
+              transferDate: transferDate || new Date().toISOString().slice(0, 10),
+              transferTime: transferTime || "",
+              universityBank,
+              projectName
+            });
+          }
+
+          renderBatchPreview();
+        } catch (err) {
+          console.error("Batch file parse error:", err);
+          showToast("ไม่สามารถประมวลผลไฟล์ได้: " + err.message, true);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderBatchPreview() {
+      const previewSec = document.getElementById("batchPreviewSection");
+      const tbody = document.getElementById("batchPreviewTableBody");
+      const confirmBtn = document.getElementById("batchConfirmBtn");
+      const targetBookBadge = document.getElementById("batchTargetBookBadge");
+
+      if (!previewSec || !tbody) return;
+
+      if (batchParsedReceipts.length === 0) {
+        previewSec.style.display = "none";
+        if (confirmBtn) confirmBtn.disabled = true;
+        showToast("ไม่พบรายการที่ถูกต้องในไฟล์", true);
+        return;
+      }
+
+      previewSec.style.display = "block";
+
+      const activeBook = (appState.books || []).find(b => b.active && !b.closed);
+      const digits = activeBook ? Math.max(Number(activeBook.digits || 3), 3) : 3;
+      const startNum = activeBook ? Math.max(Number(activeBook.latest || 0) + 1, Number(activeBook.start || 1)) : 1;
+      const validRows = batchParsedReceipts.filter(r => r.isValid);
+      const totalAmount = validRows.reduce((sum, r) => sum + r.amount, 0);
+
+      document.getElementById("batchTotalCount").textContent = batchParsedReceipts.length;
+      document.getElementById("batchValidCount").textContent = validRows.length;
+      document.getElementById("batchTotalAmount").textContent = formatMoney(totalAmount, true) + " บาท";
+
+      if (activeBook) {
+        const endNum = startNum + validRows.length - 1;
+        const rangeStr = validRows.length > 0 
+          ? `${String(startNum).padStart(digits, "0")} - ${String(endNum).padStart(digits, "0")}` 
+          : "-";
+        document.getElementById("batchReceiptRange").textContent = rangeStr;
+        targetBookBadge.textContent = `เล่มที่ ${activeBook.bookNo} (เลขที่ถัดไป: ${String(startNum).padStart(digits, "0")})`;
+      } else {
+        document.getElementById("batchReceiptRange").textContent = "ไม่มีเล่ม Active";
+        targetBookBadge.textContent = "⚠️ ไม่พบเล่มใบเสร็จที่เปิดใช้งาน";
+      }
+
+      let runningNum = startNum;
+      tbody.innerHTML = batchParsedReceipts.map((r, idx) => {
+        let assignedNo = "-";
+        if (r.isValid) {
+          assignedNo = String(runningNum).padStart(digits, "0");
+          runningNum++;
+        }
+        const standardPrefixes = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
+        let pfx = r.title ? (standardPrefixes.includes(r.title) ? r.title : (r.title + " ")) : "";
+        const fullName = `${pfx}${r.firstName}${r.lastName ? " " + r.lastName : ""}`;
+        const subDetail = r.detailLine1 || r.detailLine2 || "";
+
+        return `
+          <tr style="${!r.isValid ? "background:#fef2f2; color:#991b1b;" : ""}">
+            <td>${idx + 1}</td>
+            <td style="font-weight:700; color:var(--primary-navy);">${escapeHtml(assignedNo)}</td>
+            <td>
+              <div style="font-weight:600;">${escapeHtml(fullName)}</div>
+              ${subDetail ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(subDetail)}</div>` : ""}
+            </td>
+            <td>
+              <div>${escapeHtml(r.paymentItem)}</div>
+              <div style="font-size:0.72rem; color:var(--slate-500); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeAttr(r.projectName)}">${escapeHtml(r.projectName)}</div>
+            </td>
+            <td class="text-right" style="font-weight:600; color:var(--primary-blue);">${formatMoney(r.amount, true)}</td>
+            <td>
+              <div>${escapeHtml(r.paymentMethod)}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(r.transferDate)} ${escapeHtml(r.transferTime)}</div>
+            </td>
+            <td>
+              ${r.isValid 
+                ? `<span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">พร้อมออก</span>` 
+                : `<span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;">${escapeHtml(r.errorReason)}</span>`}
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      if (confirmBtn) {
+        confirmBtn.disabled = validRows.length === 0 || !activeBook;
+        confirmBtn.textContent = `🚀 ยืนยันออกใบเสร็จทั้งหมด ${validRows.length} ใบ`;
+      }
+    }
+
+    async function executeBatchIssue() {
+      if (currentUser && currentUser.active === false) {
+        showToast("บัญชีผู้ใช้งานของคุณถูกปิดการใช้งาน ไม่สามารถออกใบเสร็จได้", true);
+        return;
+      }
+      if (currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin") {
+        showToast("บัญชีของคุณมีสิทธิ์เฉพาะเรียกดูและพิมพ์ใบเสร็จเท่านั้น", true);
+        return;
+      }
+
+      const validRows = batchParsedReceipts.filter(r => r.isValid);
+      if (validRows.length === 0) {
+        showToast("ไม่มีรายการที่พร้อมออกใบเสร็จ", true);
+        return;
+      }
+
+      const books = [...(appState.books || [])];
+      const activeIdx = books.findIndex(b => b.active && !b.closed);
+      if (activeIdx < 0) {
+        showToast("ไม่พบเล่มใบเสร็จที่เปิดใช้งาน (Active) กรุณาแจ้ง Admin เปิดเล่มใบเสร็จก่อนดำเนินการ", true);
+        return;
+      }
+
+      const confirmBtn = document.getElementById("batchConfirmBtn");
+      const progressSec = document.getElementById("batchProgressSection");
+      const progressBar = document.getElementById("batchProgressBar");
+      const progressText = document.getElementById("batchProgressText");
+
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (progressSec) progressSec.style.display = "block";
+
+      try {
+        const activeBook = Object.assign({}, books[activeIdx]);
+        const start = Number(activeBook.start || 1);
+        let end = Number(activeBook.end || 100);
+        let latest = Number(activeBook.latest || 0);
+        const digits = Math.max(Number(activeBook.digits || 3), 3);
+
+        const newReceipts = [];
+        const baseTimestamp = Date.now();
+        const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
+
+        for (let i = 0; i < validRows.length; i++) {
+          const row = validRows[i];
+          const nextNum = Math.max(latest + 1, start);
+          latest = nextNum;
+          if (nextNum > end) {
+            end = Math.max(end + 500, nextNum + 100);
+          }
+          const receiptNo = String(nextNum).padStart(digits, "0");
+
+          let prefixFormatted = "";
+          if (row.title) {
+            prefixFormatted = standardPrefixesNoSpace.includes(row.title) ? row.title : (row.title + " ");
+          }
+          const payerFullName = `${prefixFormatted}${row.firstName}${row.lastName ? "   " + row.lastName : ""}`.trim();
+
+          const rcp = {
+            id: "rcp-" + (baseTimestamp + i),
+            bookNo: activeBook.bookNo,
+            no: receiptNo,
+            status: "ปกติ",
+            cancelReason: "",
+            createdAt: new Date(baseTimestamp + i * 1000).toISOString(),
+            date: row.transferDate || new Date().toISOString().slice(0, 10),
+            time: row.transferTime || new Date().toTimeString().slice(0, 5),
+            payerType: row.payerType || "บุคคลทั่วไป",
+            paymentMethod: row.paymentMethod || "เงินโอน",
+            payerBank: row.payerBank || "",
+            universityBank: row.universityBank || "ธนาคารกรุงไทย (128-0-79185-3)",
+            transferDate: row.transferDate || new Date().toISOString().slice(0, 10),
+            transferTime: row.transferTime || "",
+            title: row.title || "",
+            firstName: row.firstName || "",
+            lastName: row.lastName || "",
+            payerFullName: payerFullName,
+            detailLine1: row.detailLine1 || "",
+            studentCode: "",
+            detailLine2: row.detailLine2 || "",
+            items: [
+              {
+                paymentItem: row.paymentItem || "ค่าลงทะเบียน",
+                projectName: row.projectName || "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำงบการเงินรวมประจำปีงบประมาณ พ.ศ 2569 ในระบบ New E-laas”   รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569",
+                amount: row.amount
+              }
+            ],
+            totalAmount: row.amount,
+            issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
+            issuerStaffCode: (currentUser && currentUser.staff_code) || "",
+            issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
+            issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
+            issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
+          };
+
+          newReceipts.push(rcp);
+
+          if (progressBar && progressText && i % 10 === 0) {
+            const pct = Math.round(((i + 1) / validRows.length) * 100);
+            progressBar.style.width = pct + "%";
+            progressText.textContent = `กำลังสร้างใบเสร็จ... ${i + 1} / ${validRows.length} (${pct}%)`;
+          }
+        }
+
+        activeBook.latest = latest;
+        activeBook.end = end;
+        books[activeIdx] = activeBook;
+
+        if (progressBar) progressBar.style.width = "100%";
+        if (progressText) progressText.textContent = `กำลังบันทึกข้อมูลและซิงค์ขึ้นฐานข้อมูล...`;
+
+        appState.books = books;
+        appState.receipts = [...newReceipts, ...(appState.receipts || [])];
+
+        await persistAppState();
+        refreshAllVisibleViewsPreservingForms();
+
+        const firstNo = newReceipts[0].no;
+        const lastNo = newReceipts[newReceipts.length - 1].no;
+        showToast(`ออกใบเสร็จรับเงินเป็นชุดสำเร็จ ${newReceipts.length} ใบ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo})`);
+
+        closeBatchImportModal();
+
+        // เปิดหน้าต่างพิมพ์ใบเสร็จชุดนี้ทั้งหมดทันที
+        renderReceiptPrintModal(newReceipts, "both");
+      } catch (err) {
+        console.error("Batch issue error:", err);
+        showToast("เกิดข้อผิดพลาดในการออกใบเสร็จเป็นชุด: " + err.message, true);
+      } finally {
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (progressSec) progressSec.style.display = "none";
+      }
+    }
+
+        function resetIssueReceiptForm() {
       document.getElementById("rcpFirstNameInput").value = "";
       document.getElementById("rcpLastNameInput").value = "";
       document.getElementById("rcpDetailLine1Input").value = "";
