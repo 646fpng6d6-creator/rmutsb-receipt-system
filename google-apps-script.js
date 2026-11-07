@@ -292,8 +292,12 @@ function syncReceiptsToSheet(receipts) {
 
   if (!receipts || receipts.length === 0) return;
 
-  // เรียงใบเสร็จตามวันที่และเลขที่
+  // เรียงใบเสร็จตามไทม์ไลน์ วันที่ เวลา และเลขที่อย่างสมบูรณ์
   const sorted = receipts.slice().sort((a, b) => {
+    const dateA = (a.date || "") + " " + (a.time || "");
+    const dateB = (b.date || "") + " " + (b.time || "");
+    const cmp = dateA.localeCompare(dateB);
+    if (cmp !== 0) return cmp;
     const bookCmp = String(a.bookNo || "").localeCompare(String(b.bookNo || ""));
     if (bookCmp !== 0) return bookCmp;
     return (Number(a.no) || 0) - (Number(b.no) || 0);

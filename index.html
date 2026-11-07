@@ -7245,6 +7245,15 @@ ${loginUrl}
         return true;
       });
 
+      // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จล่าสุดขึ้นก่อน (Newest First)
+      filtered.sort((a, b) => {
+        const dateA = (a.date || "") + " " + (a.time || "");
+        const dateB = (b.date || "") + " " + (b.time || "");
+        const cmp = dateB.localeCompare(dateA);
+        if (cmp !== 0) return cmp;
+        return (Number(b.no) || 0) - (Number(a.no) || 0);
+      });
+
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบข้อมูลใบเสร็จรับเงินตามเงื่อนไขที่ค้นหา</td></tr>`;
         return;
@@ -8141,7 +8150,15 @@ ${loginUrl}
 
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
-      const receipts = (appState.receipts || []).slice(0, 10);
+      // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จที่ออกล่าสุดขึ้นก่อน (Newest First)
+      const sorted = (appState.receipts || []).slice().sort((a, b) => {
+        const dateA = (a.date || "") + " " + (a.time || "");
+        const dateB = (b.date || "") + " " + (b.time || "");
+        const cmp = dateB.localeCompare(dateA);
+        if (cmp !== 0) return cmp;
+        return (Number(b.no) || 0) - (Number(a.no) || 0);
+      });
+      const receipts = sorted.slice(0, 15);
 
       if (receipts.length === 0) {
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
