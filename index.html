@@ -4350,6 +4350,15 @@
       setTimeout(() => el.remove(), 4000);
     }
 
+    function getReceiptKey(r) {
+      if (!r) return "";
+      const b = String(r.bookNo || "").trim();
+      const digits = String(r.no || "").replace(/\D/g, "");
+      const n = digits ? digits.padStart(4, "0") : String(r.no || "").trim();
+      if (b && n) return b + "-" + n;
+      return r.id || "";
+    }
+
     function sortReceiptsNewestFirst(list) {
       if (!Array.isArray(list)) return [];
       return list.slice().sort((a, b) => {
@@ -4681,9 +4690,12 @@
             const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
 
             // ตรวจสอบการเปลี่ยนแปลงข้อมูลจริง เพื่ออัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่
+            const cloudTopKey = cloudReceipts.length > 0 ? (getReceiptKey(cloudReceipts[0]) + "-" + cloudReceipts[0].status + "-" + cloudReceipts[0].totalAmount) : "";
+            const localTopKey = localReceipts.length > 0 ? (getReceiptKey(localReceipts[0]) + "-" + localReceipts[0].status + "-" + localReceipts[0].totalAmount) : "";
             const hasChanged = !lastCloudUpdatedAt ||
               (res.updated_at && res.updated_at !== lastCloudUpdatedAt) ||
-              cloudReceipts.length !== localReceipts.length;
+              cloudReceipts.length !== localReceipts.length ||
+              cloudTopKey !== localTopKey;
 
             if (!forceToast && !hasChanged) {
               updateSyncTimestamp();
@@ -4694,14 +4706,14 @@
             const mergedMap = new Map();
             cloudReceipts.forEach(r => {
               if (r) {
-                const k = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
-                mergedMap.set(k, r);
+                const k = getReceiptKey(r);
+                if (k) mergedMap.set(k, r);
               }
             });
             localReceipts.forEach(r => {
               if (r) {
-                const k = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
-                if (!mergedMap.has(k)) mergedMap.set(k, r);
+                const k = getReceiptKey(r);
+                if (k && !mergedMap.has(k)) mergedMap.set(k, r);
               }
             });
 
@@ -4749,14 +4761,14 @@
             const mergedReceiptsMap = new Map();
             cloudReceipts.forEach(r => {
               if (r) {
-                const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
-                mergedReceiptsMap.set(key, r);
+                const key = getReceiptKey(r);
+                if (key) mergedReceiptsMap.set(key, r);
               }
             });
             localReceipts.forEach(r => {
               if (r) {
-                const key = r.id || (String(r.bookNo || "") + "-" + String(r.no || ""));
-                if (!mergedReceiptsMap.has(key)) mergedReceiptsMap.set(key, r);
+                const key = getReceiptKey(r);
+                if (key && !mergedReceiptsMap.has(key)) mergedReceiptsMap.set(key, r);
               }
             });
 
