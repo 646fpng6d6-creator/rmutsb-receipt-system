@@ -4081,6 +4081,46 @@
             merged.receipts.unshift(rcp54);
           }
         }
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0003 ให้ตรงตามต้นฉบับจริง (สถานะยกเลิก: แก้ไข ชื่อ-สกุล)
+        const r3 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && (r.no === "0003" || r.no === "3"));
+        if (r3) {
+          r3.no = "0003";
+          r3.date = "2026-11-06";
+          r3.time = "08:03";
+          r3.title = "นาย";
+          r3.firstName = "ภรณ์ดนัย";
+          r3.lastName = "จุละมะณี";
+          r3.payerFullName = "นายภรณ์ดนัย จุละมะณี";
+          r3.payerType = "บุคลากร อปท.";
+          r3.detailLine1 = "องค์การบริหารส่วนตำบลหนองพอก";
+          r3.detailLine2 = "จังหวัดร้อยเอ็ด";
+          r3.totalAmount = 5500;
+          r3.paymentMethod = "เงินสด";
+          r3.payerBank = "";
+          r3.universityBank = "";
+          r3.transferDate = "";
+          r3.transferTime = "";
+          r3.status = "ยกเลิก";
+          r3.cancelReason = "แก้ไข ชื่อ-สกุล";
+          r3.cancelledAt = "2026-11-06T01:05:00.000Z";
+          r3.cancelledBy = "นางสาวพิชญ์สิณี พงษ์สวัสดิ์";
+          r3.issuerName = "นางสาวพิชญ์สิณี พงษ์สวัสดิ์";
+          r3.issuerPosition = "นักวิชาการเงินและบัญชีชำนาญการ";
+          r3.issuerStaffCode = "STF013";
+          r3.issuerSignatureScale = 140;
+          if (!r3.items || r3.items.length === 0) {
+            r3.items = [{
+              paymentItem: "ค่าลงทะเบียน",
+              projectName: "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำแผนที่ย้ายข้อมูลขึ้น Ltax online ปรับมาตรา 10 และประเมิน พิมพ์เอกสารแจ้งประเมินอัตโนมัติ” รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569",
+              amount: 5500
+            }];
+          } else {
+            r3.items[0].paymentItem = "ค่าลงทะเบียน";
+            r3.items[0].projectName = "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำแผนที่ย้ายข้อมูลขึ้น Ltax online ปรับมาตรา 10 และประเมิน พิมพ์เอกสารแจ้งประเมินอัตโนมัติ” รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569";
+            r3.items[0].amount = 5500;
+          }
+        }
+
         // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0040 ให้ตรงตามต้นฉบับจริง
         const r40 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && r.no === "0040");
         if (r40) {
