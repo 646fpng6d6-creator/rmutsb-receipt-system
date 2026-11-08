@@ -4074,6 +4074,38 @@
             merged.receipts.unshift(rcp54);
           }
         }
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0040 ให้ตรงตามต้นฉบับจริง
+        const r40 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && r.no === "0040");
+        if (r40) {
+          r40.title = "นาย";
+          r40.firstName = "สุกฤษฎิ์";
+          r40.lastName = "ลาพรมมา";
+          r40.payerFullName = "นายสุกฤษฎิ์ ลาพรมมา";
+          r40.detailLine1 = "องค์การบริหารส่วนตำบลตาตุม";
+          r40.detailLine2 = "จังหวัดสุรินทร์";
+          r40.payerType = "บุคลากร อปท.";
+          r40.totalAmount = 5500;
+          r40.paymentMethod = "เงินโอน";
+          r40.payerBank = "ธนาคารกรุงไทย";
+          r40.universityBank = "ธนาคารกรุงไทย (128-0-79185-3)";
+          r40.transferDate = "2026-10-12";
+          r40.issuerName = "นางสาวพิชญ์สิณี พงษ์สวัสดิ์";
+          r40.issuerPosition = "นักวิชาการเงินและบัญชีชำนาญการ";
+          r40.issuerStaffCode = "STF013";
+          r40.issuerSignatureScale = 140;
+          if (!r40.items || r40.items.length === 0) {
+            r40.items = [{
+              paymentItem: "ค่าลงทะเบียน",
+              projectName: "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำแผนที่ย้ายข้อมูลขึ้น Ltax online ปรับมาตรา 10 และประเมิน พิมพ์เอกสารแจ้งประเมินอัตโนมัติ” รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569",
+              amount: 5500
+            }];
+          } else {
+            r40.items[0].paymentItem = "ค่าลงทะเบียน";
+            r40.items[0].projectName = "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำแผนที่ย้ายข้อมูลขึ้น Ltax online ปรับมาตรา 10 และประเมิน พิมพ์เอกสารแจ้งประเมินอัตโนมัติ” รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569";
+            r40.items[0].amount = 5500;
+          }
+        }
+
         // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0110 และ 0111 ให้ตรงตามต้นฉบับจริง
         const r110 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && r.no === "0110");
         if (r110) {
