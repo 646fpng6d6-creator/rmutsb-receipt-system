@@ -4116,6 +4116,32 @@
           }
         }
 
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0207 ให้ตรงตามต้นฉบับจริง
+        const r207 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && r.no === "0207");
+        if (r207) {
+          r207.title = "นาย";
+          r207.firstName = "สุกฤษฎิ์";
+          r207.lastName = "ลาพรมมา";
+          r207.payerFullName = "นายสุกฤษฎิ์ ลาพรมมา";
+          r207.detailLine1 = "องค์การบริหารส่วนตำบลตาตุม";
+          r207.detailLine2 = "จังหวัดสุรินทร์";
+          r207.payerType = "บุคลากร อปท.";
+          r207.totalAmount = 5500;
+          r207.issuerName = "นางสาวพิชญ์สิณี พงษ์สวัสดิ์";
+          r207.issuerPosition = "นักวิชาการเงินและบัญชีชำนาญการ";
+          r207.issuerStaffCode = "STF013";
+          r207.paymentMethod = "เงินโอน";
+          r207.universityBank = "ธนาคารกรุงไทย (128-0-79185-3)";
+          r207.transferDate = "2026-10-12";
+          if (!r207.items || r207.items.length === 0) {
+            r207.items = [{
+              paymentItem: "ค่าลงทะเบียน",
+              projectName: "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “การจัดทำแผนที่ย้ายข้อมูลขึ้น Ltax online ปรับมาตรา 10 และประเมิน พิมพ์เอกสารแจ้งประเมินอัตโนมัติ” รุ่นที่ 4 ระหว่างวันที่ 6-8 พฤศจิกายน 2569",
+              amount: 5500
+            }];
+          }
+        }
+
         // ตรวจสอบว่าเล่ม AN704001 และ RUS70001 มีค่าล่าสุดอย่างถูกต้อง
         if (Array.isArray(merged.books)) {
           const book = merged.books.find(b => b.bookNo === "AN704001");
