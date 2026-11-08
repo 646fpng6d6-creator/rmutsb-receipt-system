@@ -2700,8 +2700,11 @@
 
         <!-- Recent History on Issue Page -->
         <div class="panel-card" style="margin-top:1.25rem;">
-          <div class="panel-header">
-            <h3>ประวัติข้อมูลใบเสร็จรับเงินย้อนหลังล่าสุด (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+          <div class="panel-header" style="flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลังล่าสุด (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+              <div id="userRecentFilterNotice" style="font-size:0.8rem; margin-top:4px;"></div>
+            </div>
             <button type="button" class="btn btn-outline btn-sm" onclick="switchUserTab('history')">ดูประวัติทั้งหมดและค้นหา →</button>
           </div>
           <div class="table-responsive">
@@ -2730,8 +2733,11 @@
       <!-- USER TAB 2: RECEIPT HISTORY & REPRINT -->
       <div id="userTab_history" class="user-tab-pane" style="display:none;">
         <div class="panel-card">
-          <div class="panel-header">
-            <h3>ประวัติข้อมูลใบเสร็จรับเงินย้อนหลัง (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+          <div class="panel-header" style="flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลัง (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+              <div id="userHistoryFilterNotice" style="font-size:0.8rem; margin-top:4px;"></div>
+            </div>
             <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูล</button>
           </div>
           <div class="grid-3" style="margin-bottom:0.9rem;">
@@ -4501,6 +4507,7 @@
       const dot = document.getElementById("connDot");
       const txt = document.getElementById("connStatusText");
 
+      // 0. เริ่มต้น BroadcastChannel สำหรับซิงค์ข้ามแท็บในเบราว์เซอร์เดียวกันทันที (0ms)
       if ("BroadcastChannel" in window && !broadcastChannel) {
         broadcastChannel = new BroadcastChannel("rmutsb_receipt_sync_channel");
         broadcastChannel.onmessage = (ev) => {
@@ -4508,6 +4515,17 @@
             loadAppStateFromStorageOrSupabase(false);
           }
         };
+      }
+
+      // เริ่มต้นสร้าง Supabase Client ทันทีเสมอ เพื่อให้เชื่อมต่อ WebSocket Real-time ได้ทันทีทุกโหมด ทุกเครื่อง
+      if (window.supabase && !supabaseClient) {
+        try {
+          const sUrl = cleanSupabaseUrl(safeGetItem("rmutsb_supabase_url") || cfg.supabaseUrl || cfg.url || BUILTIN_DEFAULT_SUPABASE_URL);
+          const sKey = cleanSupabaseKey(safeGetItem("rmutsb_supabase_anon_key") || cfg.supabaseAnonKey || cfg.anonKey || BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
+          supabaseClient = window.supabase.createClient(sUrl, sKey);
+        } catch(e) {
+          console.warn("Supabase initial client creation warning:", e);
+        }
       }
 
       const rawLocal = safeGetItem("rmutsb_fallback_app_state");
@@ -4541,23 +4559,14 @@
             setupRealtimeAndPolling();
             restoreSavedUserSession();
             checkAndHandleUrlLoginParams();
-
-            // เชื่อมต่อ Supabase เงียบๆ ในพื้นหลัง เพื่อเป็นระบบ Dual-Backup สำรอง
-            if (window.supabase) {
-              try {
-                const sUrl = cleanSupabaseUrl(safeGetItem("rmutsb_supabase_url") || BUILTIN_DEFAULT_SUPABASE_URL);
-                const sKey = cleanSupabaseKey(safeGetItem("rmutsb_supabase_anon_key") || BUILTIN_DEFAULT_SUPABASE_ANON_KEY);
-                supabaseClient = window.supabase.createClient(sUrl, sKey);
-              } catch(e) {}
-            }
             return;
           }
         } catch (gasErr) {
-          console.warn("GAS connection ping failed:", gasErr);
+          console.warn("GAS connection ping failed, attempting Supabase fallback:", gasErr);
         }
       }
 
-      // 2. หากไม่ได้ใช้ Google Sheet หรือล้มเหลว ให้ลองเชื่อมต่อ Supabase
+      // 2. หากไม่ได้ใช้ Google Sheet หรือ GAS เชื่อมต่อไม่สำเร็จ ให้เชื่อมต่อ Supabase
       let lastAttemptErr = null;
       if (window.supabase) {
         const primaryUrl = cleanSupabaseUrl(cfg.supabaseUrl || cfg.url);
@@ -4604,9 +4613,8 @@
         }
       }
 
-      // 3. โหมด Fallback ในเครื่อง
+      // 3. โหมด Fallback ในเครื่อง (Local Storage Fallback)
       activeDbProvider = "fallback";
-      supabaseClient = null;
       if (dot) {
         dot.className = "conn-dot fallback";
         dot.style.background = "#eab308";
@@ -4677,66 +4685,87 @@
       } catch (e) {}
     }
 
-    async function loadAppStateFromStorageOrSupabase(forceToast = false) {
+    async function loadAppStateFromStorageOrSupabase(forceToast = false, preferSupabase = false) {
       if (isPersistingState && !forceToast) return;
 
-      // ก. กรณีใช้ Google Sheet Web App
-      if (isGoogleSheetMode()) {
+      function applyIncomingState(cloudState, updatedAt, sourceLabel) {
+        if (!cloudState) return false;
+        const cloudReceipts = Array.isArray(cloudState.receipts) ? cloudState.receipts : [];
+        const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+
+        const cloudTopKey = cloudReceipts.length > 0 ? (getReceiptKey(cloudReceipts[0]) + "-" + cloudReceipts[0].status + "-" + cloudReceipts[0].totalAmount) : "";
+        const localTopKey = localReceipts.length > 0 ? (getReceiptKey(localReceipts[0]) + "-" + localReceipts[0].status + "-" + localReceipts[0].totalAmount) : "";
+        const hasChanged = !lastCloudUpdatedAt ||
+          (updatedAt && updatedAt !== lastCloudUpdatedAt) ||
+          cloudReceipts.length !== localReceipts.length ||
+          cloudTopKey !== localTopKey;
+
+        if (!forceToast && !hasChanged) {
+          updateSyncTimestamp();
+          return true;
+        }
+
+        const mergedMap = new Map();
+        cloudReceipts.forEach(r => {
+          if (r) {
+            const k = getReceiptKey(r);
+            if (k) mergedMap.set(k, r);
+          }
+        });
+        localReceipts.forEach(r => {
+          if (r) {
+            const k = getReceiptKey(r);
+            if (k && !mergedMap.has(k)) mergedMap.set(k, r);
+          }
+        });
+
+        cloudState.receipts = Array.from(mergedMap.values());
+        appState = normalizeAndMigrateAppState(cloudState);
+        safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
+        lastStateUpdatedAt = updatedAt || new Date().toISOString();
+        lastCloudUpdatedAt = updatedAt || "";
+        refreshAllVisibleViewsPreservingForms();
+        updateSyncTimestamp();
+        if (forceToast) showToast(`อัปเดตข้อมูลจาก ${sourceLabel} เรียบร้อยแล้ว`);
+        return true;
+      }
+
+      // 1. ถ้าเป็นการแจ้งเตือนแบบ Real-time จาก Supabase WebSocket หรือระบุ preferSupabase
+      if (preferSupabase && supabaseClient) {
         try {
-          const res = await fetchStateFromGas(gasWebAppUrl);
-          if (res && res.data) {
-            const cloudState = res.data;
-            const cloudReceipts = Array.isArray(cloudState.receipts) ? cloudState.receipts : [];
-            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+          const { data: stateRow, error: sErr } = await supabaseClient
+            .from("app_state")
+            .select("data, updated_at")
+            .eq("id", "main")
+            .maybeSingle();
 
-            // ตรวจสอบการเปลี่ยนแปลงข้อมูลจริง เพื่ออัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่
-            const cloudTopKey = cloudReceipts.length > 0 ? (getReceiptKey(cloudReceipts[0]) + "-" + cloudReceipts[0].status + "-" + cloudReceipts[0].totalAmount) : "";
-            const localTopKey = localReceipts.length > 0 ? (getReceiptKey(localReceipts[0]) + "-" + localReceipts[0].status + "-" + localReceipts[0].totalAmount) : "";
-            const hasChanged = !lastCloudUpdatedAt ||
-              (res.updated_at && res.updated_at !== lastCloudUpdatedAt) ||
-              cloudReceipts.length !== localReceipts.length ||
-              cloudTopKey !== localTopKey;
-
-            if (!forceToast && !hasChanged) {
-              updateSyncTimestamp();
-              return;
-            }
-            lastCloudUpdatedAt = res.updated_at || "";
-
-            const mergedMap = new Map();
-            cloudReceipts.forEach(r => {
-              if (r) {
-                const k = getReceiptKey(r);
-                if (k) mergedMap.set(k, r);
-              }
-            });
-            localReceipts.forEach(r => {
-              if (r) {
-                const k = getReceiptKey(r);
-                if (k && !mergedMap.has(k)) mergedMap.set(k, r);
-              }
-            });
-
-            cloudState.receipts = Array.from(mergedMap.values());
-            appState = normalizeAndMigrateAppState(cloudState);
-            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-            lastStateUpdatedAt = res.updated_at || new Date().toISOString();
-            lastCloudUpdatedAt = res.updated_at || "";
-            refreshAllVisibleViewsPreservingForms();
-            updateSyncTimestamp();
-            if (forceToast) showToast("อัปเดตข้อมูลจาก Google Sheet เรียบร้อยแล้ว");
+          if (!sErr && stateRow && stateRow.data) {
+            applyIncomingState(stateRow.data, stateRow.updated_at, "Supabase (เรียลไทม์)");
             return;
           }
         } catch(e) {
-          console.warn("Load state from Google Sheet warning:", e);
+          console.warn("Realtime preferSupabase fetch warning:", e);
         }
       }
 
-      // ข. กรณีใช้ Supabase
-      if (isSupabaseMode()) {
+      // 2. ก. กรณีใช้ Google Sheet Web App (Primary)
+      if (isGoogleSheetMode() && !preferSupabase) {
         try {
-          if (!forceToast && lastCloudUpdatedAt) {
-            const { data: checkRow, error: checkErr } = await supabaseClient
+          const res = await fetchStateFromGas(gasWebAppUrl);
+          if (res && res.data) {
+            applyIncomingState(res.data, res.updated_at, "Google Sheet");
+            return;
+          }
+        } catch(e) {
+          console.warn("Load state from Google Sheet failed, attempting Supabase fallback:", e);
+        }
+      }
+
+      // 3. ข. กรณีใช้ Supabase หรือ Fallback ข้ามระบบเมื่อ Google Sheet ขัดข้อง
+      if (supabaseClient) {
+        try {
+          if (!forceToast && lastCloudUpdatedAt && isSupabaseMode()) {
+            const { data: checkRow } = await supabaseClient
               .from("app_state")
               .select("updated_at")
               .eq("id", "main")
@@ -4748,46 +4777,33 @@
             }
           }
 
-          const [stateRes, profRes] = await Promise.allSettled([
-            supabaseClient.from("app_state").select("data, updated_at").eq("id", "main").maybeSingle(),
-            supabaseClient.from("profiles").select("*").order("created_at", { ascending: true })
-          ]);
+          const { data: stateRow, error: sErr } = await supabaseClient
+            .from("app_state")
+            .select("data, updated_at")
+            .eq("id", "main")
+            .maybeSingle();
 
-          const stateRow = (stateRes.status === "fulfilled" && !stateRes.value.error) ? stateRes.value.data : null;
-          if (stateRow && stateRow.data) {
-            const cloudReceipts = Array.isArray(stateRow.data.receipts) ? stateRow.data.receipts : [];
-            const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
-
-            const mergedReceiptsMap = new Map();
-            cloudReceipts.forEach(r => {
-              if (r) {
-                const key = getReceiptKey(r);
-                if (key) mergedReceiptsMap.set(key, r);
-              }
-            });
-            localReceipts.forEach(r => {
-              if (r) {
-                const key = getReceiptKey(r);
-                if (key && !mergedReceiptsMap.has(key)) mergedReceiptsMap.set(key, r);
-              }
-            });
-
-            stateRow.data.receipts = Array.from(mergedReceiptsMap.values());
-            appState = normalizeAndMigrateAppState(stateRow.data);
-            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-            lastStateUpdatedAt = stateRow.updated_at || new Date().toISOString();
-            lastCloudUpdatedAt = stateRow.updated_at || "";
-            refreshAllVisibleViewsPreservingForms();
-            updateSyncTimestamp();
-            if (forceToast) showToast("อัปเดตข้อมูลจาก Supabase เรียบร้อย");
+          if (!sErr && stateRow && stateRow.data) {
+            applyIncomingState(stateRow.data, stateRow.updated_at, "Supabase");
             return;
           }
         } catch(err) {
-          console.error("Load state Supabase error:", err);
+          console.warn("Load state Supabase error:", err);
         }
       }
 
-      // ค. โหมดในเครื่อง
+      // 4. Fallback ไปยัง Google Sheet หาก Supabase ขัดข้อง
+      if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
+        try {
+          const res = await fetchStateFromGas(gasWebAppUrl);
+          if (res && res.data) {
+            applyIncomingState(res.data, res.updated_at, "Google Sheet");
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 5. ค. โหมดในเครื่อง (Local Storage Fallback)
       const rawLocal = safeGetItem("rmutsb_fallback_app_state");
       if (rawLocal) {
         try {
@@ -4856,8 +4872,8 @@
 
     function setupRealtimeAndPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
-      // เรียลไทม์: โหมด Google Sheet ตรวจสอบข้อมูลอัตโนมัติทุก 3 วินาที (Supabase ทุก 5 วินาที)
-      const intervalMs = isGoogleSheetMode() ? 3000 : 5000;
+      // เรียลไทม์: ตรวจสอบข้อมูลอัตโนมัติทุก 3 วินาที
+      const intervalMs = 3000;
 
       pollingTimer = setInterval(() => {
         if (document.hidden) return; // หากผู้ใช้ไม่ได้เปิดดูแท็บนี้ ให้หยุด polling เพื่อประหยัดโควต้า
@@ -4873,6 +4889,9 @@
       window.addEventListener("focus", () => {
         loadAppStateFromStorageOrSupabase(false);
       });
+      window.addEventListener("online", () => {
+        loadAppStateFromStorageOrSupabase(false);
+      });
 
       // รองรับ Realtime WebSocket ทันทีเมื่อมี client เชื่อมต่ออยู่
       if (supabaseClient) {
@@ -4885,9 +4904,14 @@
             .on(
               "postgres_changes",
               { event: "*", schema: "public", table: "app_state" },
-              () => loadAppStateFromStorageOrSupabase(false)
+              (payload) => {
+                console.log("Realtime event received from Supabase:", payload);
+                loadAppStateFromStorageOrSupabase(false, true);
+              }
             )
-            .subscribe();
+            .subscribe((status) => {
+              console.log("Supabase Realtime status:", status);
+            });
         } catch (e) {
           console.warn("Realtime subscription fallback to polling:", e);
         }
@@ -7694,6 +7718,13 @@ ${loginUrl}
     function openReceiptEditModal(receiptId) {
       const r = (appState.receipts || []).find(x => x.id === receiptId);
       if (!r) return;
+
+      // ตรวจสอบสิทธิ์: ป้องกันการแก้ไขใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
+      if (currentUser && currentUser.role !== "admin" && !isReceiptIssuedByCurrentUser(r, currentUser)) {
+        showToast("คุณสามารถแก้ไขได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันข้อผิดพลาด", true);
+        return;
+      }
+
       document.getElementById("editRcpId").value = r.id;
       document.getElementById("editRcpBookAndNo").value = `${r.bookNo} / ${r.no}`;
       document.getElementById("editRcpDate").value = r.date || "";
@@ -7730,6 +7761,13 @@ ${loginUrl}
       const receipts = [...(appState.receipts || [])];
       const idx = receipts.findIndex(r => r.id === id);
       if (idx < 0) return;
+
+      // ตรวจสอบสิทธิ์: ป้องกันการแก้ไขใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
+      if (currentUser && currentUser.role !== "admin" && !isReceiptIssuedByCurrentUser(receipts[idx], currentUser)) {
+        showToast("คุณสามารถแก้ไขได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันข้อผิดพลาด", true);
+        closeReceiptEditModal();
+        return;
+      }
 
       const isTransfer = document.getElementById("editRcpPaymentMethod").value === "เงินโอน";
       receipts[idx] = Object.assign({}, receipts[idx], {
@@ -8987,6 +9025,60 @@ ${loginUrl}
       addPaymentRowInForm();
     }
 
+    function normalizePersonName(name) {
+      if (!name) return "";
+      return String(name)
+        .replace(/^(นางสาว|นาง|นาย|ดร\.|ผู้ช่วยศาสตราจารย์|รองศาสตราจารย์|ศาสตราจารย์|ผศ\.|รศ\.|ศ\.)\s*/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    function isSamePersonName(name1, name2) {
+      if (!name1 || !name2) return false;
+      const n1 = String(name1).trim().toLowerCase();
+      const n2 = String(name2).trim().toLowerCase();
+      if (n1 === n2) return true;
+      const norm1 = normalizePersonName(n1);
+      const norm2 = normalizePersonName(n2);
+      return Boolean(norm1 && norm2 && (norm1 === norm2 || norm1.includes(norm2) || norm2.includes(norm1)));
+    }
+
+    function isReceiptIssuedByCurrentUser(receipt, user) {
+      if (!receipt || !user) return false;
+
+      const uDisp = String(user.display_name || "").trim();
+      const rDisp = String(receipt.issuerName || "").trim();
+
+      // 1. ตรวจสอบชื่อ-สกุลผู้ออกใบเสร็จ (display_name เทียบกับ issuerName)
+      if (uDisp && rDisp) {
+        if (isSamePersonName(uDisp, rDisp)) {
+          return true;
+        }
+        // หากในใบเสร็จมีระบุชื่อผู้ออกไว้อย่างชัดเจน และไม่ตรงกับชื่อของผู้ใช้นี้ ถือว่าไม่ใช่ใบเสร็จของผู้ใช้นี้
+        return false;
+      }
+
+      // 2. ตรวจสอบรหัสเจ้าหน้าที่ (staff_code เทียบกับ issuerStaffCode)
+      const uCode = String(user.staff_code || "").trim().toLowerCase();
+      const rCode = String(receipt.issuerStaffCode || "").trim().toLowerCase();
+      if (uCode && rCode && uCode === rCode) {
+        return true;
+      }
+
+      // 3. ตรวจสอบ username หรือ createdBy หรือ user_id
+      const uName = String(user.username || "").trim().toLowerCase();
+      const rCreated = String(receipt.createdBy || "").trim().toLowerCase();
+      if (uName && (rCreated === uName || rCode === uName)) {
+        return true;
+      }
+      if (user.user_id && rCreated === String(user.user_id).trim().toLowerCase()) {
+        return true;
+      }
+
+      return false;
+    }
+
     function renderUserHistoryTable() {
       const tbody = document.getElementById("userHistoryTableBody");
       if (!tbody) return;
@@ -8997,7 +9089,21 @@ ${loginUrl}
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
 
+      const notice = document.getElementById("userHistoryFilterNotice");
+      if (notice) {
+        if (currentUser && currentUser.role !== "admin") {
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)}) เพื่อป้องกันการแก้ไขหรือลบข้อมูลผิดพลาด</span>`;
+        } else {
+          notice.innerHTML = "";
+        }
+      }
+
       const list = (appState.receipts || []).filter(r => {
+        // [สิทธิ์ผู้ออกใบเสร็จ]: ในหน้าระบบผู้ใช้งาน แสดงเฉพาะใบเสร็จที่ User ผู้เข้าใช้งาน เป็นคนออกใบเสร็จ
+        if (currentUser && currentUser.role !== "admin") {
+          if (!isReceiptIssuedByCurrentUser(r, currentUser)) return false;
+        }
+
         if (bookFilter && r.bookNo !== bookFilter) return false;
         if (statusFilter && (r.status || "ปกติ") !== statusFilter) return false;
         if (q) {
@@ -9011,7 +9117,10 @@ ${loginUrl}
       const sortedList = sortReceiptsNewestFirst(list);
 
       if (sortedList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบรายการใบเสร็จรับเงิน</td></tr>`;
+        const emptyMsg = (currentUser && currentUser.role !== "admin")
+          ? `ไม่พบรายการใบเสร็จรับเงินที่คุณเป็นผู้ออก (${currentUser.display_name || currentUser.username})`
+          : "ไม่พบรายการใบเสร็จรับเงิน";
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
         return;
       }
 
@@ -9063,11 +9172,30 @@ ${loginUrl}
 
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+
+      const notice = document.getElementById("userRecentFilterNotice");
+      if (notice) {
+        if (currentUser && currentUser.role !== "admin") {
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)}) เพื่อป้องกันการแก้ไขหรือลบข้อมูลผิดพลาด</span>`;
+        } else {
+          notice.innerHTML = "";
+        }
+      }
+
+      let allReceipts = appState.receipts || [];
+      // [สิทธิ์ผู้ออกใบเสร็จ]: ในหน้าระบบผู้ใช้งาน แสดงเฉพาะใบเสร็จที่ User ผู้เข้าใช้งาน เป็นคนออกใบเสร็จ
+      if (currentUser && currentUser.role !== "admin") {
+        allReceipts = allReceipts.filter(r => isReceiptIssuedByCurrentUser(r, currentUser));
+      }
+
       // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จที่ออกล่าสุดขึ้นก่อน (Newest First)
-      const receipts = sortReceiptsNewestFirst(appState.receipts || []).slice(0, 15);
+      const receipts = sortReceiptsNewestFirst(allReceipts).slice(0, 15);
 
       if (receipts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
+        const emptyMsg = (currentUser && currentUser.role !== "admin")
+          ? `ยังไม่มีประวัติการออกใบเสร็จรับเงินที่คุณเป็นผู้ออก (${currentUser.display_name || currentUser.username})`
+          : "ยังไม่มีประวัติการออกใบเสร็จรับเงิน";
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
         return;
       }
 
@@ -9115,6 +9243,18 @@ ${loginUrl}
 
     // ======================== CANCEL RECEIPT LOGIC (RPC & FALLBACK) ========================
     function openCancelReceiptModal(bookNo = "", receiptNo = "", receiptId = "") {
+      // ตรวจสอบสิทธิ์: ป้องกันการยกเลิกใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
+      if (currentUser && currentUser.role !== "admin") {
+        const r = (appState.receipts || []).find(x =>
+          (receiptId && x.id === receiptId) ||
+          (bookNo && x.bookNo === bookNo && (x.no === receiptNo || Number(x.no) === Number(receiptNo)))
+        );
+        if (r && !isReceiptIssuedByCurrentUser(r, currentUser)) {
+          showToast("คุณสามารถยกเลิกได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันการลบข้อมูลผิดพลาด", true);
+          return;
+        }
+      }
+
       document.getElementById("modalCancelReceiptId").value = receiptId;
       document.getElementById("modalCancelBookNo").value = bookNo;
       document.getElementById("modalCancelReceiptNo").value = receiptNo;
@@ -9152,6 +9292,18 @@ ${loginUrl}
       if (!reason) {
         showToast("กรุณาระบุเหตุผลการยกเลิกใบเสร็จ", true);
         return;
+      }
+
+      // ตรวจสอบสิทธิ์: ป้องกันการยกเลิกใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
+      if (currentUser && currentUser.role !== "admin") {
+        const targetR = (appState.receipts || []).find(r =>
+          r.id === targetIdOrComposite ||
+          (r.bookNo === bookNo && (r.no === no || Number(r.no) === Number(no)))
+        );
+        if (targetR && !isReceiptIssuedByCurrentUser(targetR, currentUser)) {
+          showToast("คุณสามารถยกเลิกได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันการลบข้อมูลผิดพลาด", true);
+          return;
+        }
       }
 
       try {
