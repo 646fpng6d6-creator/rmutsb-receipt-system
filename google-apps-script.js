@@ -292,15 +292,17 @@ function syncReceiptsToSheet(receipts) {
 
   if (!receipts || receipts.length === 0) return;
 
-  // เรียงใบเสร็จตามไทม์ไลน์ วันที่ เวลา และเลขที่อย่างสมบูรณ์
+  // เรียงใบเสร็จตามไทม์ไลน์ วันที่ เล่มที่ และเลขที่ตามลำดับการออกอย่างสมบูรณ์
   const sorted = receipts.slice().sort((a, b) => {
-    const dateA = (a.date || "") + " " + (a.time || "");
-    const dateB = (b.date || "") + " " + (b.time || "");
-    const cmp = dateA.localeCompare(dateB);
-    if (cmp !== 0) return cmp;
+    const dateA = a.date || "";
+    const dateB = b.date || "";
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
     const bookCmp = String(a.bookNo || "").localeCompare(String(b.bookNo || ""));
     if (bookCmp !== 0) return bookCmp;
-    return (Number(a.no) || 0) - (Number(b.no) || 0);
+    const noA = parseInt(String(a.no || "0").replace(/\D/g, ""), 10) || 0;
+    const noB = parseInt(String(b.no || "0").replace(/\D/g, ""), 10) || 0;
+    if (noA !== noB) return noA - noB;
+    return (a.time || "").localeCompare(b.time || "");
   });
 
   const rows = [];
