@@ -3451,6 +3451,7 @@
     let pollingTimer = null;
     let currentUser = null;
     let lastStateUpdatedAt = null;
+    let lastCloudUpdatedAt = null;
     let broadcastChannel = null;
     let isPersistingState = false;
 
@@ -4680,14 +4681,15 @@
             const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
 
             // ตรวจสอบการเปลี่ยนแปลงข้อมูลจริง เพื่ออัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่
-            const hasChanged = !lastStateUpdatedAt ||
-              (res.updated_at && res.updated_at !== lastStateUpdatedAt) ||
+            const hasChanged = !lastCloudUpdatedAt ||
+              (res.updated_at && res.updated_at !== lastCloudUpdatedAt) ||
               cloudReceipts.length !== localReceipts.length;
 
             if (!forceToast && !hasChanged) {
               updateSyncTimestamp();
               return;
             }
+            lastCloudUpdatedAt = res.updated_at || "";
 
             const mergedMap = new Map();
             cloudReceipts.forEach(r => {
@@ -4707,6 +4709,7 @@
             appState = normalizeAndMigrateAppState(cloudState);
             safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
             lastStateUpdatedAt = res.updated_at || new Date().toISOString();
+            lastCloudUpdatedAt = res.updated_at || "";
             refreshAllVisibleViewsPreservingForms();
             updateSyncTimestamp();
             if (forceToast) showToast("อัปเดตข้อมูลจาก Google Sheet เรียบร้อยแล้ว");
@@ -4720,17 +4723,16 @@
       // ข. กรณีใช้ Supabase
       if (isSupabaseMode()) {
         try {
-          if (!forceToast && lastStateUpdatedAt) {
+          if (!forceToast && lastCloudUpdatedAt) {
             const { data: checkRow, error: checkErr } = await supabaseClient
               .from("app_state")
               .select("updated_at")
               .eq("id", "main")
               .maybeSingle();
 
-            if (checkRow && checkRow.updated_at) {
-              const cloudTs = new Date(checkRow.updated_at).getTime();
-              const localTs = new Date(lastStateUpdatedAt).getTime();
-              if (cloudTs <= (localTs + 500)) return;
+            if (checkRow && checkRow.updated_at && checkRow.updated_at === lastCloudUpdatedAt) {
+              updateSyncTimestamp();
+              return;
             }
           }
 
@@ -4762,6 +4764,7 @@
             appState = normalizeAndMigrateAppState(stateRow.data);
             safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
             lastStateUpdatedAt = stateRow.updated_at || new Date().toISOString();
+            lastCloudUpdatedAt = stateRow.updated_at || "";
             refreshAllVisibleViewsPreservingForms();
             updateSyncTimestamp();
             if (forceToast) showToast("อัปเดตข้อมูลจาก Supabase เรียบร้อย");
@@ -4834,17 +4837,18 @@
       const badge = document.getElementById("lastSyncTimeBadge");
       if (badge) {
         const now = new Date();
-        badge.textContent = "ซิงค์ล่าสุด: " + now.toLocaleTimeString("th-TH");
+        const modeLabel = isGoogleSheetMode() ? "Google Sheet" : (isSupabaseMode() ? "Supabase" : "เครื่อง");
+        badge.innerHTML = `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; margin-right:5px; box-shadow:0 0 6px #10b981;"></span>เรียลไทม์ (${modeLabel}): ` + now.toLocaleTimeString("th-TH");
       }
     }
 
     function setupRealtimeAndPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
-      // โหมด Google Sheet ดึงข้อมูลเรียลไทม์ทุก 3 วินาที (Supabase ดึงทุก 5 วินาที พร้อม Realtime WebSocket)
+      // เรียลไทม์: โหมด Google Sheet ตรวจสอบข้อมูลอัตโนมัติทุก 3 วินาที (Supabase ทุก 5 วินาที)
       const intervalMs = isGoogleSheetMode() ? 3000 : 5000;
 
       pollingTimer = setInterval(() => {
-        if (document.hidden) return; // หากผู้ใช้ไม่ได้เปิดดูแท็บนี้ ให้หยุด polling เพื่อประหยัดโควต้า Supabase
+        if (document.hidden) return; // หากผู้ใช้ไม่ได้เปิดดูแท็บนี้ ให้หยุด polling เพื่อประหยัดโควต้า
         loadAppStateFromStorageOrSupabase(false);
       }, intervalMs);
 
@@ -4858,7 +4862,8 @@
         loadAppStateFromStorageOrSupabase(false);
       });
 
-      if (isSupabaseMode()) {
+      // รองรับ Realtime WebSocket ทันทีเมื่อมี client เชื่อมต่ออยู่
+      if (supabaseClient) {
         try {
           if (realtimeChannel) {
             supabaseClient.removeChannel(realtimeChannel);
