@@ -34,6 +34,43 @@ function doGet(e) {
     
     if (action === "getState") {
       const state = loadSystemState();
+      // ดึงข้อมูลแถวทั้งหมดจากแท็บ "ใบเสร็จรับเงิน" ด้วย เพื่อให้ได้ข้อมูลที่ผู้ใช้พิมพ์เพิ่มใน Google Sheet โดยตรง (เช่น ใบเสร็จ 0207)
+      try {
+        const sheetReceipts = getReceiptsFromSheet();
+        if (sheetReceipts && sheetReceipts.length > 0) {
+          if (!state.data) state.data = {};
+          if (!state.data.receipts) state.data.receipts = [];
+
+          const map = new Map();
+          state.data.receipts.forEach(r => {
+            if (r) {
+              const k = (r.bookNo || "") + "-" + (r.no || "");
+              map.set(k, r);
+            }
+          });
+
+          sheetReceipts.forEach(sr => {
+            if (sr && sr.bookNo && sr.no) {
+              const k = sr.bookNo + "-" + sr.no;
+              map.set(k, Object.assign({}, map.get(k) || {}, sr));
+            }
+          });
+
+          state.data.receipts = Array.from(map.values());
+
+          // ปรับปรุงค่า latest ของเล่มใบเสร็จให้เป็นเลขล่าสุดเสมอ
+          if (Array.isArray(state.data.books)) {
+            state.data.books.forEach(b => {
+              const bReceipts = state.data.receipts.filter(r => r && r.bookNo === b.bookNo);
+              if (bReceipts.length > 0) {
+                const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0));
+                if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;
+              }
+            });
+          }
+        }
+      } catch (sheetErr) {}
+
       return jsonResponse({
         status: "success",
         updated_at: state.updated_at || new Date().toISOString(),
