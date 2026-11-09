@@ -4943,8 +4943,9 @@
             .channel("rmutsb-realtime-channel")
             .on(
               "postgres_changes",
-              { event: "*", schema: "public", table: "app_state" },
+              { event: "*", schema: "public", table: "app_state", filter: "id=eq.main" },
               (payload) => {
+                if (payload && payload.new && payload.new.id && payload.new.id !== "main") return;
                 console.log("Realtime event received from Supabase:", payload);
                 loadAppStateFromStorageOrSupabase(false, true);
               }
