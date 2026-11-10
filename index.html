@@ -9453,25 +9453,6 @@ ${loginUrl}
         <div class="receipt-project-block">${escapeHtml(proj)}</div>
       `).join("");
 
-      let transferNoteHtml = "";
-      if (r.paymentMethod === "เงินโอน") {
-        const transDate = r.transferDate || r.date;
-        const dtText = formatTransferDateThai(transDate);
-        const dtSuffix = dtText ? ` ${escapeHtml(dtText)}` : "";
-
-        if (r.universityBank && r.universityBank.trim()) {
-          const uBank = r.universityBank.trim();
-          let bankDisplay = uBank;
-          if (!bankDisplay.startsWith("บัญชี")) {
-            bankDisplay = "บัญชี " + bankDisplay;
-          }
-          const bankPhrase = bankDisplay.startsWith("บัญชี") ? ("เข้า" + bankDisplay) : ("เข้า " + bankDisplay);
-          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:9.2pt; line-height:1.25; color:#333;">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
-        } else {
-          transferNoteHtml = `<div style="margin-top:1.2mm; font-size:9.2pt; line-height:1.25; color:#333;">รับชำระเงินโอน${dtSuffix}</div>`;
-        }
-      }
-
       const isStudentFormat = r.payerType === "นักศึกษา";
 
       const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
@@ -9570,7 +9551,6 @@ ${loginUrl}
                   <td class="receipt-items-body-cell">
                     ${lineItemsRowsHtml}
                     ${projectBlockHtml}
-                    ${transferNoteHtml}
                   </td>
                   <td class="receipt-items-amount-cell">
                     ${lineAmountsRowsHtml}
