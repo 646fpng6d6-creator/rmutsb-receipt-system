@@ -46,6 +46,8 @@ function doGet(e) {
 
           sheetReceipts.forEach(sr => {
             if (sr && sr.bookNo && sr.no) {
+              const bUpper = String(sr.bookNo).trim().toUpperCase();
+              if (bUpper === "AN704001" || bUpper === "TEST001" || bUpper.startsWith("TEST")) return;
               const k = sr.bookNo + "-" + sr.no;
               map.set(k, Object.assign({}, map.get(k) || {}, sr));
             }
@@ -308,9 +310,11 @@ function doPost(e) {
       const existingSheetReceipts = getReceiptsFromSheet();
       const mergedMap = new Map();
 
-      // 1. นำข้อมูลจากชีตปัจจุบันตั้งเป็นฐาน
+      // 1. นำข้อมูลจากชีตปัจจุบันตั้งเป็นฐาน (กรองเล่มที่ถูกลบออกจากระบบจริง เช่น AN704001, TEST001)
       existingSheetReceipts.forEach(r => {
         if (r && r.bookNo && r.no) {
+          const bUpper = String(r.bookNo).trim().toUpperCase();
+          if (bUpper === "AN704001" || bUpper === "TEST001" || bUpper.startsWith("TEST")) return;
           const k = String(r.bookNo).trim() + "-" + String(r.no).trim();
           mergedMap.set(k, r);
         }
