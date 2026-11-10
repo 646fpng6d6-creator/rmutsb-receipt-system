@@ -3808,7 +3808,7 @@
             bookNo: "RUS70001",
             start: 1,
             end: 1000,
-            latest: 123,
+            latest: 207,
             digits: 4,
             active: true,
             closed: false
@@ -3961,6 +3961,22 @@
     let appState = getDefaultAppState();
     const visiblePasswordMap = {};
 
+    function isTestOrUnwantedReceipt(r) {
+      if (!r) return true;
+      const b = String(r.bookNo || "").toUpperCase().trim();
+      // 1. เล่ม TEST001 หรือชื่อเล่มขึ้นต้นด้วย TEST (ข้อมูลทดสอบ ไม่เกี่ยวข้องกับระบบจริง)
+      if (b === "TEST001" || b.startsWith("TEST")) return true;
+
+      // 2. ข้อมูลการออกใบเสร็จวันที่ 10 พ.ย. 69 (2026-11-10) จากการทดสอบระบบ
+      if (r.date === "2026-11-10") return true;
+
+      // 3. เล่ม RUS70001 เลขที่ 0208 ถึง 0232 (หรือข้อมูลทดสอบที่เกินเลขที่จริง 207 ในช่วงทดลอง)
+      const noNum = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
+      if (b === "RUS70001" && (noNum >= 208 && noNum <= 250)) return true;
+
+      return false;
+    }
+
     function normalizeAndMigrateAppState(rawState, dbProfiles = []) {
       const def = getDefaultAppState();
       const merged = Object.assign({}, def, rawState || {});
@@ -4070,6 +4086,9 @@
 
       merged.users = users;
       if (Array.isArray(merged.receipts)) {
+        // กรองข้อมูลใบเสร็จทดลอง (TEST001, RUS70001 0208-0232, วันที่ 2026-11-10) ออกจากระบบจริงอย่างเด็ดขาด
+        merged.receipts = merged.receipts.filter(r => !isTestOrUnwantedReceipt(r));
+
         const old53 = merged.receipts.find(r => r.id === "rcp-sample-0053" && r.firstName === "ณัฐวัฒน์");
         if (old53) {
           const defReceipts = def.receipts;
@@ -4227,14 +4246,27 @@
           }
         }
 
-        // ตรวจสอบว่าเล่ม AN704001 และ RUS70001 มีค่าล่าสุดอย่างถูกต้อง
+        // ตรวจสอบว่าเล่ม AN704001 และ RUS70001 มีค่าล่าสุดอย่างถูกต้อง และไม่มีเล่มทดสอบ TEST001
         if (Array.isArray(merged.books)) {
+          // ลบเล่มทดสอบ TEST001 ออกจากระบบจริง
+          merged.books = merged.books.filter(b => {
+            if (!b) return false;
+            const bn = String(b.bookNo || "").toUpperCase().trim();
+            return bn !== "TEST001" && !bn.startsWith("TEST");
+          });
+
           const book = merged.books.find(b => b.bookNo === "AN704001");
           if (book && book.latest < 69) book.latest = 69;
           const rusBook = merged.books.find(b => b.bookNo === "RUS70001");
           if (rusBook) {
-            if (rusBook.latest < 207) rusBook.latest = 207;
+            const rusNos = (merged.receipts || [])
+              .filter(r => r && r.bookNo === "RUS70001")
+              .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
+            const maxRus = rusNos.length > 0 ? Math.max(...rusNos) : 207;
+            rusBook.latest = maxRus;
             if (rusBook.end < 1000) rusBook.end = 1000;
+            rusBook.active = true;
+            rusBook.closed = false;
           }
         }
       }
@@ -4597,6 +4629,22 @@
         }
       }
 
+      // ล้างข้อมูลทดลอง (TEST001, RUS70001 0208-0232, วันที่ 2026-11-10) จาก LocalStorage ของเครื่องทันที
+      try {
+        ["rmutsb_fallback_app_state", "rmutsb_app_state"].forEach(key => {
+          const raw = safeGetItem(key);
+          if (raw && (raw.includes("TEST001") || raw.includes("0208") || raw.includes("2026-11-10"))) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed) {
+                const cleaned = normalizeAndMigrateAppState(parsed);
+                safeSetItem(key, JSON.stringify(cleaned));
+              }
+            } catch(e) {}
+          }
+        });
+      } catch(e) {}
+
       const rawLocal = safeGetItem("rmutsb_fallback_app_state");
       if (rawLocal) {
         try {
@@ -4606,8 +4654,8 @@
         }
       } else {
         appState = normalizeAndMigrateAppState(getDefaultAppState());
-        safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
       }
+      safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
 
       gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url") || (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.getGasUrl && window.RMUTSB_DATABASE_CONFIG.getGasUrl()) || BUILTIN_DEFAULT_GAS_URL);
       const savedProvider = safeGetItem("rmutsb_active_db_provider") || (gasWebAppUrl ? "googlesheet" : "supabase");
@@ -4759,8 +4807,12 @@
 
       function applyIncomingState(cloudState, updatedAt, sourceLabel) {
         if (!cloudState) return false;
-        const cloudReceipts = Array.isArray(cloudState.receipts) ? cloudState.receipts : [];
-        const localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+        let cloudReceipts = Array.isArray(cloudState.receipts) ? cloudState.receipts : [];
+        let localReceipts = Array.isArray(appState.receipts) ? appState.receipts : [];
+
+        // กรองข้อมูลทดสอบออกจากทั้ง cloud และ local ทันที
+        cloudReceipts = cloudReceipts.filter(r => !isTestOrUnwantedReceipt(r));
+        localReceipts = localReceipts.filter(r => !isTestOrUnwantedReceipt(r));
 
         const cloudTopKey = cloudReceipts.length > 0 ? (getReceiptKey(cloudReceipts[0]) + "-" + cloudReceipts[0].status + "-" + cloudReceipts[0].totalAmount) : "";
         const localTopKey = localReceipts.length > 0 ? (getReceiptKey(localReceipts[0]) + "-" + localReceipts[0].status + "-" + localReceipts[0].totalAmount) : "";
@@ -4781,12 +4833,16 @@
             if (k) mergedMap.set(k, r);
           }
         });
-        localReceipts.forEach(r => {
-          if (r) {
-            const k = getReceiptKey(r);
-            if (k && !mergedMap.has(k)) mergedMap.set(k, r);
-          }
-        });
+        
+        // หาก cloud มีข้อมูลสมบูรณ์ (>= 200 ใบ) ให้ยึด cloud เป็นหลัก ไม่นำข้อมูลทดลองหรือข้อมูลที่ถูกลบไปแล้วจาก local กลับเข้ามา
+        if (cloudReceipts.length < 200) {
+          localReceipts.forEach(r => {
+            if (r) {
+              const k = getReceiptKey(r);
+              if (k && !mergedMap.has(k)) mergedMap.set(k, r);
+            }
+          });
+        }
 
         cloudState.receipts = Array.from(mergedMap.values());
         appState = normalizeAndMigrateAppState(cloudState);
@@ -8747,6 +8803,18 @@ ${loginUrl}
 
       const fileNameDisplay = document.getElementById("batchFileNameDisplay");
       if (fileNameDisplay) fileNameDisplay.textContent = `📄 ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+      // ป้องกันการนำเข้าไฟล์ชุดทดสอบเข้าสู่ระบบออกใบเสร็จรับเงินจริง
+      const isTestFile = file.name.includes("ชุดทดสอบ") || file.name.includes("50คน") || file.name.includes("25คน") || file.name.includes("New_Elaas") || file.name.includes("Ltax_Online") || file.name.includes("Son_ปิดบัญชี");
+      if (isTestFile && !window.location.href.includes("rmutsb-receipt-test")) {
+        showToast("⚠️ ไฟล์นี้เป็นชุดข้อมูลทดลอง (Test Dataset) กรุณาใช้ระบบทดลอง (Sandbox) ไม่อนุญาตให้ออกในระบบจริง", true);
+        openGenericConfirmModal("แจ้งเตือนความปลอดภัยระบบการเงินจริง", `ตรวจพบว่าไฟล์ที่เลือก (${file.name}) เป็นชุดข้อมูลตัวอย่างสำหรับการทดสอบระบบ (Sandbox)\n\nเพื่อความปลอดภัยของระบบบัญชีจริง ไม่สามารถนำเข้าข้อมูลทดสอบนี้ได้ กรุณาเปลี่ยนไปใช้งานที่ 'ระบบทดลองออกใบเสร็จ (Sandbox)' แทน`, () => {
+          window.open("https://646fpng6d6-creator.github.io/rmutsb-receipt-test/", "_blank");
+        });
+        event.target.value = "";
+        if (fileNameDisplay) fileNameDisplay.textContent = "";
+        return;
+      }
 
       if (typeof XLSX === "undefined") {
         showToast("กำลังโหลดไลบรารี XLSX กรุณารอสักครู่แล้วลองเลือกไฟล์ใหม่อีกครั้ง", true);
