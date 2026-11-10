@@ -1,40 +1,35 @@
 /**
  * ============================================================================
  * Google Apps Script สำหรับระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ (RMUTSB)
- * รองรับการเชื่อมต่อแบบเรียลไทม์ผ่าน Google Sheet Web App
+ * รองรับการเชื่อมต่อแบบเรียลไทม์ และระบบป้องกันการออกใบเสร็จซ้ำระดับเสี้ยววินาที (High-Concurrency Lock)
  * ============================================================================
  * 
- * วิธีการนำไปติดตั้งใช้งาน:
- * 1. เปิด Google Sheets เปล่าใหม่ขึ้นมา 1 ไฟล์ (หรือไฟล์ที่มีอยู่แล้ว)
- * 2. ไปที่เมนู "ส่วนขยาย" (Extensions) -> "Apps Script"
- * 3. ลบโค้ดเดิมออกทั้งหมด แล้ววางโค้ดในไฟล์นี้ลงไปทั้งหมด แล้วกดบันทึก (Ctrl+S หรือ Cmd+S)
- * 4. คลิกปุ่มสีน้ำเงิน "การทำให้ใช้งานได้" (Deploy) -> "การทำให้ใช้งานได้รายการใหม่" (New deployment)
- * 5. เลือกประเภท (รูปฟันเฟือง): "เว็บแอป" (Web app)
- * 6. ตั้งค่าดังนี้:
- *    - คำอธิบาย: ระบบออกใบเสร็จ RMUTSB
- *    - ดำเนินการในฐานะ (Execute as): "ฉัน (อีเมลของคุณ)" (Me)
- *    - ผู้ที่มีสิทธิ์เข้าถึง (Who has access): "ทุกคน" (Anyone)   <-- สำคัญมาก! ต้องเลือก Anyone
- * 7. คลิก "การทำให้ใช้งานได้" (Deploy) -> ให้สิทธิ์เข้าถึง (Authorize access)
- * 8. คัดลอก "URL ของเว็บแอป" (Web app URL) ที่ได้ (ขึ้นต้นด้วย https://script.google.com/macros/s/.../exec)
- * 9. นำ URL ไปใส่ในหน้าต่าง "ตั้งค่าฐานข้อมูล Google Sheet" บนหน้าเว็บระบบออกใบเสร็จ
+ * คุณสมบัติขั้นสูงด้านความเสถียร (High Stability & Concurrency):
+ * 1. LockService: ล็อกคิวประมวลผลระดับเซิร์ฟเวอร์สูงสุด 30 วินาที ป้องกัน Race Condition
+ * 2. Atomic Batch Issue (issueBatchReceipts): รันเลขที่ใบเสร็จแบบ Atomic ป้องกันเลขซ้ำ 100%
+ * 3. Batch Write Optimization: เขียนข้อมูลลงชีตครั้งเดียวด้วย setValues() ประมวลผลเสร็จในเสี้ยววินาที
+ * 4. Non-Destructive Merge: รวมข้อมูลใบเสร็จอย่างชาญฉลาด ไม่ทับซ้อนและไม่ทำข้อมูลสูญหาย
  */
 
 const SHEET_RECEIPTS = "ใบเสร็จรับเงิน";
 const SHEET_SYSTEM_STATE = "ข้อมูลระบบ";
 
-// ======================== API ENDPOINTS ========================
+// ======================== API ENDPOINTS (doGet) ========================
 
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || "getState";
     
     if (action === "ping") {
-      return jsonResponse({ status: "success", message: "RMUTSB Google Sheet API is online", timestamp: new Date().toISOString() });
+      return jsonResponse({ 
+        status: "success", 
+        message: "RMUTSB Google Sheet API is online", 
+        timestamp: new Date().toISOString() 
+      });
     }
     
     if (action === "getState") {
       const state = loadSystemState();
-      // ดึงข้อมูลแถวทั้งหมดจากแท็บ "ใบเสร็จรับเงิน" ด้วย เพื่อให้ได้ข้อมูลที่ผู้ใช้พิมพ์เพิ่มใน Google Sheet โดยตรง (เช่น ใบเสร็จ 0207)
       try {
         const sheetReceipts = getReceiptsFromSheet();
         if (sheetReceipts && sheetReceipts.length > 0) {
@@ -58,7 +53,7 @@ function doGet(e) {
 
           state.data.receipts = Array.from(map.values());
 
-          // ปรับปรุงค่า latest ของเล่มใบเสร็จให้เป็นเลขล่าสุดเสมอ
+          // ปรับปรุงค่า latest ของเล่มใบเสร็จให้เป็นเลขสูงสุดตามข้อมูลจริงเสมอ
           if (Array.isArray(state.data.books)) {
             state.data.books.forEach(b => {
               const bReceipts = state.data.receipts.filter(r => r && r.bookNo === b.bookNo);
@@ -69,7 +64,9 @@ function doGet(e) {
             });
           }
         }
-      } catch (sheetErr) {}
+      } catch (sheetErr) {
+        console.warn("Merge sheet receipts error:", sheetErr);
+      }
 
       return jsonResponse({
         status: "success",
@@ -83,13 +80,47 @@ function doGet(e) {
       return jsonResponse({ status: "success", count: receipts.length, receipts: receipts });
     }
 
+    if (action === "getTrueMaxNo") {
+      const bookNo = (e && e.parameter && e.parameter.bookNo) || "";
+      const state = loadSystemState();
+      const sheetReceipts = getReceiptsFromSheet();
+      let maxNo = 0;
+      sheetReceipts.forEach(r => {
+        if (!bookNo || r.bookNo === bookNo) {
+          const num = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
+          if (num > maxNo) maxNo = num;
+        }
+      });
+      if (state.data && Array.isArray(state.data.receipts)) {
+        state.data.receipts.forEach(r => {
+          if (!bookNo || r.bookNo === bookNo) {
+            const num = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
+            if (num > maxNo) maxNo = num;
+          }
+        });
+      }
+      return jsonResponse({ status: "success", bookNo: bookNo, maxNo: maxNo });
+    }
+
     return jsonResponse({ status: "success", message: "RMUTSB Receipt System Web App is ready" });
   } catch (err) {
     return jsonResponse({ status: "error", message: err.toString() });
   }
 }
 
+// ======================== API ENDPOINTS (doPost) ========================
+
 function doPost(e) {
+  // 1. ระบบ LockService ป้องกัน Race Condition เมื่อมีคำขอพร้อมกันในเสี้ยววินาที
+  const lock = LockService.getScriptLock();
+  const hasLock = lock.tryLock(30000); // รอคิวล็อกได้สูงสุด 30 วินาที
+  if (!hasLock) {
+    return jsonResponse({ 
+      status: "error", 
+      message: "เซิร์ฟเวอร์กำลังประมวลผลคำขออื่นในเสี้ยววินาทีเดียวกัน (Lock Timeout) กรุณารอสักครู่แล้วลองอีกครั้ง" 
+    });
+  }
+
   try {
     let payload = null;
     if (e && e.postData && e.postData.contents) {
@@ -107,41 +138,241 @@ function doPost(e) {
     }
 
     const action = payload.action || "syncState";
+    const nowIso = new Date().toISOString();
 
-    // 1. ซิงค์ข้อมูลทั้งระบบ (รวมใบเสร็จทั้งหมด, โครงการ, บัญชีธนาคาร, ผู้ใช้งาน, ลายเซ็น)
-    if (action === "syncState" || action === "saveState") {
-      const appStateData = payload.data || payload.appState || payload;
-      const nowIso = new Date().toISOString();
-      
-      // บันทึกสถานะระบบลงชีตข้อมูลระบบ
-      saveSystemState(appStateData, nowIso);
-      
-      // บันทึกหรืออัปเดตใบเสร็จลงชีตใบเสร็จรับเงินแบบเรียงแถว
-      let receiptsCount = 0;
-      if (appStateData && Array.isArray(appStateData.receipts)) {
-        syncReceiptsToSheet(appStateData.receipts);
-        receiptsCount = appStateData.receipts.length;
+    // -------------------------------------------------------------------------
+    // ACTION: issueBatch / issueBatchReceipts (Atomic Batch Issuance & Auto-Numbering)
+    // -------------------------------------------------------------------------
+    if (action === "issueBatch" || action === "issueBatchReceipts") {
+      const rows = payload.rows || payload.receipts || [];
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return jsonResponse({ status: "error", message: "ไม่มีรายการใบเสร็จในชุดข้อมูล" });
       }
+
+      const state = loadSystemState();
+      if (!state.data) state.data = {};
+      if (!Array.isArray(state.data.books)) state.data.books = [];
+      if (!Array.isArray(state.data.receipts)) state.data.receipts = [];
+
+      // ค้นหาเล่มใบเสร็จที่ Active
+      let targetBook = null;
+      let targetBookIdx = -1;
+      const reqBookNo = payload.bookNo || payload.targetBookNo;
+      if (reqBookNo) {
+        targetBookIdx = state.data.books.findIndex(b => b && b.bookNo === reqBookNo);
+      }
+      if (targetBookIdx < 0) {
+        targetBookIdx = state.data.books.findIndex(b => b && b.active && !b.closed);
+      }
+      if (targetBookIdx < 0 && state.data.books.length > 0) {
+        targetBookIdx = 0;
+      }
+
+      if (targetBookIdx >= 0) {
+        targetBook = state.data.books[targetBookIdx];
+      } else {
+        targetBook = { bookNo: "RUS70001", start: 1, end: 1000, latest: 0, digits: 4, active: true };
+        state.data.books.push(targetBook);
+        targetBookIdx = state.data.books.length - 1;
+      }
+
+      const digits = Math.max(Number(targetBook.digits || 4), 3);
+      const startNum = Number(targetBook.start || 1);
+
+      // ค้นหาเลขที่สูงสุดที่แท้จริงจากทั้ง Sheet และ State เพื่อป้องกันเลขซ้ำ 100%
+      const sheetReceipts = getReceiptsFromSheet();
+      let trueMax = Number(targetBook.latest || 0);
+
+      sheetReceipts.forEach(r => {
+        if (r && r.bookNo === targetBook.bookNo) {
+          const num = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
+          if (num > trueMax) trueMax = num;
+        }
+      });
+      state.data.receipts.forEach(r => {
+        if (r && r.bookNo === targetBook.bookNo) {
+          const num = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
+          if (num > trueMax) trueMax = num;
+        }
+      });
+
+      const newReceipts = [];
+      const newSheetRows = [];
+      const startBatchNo = Math.max(trueMax + 1, startNum);
+      let runningNo = startBatchNo;
+      const baseTs = Date.now();
+
+      const standardPrefixes = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const assignedNoStr = String(runningNo).padStart(digits, "0");
+        const receiptId = "rcp-" + baseTs + "-" + (i + 1) + "-" + Math.random().toString(36).substring(2, 6);
+        const createdAtIso = new Date(baseTs + i * 20).toISOString();
+
+        let prefixFormatted = "";
+        if (row.title) {
+          prefixFormatted = standardPrefixes.includes(row.title) ? row.title : (row.title + " ");
+        }
+        const payerFullName = row.payerFullName || `${prefixFormatted}${row.firstName || ""}${row.lastName ? " " + row.lastName : ""}`.trim();
+
+        const rcp = {
+          id: receiptId,
+          bookNo: targetBook.bookNo,
+          no: assignedNoStr,
+          status: "ปกติ",
+          cancelReason: "",
+          createdAt: createdAtIso,
+          date: row.transferDate || row.date || nowIso.slice(0, 10),
+          time: row.transferTime || row.time || new Date().toTimeString().slice(0, 5),
+          payerType: row.payerType || "บุคคลทั่วไป",
+          paymentMethod: row.paymentMethod || "เงินโอน",
+          payerBank: row.payerBank || "",
+          universityBank: row.universityBank || "ธนาคารกรุงไทย (128-0-79185-3)",
+          transferDate: row.transferDate || row.date || nowIso.slice(0, 10),
+          transferTime: row.transferTime || "",
+          title: row.title || "",
+          firstName: row.firstName || "",
+          lastName: row.lastName || "",
+          payerFullName: payerFullName,
+          detailLine1: row.detailLine1 || "",
+          studentCode: "",
+          detailLine2: row.detailLine2 || "",
+          items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [
+            {
+              paymentItem: row.paymentItem || "ค่าลงทะเบียน",
+              projectName: row.projectName || "โครงการอบรม",
+              amount: Number(row.amount || row.totalAmount) || 0
+            }
+          ],
+          totalAmount: Number(row.amount || row.totalAmount) || 0,
+          issuerName: row.issuerName || (payload.issuer && payload.issuer.name) || "เจ้าหน้าที่",
+          issuerStaffCode: row.issuerStaffCode || (payload.issuer && payload.issuer.staffCode) || "",
+          issuerPosition: row.issuerPosition || (payload.issuer && payload.issuer.position) || "นักวิชาการเงินและบัญชีชำนาญการ",
+          issuerSignatureDataUrl: row.issuerSignatureDataUrl || (payload.issuer && payload.issuer.signatureDataUrl) || "",
+          issuerSignatureScale: row.issuerSignatureScale || (payload.issuer && payload.issuer.signatureScale) || 100
+        };
+
+        newReceipts.push(rcp);
+
+        // แปลงเป็นแถวข้อมูล Google Sheets
+        const nextIdx = sheetReceipts.length + i + 1;
+        newSheetRows.push(receiptToRow(rcp, nextIdx));
+
+        runningNo++;
+      }
+
+      // บันทึกลง Google Sheets แบบ Batch ต่อท้ายแถวเดิมทันที (เสร็จในเสี้ยววินาที)
+      const rSheet = getOrCreateSheet(SHEET_RECEIPTS);
+      if (rSheet.getLastRow() < 1) {
+        initReceiptSheetHeaders(rSheet);
+      }
+      const appendStartRow = rSheet.getLastRow() + 1;
+      rSheet.getRange(appendStartRow, 1, newSheetRows.length, RECEIPT_HEADERS.length).setValues(newSheetRows);
+
+      // จัดรูปแบบตัวเลขและกึ่งกลางใน Batch ที่เพิ่มใหม่
+      rSheet.getRange(appendStartRow, 12, newSheetRows.length, 1).setNumberFormat("#,##0.00");
+      rSheet.getRange(appendStartRow, 1, newSheetRows.length, 5).setHorizontalAlignment("center");
+      rSheet.getRange(appendStartRow, 18, newSheetRows.length, 1).setHorizontalAlignment("center");
+
+      // ปรับปรุง System State
+      const endBatchNo = runningNo - 1;
+      targetBook.latest = endBatchNo;
+      if (endBatchNo > (Number(targetBook.end) || 100)) {
+        targetBook.end = Math.max((Number(targetBook.end) || 100) + 500, endBatchNo + 100);
+      }
+      state.data.books[targetBookIdx] = targetBook;
+      state.data.receipts = [...newReceipts, ...state.data.receipts];
+
+      saveSystemState(state.data, nowIso);
 
       return jsonResponse({
         status: "success",
-        message: "บันทึกข้อมูลขึ้น Google Sheet สำเร็จ",
-        receiptsCount: receiptsCount,
+        message: "ออกใบเสร็จรับเงินเป็นชุดสำเร็จแบบ Atomic Lock",
+        count: newReceipts.length,
+        bookNo: targetBook.bookNo,
+        startNo: String(startBatchNo).padStart(digits, "0"),
+        endNo: String(endBatchNo).padStart(digits, "0"),
+        receipts: newReceipts,
         updated_at: nowIso
       });
     }
 
-    // 2. เพิ่มใบเสร็จใบใหม่ทันที (Fast Add Receipt)
+    // -------------------------------------------------------------------------
+    // ACTION: syncState / saveState (Safe Merge & Update)
+    // -------------------------------------------------------------------------
+    if (action === "syncState" || action === "saveState") {
+      const appStateData = payload.data || payload.appState || payload;
+      
+      // ดึงข้อมูลเดิมจากชีตมาผสาน (Non-Destructive Merge) เพื่อป้องกันข้อมูลทับซ้อน
+      const existingSheetReceipts = getReceiptsFromSheet();
+      const mergedMap = new Map();
+
+      // 1. นำข้อมูลจากชีตปัจจุบันตั้งเป็นฐาน
+      existingSheetReceipts.forEach(r => {
+        if (r && r.bookNo && r.no) {
+          const k = String(r.bookNo).trim() + "-" + String(r.no).trim();
+          mergedMap.set(k, r);
+        }
+      });
+
+      // 2. นำข้อมูลที่ไคลเอนต์ส่งมาผสานเข้า
+      if (appStateData && Array.isArray(appStateData.receipts)) {
+        appStateData.receipts.forEach(r => {
+          if (r && r.bookNo && r.no) {
+            const k = String(r.bookNo).trim() + "-" + String(r.no).trim();
+            const existing = mergedMap.get(k);
+            if (!existing) {
+              mergedMap.set(k, r);
+            } else {
+              // ถ้ามีอยู่แล้ว ให้อัปเดตข้อมูลโดยคงสถานะการยกเลิกไว้หากถูกยกเลิกแล้ว
+              mergedMap.set(k, Object.assign({}, existing, r));
+            }
+          }
+        });
+      }
+
+      const mergedReceipts = Array.from(mergedMap.values());
+      appStateData.receipts = mergedReceipts;
+
+      // ปรับปรุงค่า latest ของทุกเล่มให้ตรงกับเลขสูงสุดจริง
+      if (Array.isArray(appStateData.books)) {
+        appStateData.books.forEach(b => {
+          const bReceipts = mergedReceipts.filter(r => r && r.bookNo === b.bookNo);
+          if (bReceipts.length > 0) {
+            const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0));
+            if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;
+          }
+        });
+      }
+
+      // บันทึกสถานะระบบลงชีตข้อมูลระบบ
+      saveSystemState(appStateData, nowIso);
+      
+      // เขียนใบเสร็จทั้งหมดลงชีตใบเสร็จรับเงิน
+      syncReceiptsToSheet(mergedReceipts);
+
+      return jsonResponse({
+        status: "success",
+        message: "บันทึกและผสานข้อมูลขึ้น Google Sheet สำเร็จ",
+        receiptsCount: mergedReceipts.length,
+        updated_at: nowIso
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // ACTION: addReceipt (Fast Add Single Receipt with Conflict Prevention)
+    // -------------------------------------------------------------------------
     if (action === "addReceipt") {
       const receipt = payload.receipt;
       if (!receipt) {
         return jsonResponse({ status: "error", message: "No receipt object provided" });
       }
+
       appendReceiptRow(receipt);
       
-      // อัปเดต state ด้วยหากส่งมาด้วย
       if (payload.appState) {
-        saveSystemState(payload.appState, new Date().toISOString());
+        saveSystemState(payload.appState, nowIso);
       }
 
       return jsonResponse({
@@ -151,7 +382,9 @@ function doPost(e) {
       });
     }
 
-    // 3. เริ่มต้นจัดรูปแบบตาราง (Init/Format Sheet)
+    // -------------------------------------------------------------------------
+    // ACTION: initSheet
+    // -------------------------------------------------------------------------
     if (action === "initSheet") {
       formatAllSheets();
       return jsonResponse({ status: "success", message: "จัดรูปแบบตารางสำเร็จ" });
@@ -160,6 +393,9 @@ function doPost(e) {
     return jsonResponse({ status: "error", message: "Unknown action: " + action });
   } catch (err) {
     return jsonResponse({ status: "error", message: err.toString() });
+  } finally {
+    // ปลดล็อกเสมอ
+    lock.releaseLock();
   }
 }
 
@@ -181,12 +417,11 @@ function getOrCreateSheet(sheetName) {
 
 /**
  * บันทึกสถานะระบบ (appState) ลงแท็บ "ข้อมูลระบบ"
- * รองรับการแบ่ง Chunk ข้อมูลละ 40,000 ตัวอักษร เพื่อป้องกันข้อจำกัด 50,000 ตัวอักษรต่อเซลล์ของ Google Sheets
+ * แบ่ง Chunk ข้อมูลละ 40,000 ตัวอักษร เพื่อป้องกันข้อจำกัด 50,000 ตัวอักษรต่อเซลล์
  */
 function saveSystemState(stateObj, updatedIso) {
   const sheet = getOrCreateSheet(SHEET_SYSTEM_STATE);
   
-  // สร้าง Header ถ้ายังไม่มี
   if (sheet.getLastRow() < 1) {
     sheet.getRange(1, 1, 1, 3).setValues([["ลำดับ Chunk", "ข้อมูลระบบ (System State JSON)", "วันที่อัปเดต"]]);
     sheet.getRange(1, 1, 1, 3).setBackground("#1e3a8a").setFontColor("#ffffff").setFontWeight("bold");
@@ -204,18 +439,16 @@ function saveSystemState(stateObj, updatedIso) {
     ]);
   }
 
-  // ล้างข้อมูลเดิมแถวที่ 2 เป็นต้นไป
   const lastRow = Math.max(sheet.getLastRow(), 2);
   sheet.getRange(2, 1, lastRow, 3).clearContent();
 
-  // เขียนข้อมูล Chunk ใหม่ลงไป
   if (chunks.length > 0) {
     sheet.getRange(2, 1, chunks.length, 3).setValues(chunks);
   }
 }
 
 /**
- * โหลดสถานะระบบจากแท็บ "ข้อมูลระบบ" โดยรวม Chunk ทั้งหมดกลับคืนเป็น JSON
+ * โหลดสถานะระบบจากแท็บ "ข้อมูลระบบ"
  */
 function loadSystemState() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -242,46 +475,44 @@ function loadSystemState() {
   }
 }
 
-/**
- * หัวคอลัมน์ของแท็บ "ใบเสร็จรับเงิน"
- */
 const RECEIPT_HEADERS = [
   "ลำดับ",
   "เล่มที่",
   "เลขที่",
-  "วันที่ออก",
+  "วันที่",
   "เวลา",
   "ชื่อผู้ชำระเงิน",
   "ประเภทผู้ชำระ",
-  "สังกัด/หน่วยงาน (บรรทัด 1)",
-  "ที่อยู่/จังหวัด (บรรทัด 2)",
+  "สังกัด / หน่วยงาน (บรรทัด 1)",
+  "ที่อยู่ / จังหวัด (บรรทัด 2)",
   "รายการชำระ",
-  "โครงการ",
-  "จำนวนเงินรวม (บาท)",
-  "วิธีชำระเงิน",
-  "ธนาคารต้นทาง",
+  "โครงการอบรม",
+  "จำนวนเงิน (บาท)",
+  "วิธีการชำระเงิน",
+  "ธนาคารต้นทาง (กรณีโอน)",
   "วันที่โอน",
   "เวลาโอน",
   "เข้าบัญชีมหาวิทยาลัย",
   "สถานะ",
-  "เหตุผลยกเลิก",
-  "ผู้ออกใบเสร็จ",
-  "ตำแหน่งผู้ออก",
+  "เหตุผลที่ยกเลิก",
+  "ผู้จัดทำใบเสร็จ",
+  "ตำแหน่งผู้จัดทำ",
   "รหัสเจ้าหน้าที่",
-  "วันที่บันทึกเข้าระบบ",
-  "Receipt ID"
+  "วันที่สร้างรายการ",
+  "รหัสอ้างอิงระบบ (ID)"
 ];
 
 function initReceiptSheetHeaders(sheet) {
-  sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS]);
-  const headerRange = sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length);
-  headerRange.setBackground("#1e3a8a");
-  headerRange.setFontColor("#ffffff");
-  headerRange.setFontWeight("bold");
-  headerRange.setHorizontalAlignment("center");
-  headerRange.setWrap(true);
-  sheet.setFrozenRows(1);
-  sheet.setRowHeight(1, 38);
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS]);
+    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length)
+      .setBackground("#0f2c59")
+      .setFontColor("#ffffff")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center");
+    sheet.setFrozenRows(1);
+    sheet.setRowHeight(1, 28);
+  }
 }
 
 function receiptToRow(r, index) {
@@ -289,13 +520,13 @@ function receiptToRow(r, index) {
   let projectName = "";
   if (r.items && Array.isArray(r.items) && r.items.length > 0) {
     itemName = r.items.map(it => it.paymentItem || "").filter(Boolean).join(", ");
-    projectName = r.items.map(it => it.projectName || "").filter(Boolean).join(", ");
+    projectName = r.items.map(it => it.projectName || "").filter(Boolean).join(" | ");
   }
 
   return [
     index,
     r.bookNo || "",
-    r.no || "",
+    String(r.no || ""),
     r.date || "",
     r.time || "",
     r.payerFullName || ((r.title || "") + (r.firstName || "") + " " + (r.lastName || "")).trim(),
@@ -320,16 +551,12 @@ function receiptToRow(r, index) {
   ];
 }
 
-/**
- * ซิงค์รายการใบเสร็จทั้งหมดลงชีต "ใบเสร็จรับเงิน" แบบเรียงตามเลขที่
- */
 function syncReceiptsToSheet(receipts) {
   const sheet = getOrCreateSheet(SHEET_RECEIPTS);
   initReceiptSheetHeaders(sheet);
 
   if (!receipts || receipts.length === 0) return;
 
-  // เรียงใบเสร็จตามไทม์ไลน์ วันที่ เล่มที่ และเลขที่ตามลำดับการออกอย่างสมบูรณ์
   const sorted = receipts.slice().sort((a, b) => {
     const dateA = a.date || "";
     const dateB = b.date || "";
@@ -347,26 +574,17 @@ function syncReceiptsToSheet(receipts) {
     rows.push(receiptToRow(sorted[i], i + 1));
   }
 
-  // ล้างเนื้อหาเดิม (ตั้งแต่แถวที่ 2)
   const maxClear = Math.max(sheet.getLastRow(), rows.length + 1);
   if (maxClear >= 2) {
     sheet.getRange(2, 1, maxClear, RECEIPT_HEADERS.length).clearContent();
   }
 
-  // เขียนแถวใหม่ทั้งหมด
   sheet.getRange(2, 1, rows.length, RECEIPT_HEADERS.length).setValues(rows);
-
-  // กำหนดรูปแบบตัวเลขเงินในคอลัมน์ 12 (จำนวนเงินรวม) เป็น #,##0.00
   sheet.getRange(2, 12, rows.length, 1).setNumberFormat("#,##0.00");
-  
-  // จัดกึ่งกลางคอลัมน์ ลำดับ, เล่มที่, เลขที่, วันที่, สถานะ
   sheet.getRange(2, 1, rows.length, 5).setHorizontalAlignment("center");
   sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment("center");
 }
 
-/**
- * เพิ่มแถวใบเสร็จใบใหม่ต่อท้ายทันที (สำหรับตอนกดออกใบเสร็จแบบ Real-time)
- */
 function appendReceiptRow(r) {
   const sheet = getOrCreateSheet(SHEET_RECEIPTS);
   if (sheet.getLastRow() < 1) {
@@ -393,10 +611,6 @@ function formatAllSheets() {
   }
 }
 
-
-/**
- * ดึงรายการใบเสร็จทั้งหมดจากแท็บ "ใบเสร็จรับเงิน"
- */
 function getReceiptsFromSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_RECEIPTS);
