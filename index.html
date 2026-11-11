@@ -962,6 +962,16 @@
       color: #111;
     }
 
+    .receipt-payment-note {
+      margin-top: 1.2mm;
+      margin-bottom: 0.8mm;
+      font-size: 9.2pt;
+      line-height: 1.25;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      color: #111;
+    }
+
     .receipt-table-footer {
       border-top: 1.1px solid #000;
       display: flex;
@@ -4090,6 +4100,14 @@
               amount: 4900
             }];
           }
+        }
+
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0131 ให้มีช่องทางการชำระเงินโอนและข้อมูลธนาคารถูกต้องครบถ้วน
+        const r131 = merged.receipts.find(r => r && r.bookNo === "RUS70001" && (r.no === "0131" || r.no === "131"));
+        if (r131) {
+          r131.paymentMethod = "เงินโอน";
+          r131.universityBank = "ธนาคารกรุงไทย (128-0-79185-3)";
+          if (!r131.transferDate) r131.transferDate = "2026-11-06";
         }
 
         // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0207 ให้ตรงตามต้นฉบับจริง
@@ -9475,6 +9493,27 @@ ${loginUrl}
         <div class="receipt-project-block">${escapeHtml(proj)}</div>
       `).join("");
 
+      let transferNoteHtml = "";
+      if (r.paymentMethod === "เงินโอน") {
+        const transDate = r.transferDate || r.date;
+        const dtText = formatTransferDateThai(transDate);
+        const dtSuffix = dtText ? ` ${escapeHtml(dtText)}` : "";
+
+        if (r.universityBank && r.universityBank.trim()) {
+          let cleanBank = r.universityBank.trim()
+            .replace(/^รับชำระเงินโอน\s*/, "")
+            .replace(/^เข้า\s*บัญชี\s*/, "")
+            .replace(/^เข้า\s*/, "")
+            .replace(/^บัญชี\s*/, "");
+          const bankPhrase = "เข้าบัญชี " + cleanBank;
+          transferNoteHtml = `<div class="receipt-payment-note">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
+        } else {
+          transferNoteHtml = `<div class="receipt-payment-note">รับชำระเงินโอน${dtSuffix}</div>`;
+        }
+      } else if (r.paymentMethod && r.paymentMethod !== "เงินสด") {
+        transferNoteHtml = `<div class="receipt-payment-note">รับชำระโดย ${escapeHtml(r.paymentMethod)}</div>`;
+      }
+
       const isStudentFormat = r.payerType === "นักศึกษา";
 
       const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
@@ -9573,6 +9612,7 @@ ${loginUrl}
                   <td class="receipt-items-body-cell">
                     ${lineItemsRowsHtml}
                     ${projectBlockHtml}
+                    ${transferNoteHtml}
                   </td>
                   <td class="receipt-items-amount-cell">
                     ${lineAmountsRowsHtml}
