@@ -9493,26 +9493,8 @@ ${loginUrl}
         <div class="receipt-project-block">${escapeHtml(proj)}</div>
       `).join("");
 
-      let transferNoteHtml = "";
-      if (r.paymentMethod === "เงินโอน") {
-        const transDate = r.transferDate || r.date;
-        const dtText = formatTransferDateThai(transDate);
-        const dtSuffix = dtText ? ` ${escapeHtml(dtText)}` : "";
-
-        if (r.universityBank && r.universityBank.trim()) {
-          let cleanBank = r.universityBank.trim()
-            .replace(/^รับชำระเงินโอน\s*/, "")
-            .replace(/^เข้า\s*บัญชี\s*/, "")
-            .replace(/^เข้า\s*/, "")
-            .replace(/^บัญชี\s*/, "");
-          const bankPhrase = "เข้าบัญชี " + cleanBank;
-          transferNoteHtml = `<div class="receipt-payment-note">รับชำระเงินโอน ${escapeHtml(bankPhrase)}${dtSuffix}</div>`;
-        } else {
-          transferNoteHtml = `<div class="receipt-payment-note">รับชำระเงินโอน${dtSuffix}</div>`;
-        }
-      } else if (r.paymentMethod && r.paymentMethod !== "เงินสด") {
-        transferNoteHtml = `<div class="receipt-payment-note">รับชำระโดย ${escapeHtml(r.paymentMethod)}</div>`;
-      }
+      // ไม่แสดงช่องทางการชำระในหน้าใบเสร็จที่พิมพ์ ข้อมูลยังคงอยู่ในฐานข้อมูลหลังบ้าน
+      const transferNoteHtml = "";
 
       const isStudentFormat = r.payerType === "นักศึกษา";
 
