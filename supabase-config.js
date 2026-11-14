@@ -60,7 +60,7 @@ function cleanGasUrl(u) {
   let savedUrl = cleanSupabaseUrl(getSaved("rmutsb_supabase_url"));
   let savedKey = cleanSupabaseKey(getSaved("rmutsb_supabase_anon_key"));
   let savedGasUrl = cleanGasUrl(getSaved("rmutsb_gas_url") || DEFAULT_GAS_URL);
-  let activeProvider = getSaved("rmutsb_active_db_provider") || (savedGasUrl ? "googlesheet" : "supabase");
+  let activeProvider = getSaved("rmutsb_active_db_provider") || "supabase";
 
   setSaved("rmutsb_supabase_url", savedUrl);
   setSaved("rmutsb_supabase_anon_key", savedKey);

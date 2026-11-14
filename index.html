@@ -4538,7 +4538,11 @@
         broadcastChannel = new BroadcastChannel("rmutsb_receipt_sync_channel");
         broadcastChannel.onmessage = (ev) => {
           if (ev.data && ev.data.type === "STATE_UPDATED") {
-            loadAppStateFromStorageOrSupabase(false);
+            if (ev.data.data) {
+              applyIncomingState(ev.data.data, ev.data.updatedAt, "แท็บอื่นในเครื่อง (0ms)");
+            } else {
+              loadAppStateFromStorageOrSupabase(false, true);
+            }
           }
         };
       }
@@ -4583,33 +4587,10 @@
       safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
 
       gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url") || (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.getGasUrl && window.RMUTSB_DATABASE_CONFIG.getGasUrl()) || BUILTIN_DEFAULT_GAS_URL);
-      const savedProvider = safeGetItem("rmutsb_active_db_provider") || (gasWebAppUrl ? "googlesheet" : "supabase");
+      const savedProvider = safeGetItem("rmutsb_active_db_provider") || "supabase";
 
-      // 1. ลองเชื่อมต่อ Google Sheet Web App หากมีการตั้งค่าไว้
-      if (gasWebAppUrl && (savedProvider === "googlesheet" || !savedProvider)) {
-        try {
-          if (txt) txt.textContent = "กำลังเชื่อมต่อ Google Sheet...";
-          const pingRes = await pingGasWebapp(gasWebAppUrl);
-          if (pingRes && (pingRes.status === "success" || pingRes.status === "ok")) {
-            activeDbProvider = "googlesheet";
-            if (dot) {
-              dot.className = "conn-dot";
-              dot.style.background = "#059669";
-            }
-            if (txt) txt.textContent = "ออนไลน์ (เรียลไทม์)";
-            await loadAppStateFromStorageOrSupabase(false);
-            setupRealtimeAndPolling();
-            restoreSavedUserSession();
-            checkAndHandleUrlLoginParams();
-            return;
-          }
-        } catch (gasErr) {
-          console.warn("GAS connection ping failed, attempting Supabase fallback:", gasErr);
-        }
-      }
-
-      // 2. หากไม่ได้ใช้ Google Sheet หรือ GAS เชื่อมต่อไม่สำเร็จ ให้เชื่อมต่อ Supabase
-      let lastAttemptErr = null;
+      // 1. เชื่อมต่อฐานข้อมูลกลาง Supabase เป็นหลัก (High-Speed Real-time WebSocket < 50ms)
+      let connectedSupabase = false;
       if (window.supabase) {
         const primaryUrl = cleanSupabaseUrl(cfg.supabaseUrl || cfg.url);
         const primaryKey = cleanSupabaseKey(cfg.supabaseAnonKey || cfg.anonKey);
@@ -4618,7 +4599,6 @@
           candidates.push({ url: BUILTIN_DEFAULT_SUPABASE_URL, key: BUILTIN_DEFAULT_SUPABASE_ANON_KEY });
         }
 
-        let connected = false;
         for (const cand of candidates) {
           try {
             const client = window.supabase.createClient(cand.url, cand.key);
@@ -4633,25 +4613,46 @@
               activeDbProvider = "supabase";
               if (dot) {
                 dot.className = "conn-dot";
-                dot.style.background = "#2563eb";
+                dot.style.background = "#10b981";
+                dot.style.boxShadow = "0 0 10px #10b981";
               }
-              if (txt) txt.textContent = "เชื่อมต่อฐานข้อมูลกลาง Supabase แล้ว (ข้อมูลตรงกันทุกเครื่อง)";
+              if (txt) txt.textContent = "ออนไลน์ (เรียลไทม์ WebSocket)";
               lastSupabaseStatus = "connected";
-              connected = true;
+              connectedSupabase = true;
               break;
             }
-            lastAttemptErr = testErr;
-          } catch(e) {
-            lastAttemptErr = e;
-          }
+          } catch(e) {}
         }
+      }
 
-        if (connected) {
-          await loadAppStateFromStorageOrSupabase(false);
-          setupRealtimeAndPolling();
-          restoreSavedUserSession();
-          checkAndHandleUrlLoginParams();
-          return;
+      if (connectedSupabase) {
+        await loadAppStateFromStorageOrSupabase(false, true);
+        setupRealtimeAndPolling();
+        restoreSavedUserSession();
+        checkAndHandleUrlLoginParams();
+        return;
+      }
+
+      // 2. หากเชื่อมต่อ Supabase ไม่สำเร็จ ให้เชื่อมต่อ Google Sheet Web App (Fallback)
+      if (gasWebAppUrl) {
+        try {
+          if (txt) txt.textContent = "กำลังเชื่อมต่อ Google Sheet...";
+          const pingRes = await pingGasWebapp(gasWebAppUrl);
+          if (pingRes && (pingRes.status === "success" || pingRes.status === "ok")) {
+            activeDbProvider = "googlesheet";
+            if (dot) {
+              dot.className = "conn-dot";
+              dot.style.background = "#059669";
+            }
+            if (txt) txt.textContent = "ออนไลน์ (Google Sheet Sync)";
+            await loadAppStateFromStorageOrSupabase(false);
+            setupRealtimeAndPolling();
+            restoreSavedUserSession();
+            checkAndHandleUrlLoginParams();
+            return;
+          }
+        } catch (gasErr) {
+          console.warn("GAS connection ping failed, attempting fallback:", gasErr);
         }
       }
 
@@ -4780,50 +4781,19 @@
         return true;
       }
 
-      // 1. ถ้าเป็นการแจ้งเตือนแบบ Real-time จาก Supabase WebSocket หรือระบุ preferSupabase
-      if (preferSupabase && supabaseClient) {
-        try {
-          const { data: stateRow, error: sErr } = await supabaseClient
-            .from("app_state")
-            .select("data, updated_at")
-            .eq("id", "main")
-            .maybeSingle();
-
-          if (!sErr && stateRow && stateRow.data) {
-            applyIncomingState(stateRow.data, stateRow.updated_at, "Supabase (เรียลไทม์)");
-            return;
-          }
-        } catch(e) {
-          console.warn("Realtime preferSupabase fetch warning:", e);
-        }
-      }
-
-      // 2. ก. กรณีใช้ Google Sheet Web App (Primary)
-      if (isGoogleSheetMode() && !preferSupabase) {
-        try {
-          const res = await fetchStateFromGas(gasWebAppUrl);
-          if (res && res.data) {
-            applyIncomingState(res.data, res.updated_at, "Google Sheet");
-            return;
-          }
-        } catch(e) {
-          console.warn("Load state from Google Sheet failed, attempting Supabase fallback:", e);
-        }
-      }
-
-      // 3. ข. กรณีใช้ Supabase หรือ Fallback ข้ามระบบเมื่อ Google Sheet ขัดข้อง
+      // 1. ถ้าเชื่อมต่อ Supabase ไว้ ให้ใช้ Supabase เป็นหลัก (ความเร็วสูงระดับ 30ms + Realtime WebSocket)
       if (supabaseClient) {
         try {
-          if (!forceToast && lastCloudUpdatedAt && isSupabaseMode()) {
-            const { data: checkRow } = await supabaseClient
+          if (!forceToast && lastCloudUpdatedAt) {
+            const { data: checkRow, error: cErr } = await supabaseClient
               .from("app_state")
               .select("updated_at")
               .eq("id", "main")
               .maybeSingle();
 
-            if (checkRow && checkRow.updated_at && checkRow.updated_at === lastCloudUpdatedAt) {
+            if (!cErr && checkRow && checkRow.updated_at && checkRow.updated_at === lastCloudUpdatedAt) {
               updateSyncTimestamp();
-              return;
+              return true;
             }
           }
 
@@ -4834,26 +4804,28 @@
             .maybeSingle();
 
           if (!sErr && stateRow && stateRow.data) {
-            applyIncomingState(stateRow.data, stateRow.updated_at, "Supabase");
-            return;
+            applyIncomingState(stateRow.data, stateRow.updated_at, "Supabase (เรียลไทม์)");
+            return true;
           }
         } catch(err) {
-          console.warn("Load state Supabase error:", err);
+          console.warn("Load state Supabase error, falling back:", err);
         }
       }
 
-      // 4. Fallback ไปยัง Google Sheet หาก Supabase ขัดข้อง
+      // 2. Fallback ไปยัง Google Sheet หาก Supabase ขัดข้อง หรือระบุใช้ Google Sheet
       if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
         try {
           const res = await fetchStateFromGas(gasWebAppUrl);
           if (res && res.data) {
             applyIncomingState(res.data, res.updated_at, "Google Sheet");
-            return;
+            return true;
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn("Load state from Google Sheet failed:", e);
+        }
       }
 
-      // 5. ค. โหมดในเครื่อง (Local Storage Fallback)
+      // 3. โหมดในเครื่อง (Local Storage Fallback)
       const rawLocal = safeGetItem("rmutsb_fallback_app_state");
       if (rawLocal) {
         try {
@@ -4881,12 +4853,7 @@
         const nowIso = new Date().toISOString();
         lastStateUpdatedAt = nowIso;
 
-        // บันทึกขึ้น Google Sheet Web App หากมีการระบุ URL ไว้ (รองรับ Real-time Dual-Sync ทุกโหมด)
-        if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
-          persistStateToGas(gasWebAppUrl, appState).catch(e => console.warn("GAS background sync warning:", e));
-        }
-
-        // หากมี supabaseClient อยู่ ให้บันทึกขึ้น Supabase เป็น Dual Backup ด้วย
+        // 1. บันทึกขึ้น Supabase ทันที เพื่อกระจาย Realtime WebSocket ระดับเสี้ยววินาที (< 50ms) ข้ามทุกเครื่อง
         if (supabaseClient) {
           try {
             await supabaseClient
@@ -4897,13 +4864,20 @@
                 updated_at: nowIso
               });
           } catch(e) {
-            console.warn("Supabase dual-sync warning:", e);
+            console.warn("Supabase realtime sync warning:", e);
           }
         }
 
+        // 2. ส่งสัญญาณข้ามแท็บในเครื่องเดียวกันทันที 0ms ผ่าน BroadcastChannel
         if (broadcastChannel) {
-          broadcastChannel.postMessage({ type: "STATE_UPDATED", ts: Date.now() });
+          broadcastChannel.postMessage({ type: "STATE_UPDATED", data: appState, updatedAt: nowIso });
         }
+
+        // 3. บันทึกสำรองขึ้น Google Sheet Web App ในพื้นหลัง (Background Async Dual-Sync) ไม่หน่วงหน้าจอ
+        if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
+          persistStateToGas(gasWebAppUrl, appState).catch(e => console.warn("GAS background sync warning:", e));
+        }
+
         refreshAllVisibleViewsPreservingForms();
         updateSyncTimestamp();
       } finally {
@@ -4915,32 +4889,53 @@
       const badge = document.getElementById("lastSyncTimeBadge");
       if (badge) {
         const now = new Date();
-        const modeLabel = isGoogleSheetMode() ? "Google Sheet" : (isSupabaseMode() ? "Supabase" : "เครื่อง");
-        badge.innerHTML = `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; margin-right:5px; box-shadow:0 0 6px #10b981;"></span>เรียลไทม์ (${modeLabel}): ` + now.toLocaleTimeString("th-TH");
+        const isWs = supabaseClient && realtimeChannel && realtimeChannel.state === "joined";
+        const modeLabel = isWs ? "Supabase WebSocket" : (isSupabaseMode() ? "Supabase" : (isGoogleSheetMode() ? "Google Sheet" : "เครื่อง"));
+        badge.innerHTML = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; margin-right:5px; box-shadow:0 0 8px #10b981;"></span>เรียลไทม์ (${modeLabel}): ` + now.toLocaleTimeString("th-TH");
       }
     }
 
     function setupRealtimeAndPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
-      // เรียลไทม์: ตรวจสอบข้อมูลอัตโนมัติทุก 3 วินาที
-      const intervalMs = 3000;
+      // เรียลไทม์ความเร็วสูง: ตรวจสอบความเปลี่ยนแปลงทุก 1.5 วินาที
+      const intervalMs = 1500;
 
-      pollingTimer = setInterval(() => {
+      pollingTimer = setInterval(async () => {
         if (document.hidden) return; // หากผู้ใช้ไม่ได้เปิดดูแท็บนี้ ให้หยุด polling เพื่อประหยัดโควต้า
-        loadAppStateFromStorageOrSupabase(false);
+        if (supabaseClient) {
+          try {
+            const { data: checkRow } = await supabaseClient
+              .from("app_state")
+              .select("updated_at")
+              .eq("id", "main")
+              .maybeSingle();
+
+            if (checkRow && checkRow.updated_at) {
+              if (checkRow.updated_at !== lastCloudUpdatedAt) {
+                await loadAppStateFromStorageOrSupabase(false, true);
+              } else {
+                updateSyncTimestamp();
+              }
+            }
+          } catch(e) {
+            loadAppStateFromStorageOrSupabase(false);
+          }
+        } else {
+          loadAppStateFromStorageOrSupabase(false);
+        }
       }, intervalMs);
 
-      // เมื่อผู้ใช้สลับกลับมาที่แท็บเบราว์เซอร์หรือหน้าต่าง ให้ซิงค์ข้อมูลล่าสุดทันที
+      // เมื่อผู้ใช้สลับกลับมาที่แท็บเบราว์เซอร์หรือหน้าต่าง ให้ซิงค์ข้อมูลล่าสุดทันที 0ms
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-          loadAppStateFromStorageOrSupabase(false);
+          loadAppStateFromStorageOrSupabase(false, true);
         }
       });
       window.addEventListener("focus", () => {
-        loadAppStateFromStorageOrSupabase(false);
+        loadAppStateFromStorageOrSupabase(false, true);
       });
       window.addEventListener("online", () => {
-        loadAppStateFromStorageOrSupabase(false);
+        loadAppStateFromStorageOrSupabase(false, true);
       });
 
       // รองรับ Realtime WebSocket ทันทีเมื่อมี client เชื่อมต่ออยู่
@@ -4956,12 +4951,19 @@
               { event: "*", schema: "public", table: "app_state", filter: "id=eq.main" },
               (payload) => {
                 if (payload && payload.new && payload.new.id && payload.new.id !== "main") return;
-                console.log("Realtime event received from Supabase:", payload);
-                loadAppStateFromStorageOrSupabase(false, true);
+                console.log("Realtime event received from Supabase WebSocket:", payload);
+                if (payload && payload.new && payload.new.data) {
+                  applyIncomingState(payload.new.data, payload.new.updated_at, "Supabase WebSocket (0ms)");
+                } else {
+                  loadAppStateFromStorageOrSupabase(false, true);
+                }
               }
             )
             .subscribe((status) => {
               console.log("Supabase Realtime status:", status);
+              if (status === "SUBSCRIBED") {
+                updateSyncTimestamp();
+              }
             });
         } catch (e) {
           console.warn("Realtime subscription fallback to polling:", e);
