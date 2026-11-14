@@ -1696,10 +1696,35 @@
           </div>
         </div>
 
-        <!-- Card 2: Upload File -->
+        <!-- Card 2: Select Receipt Date (หน้าระบบ) -->
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:1.1rem; margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.4rem;">
+            <h4 style="margin:0; font-size:0.95rem; color:var(--primary-navy); display:flex; align-items:center; gap:0.4rem;">
+              <span>📅</span> ขั้นตอนที่ 2: กำหนดวันที่ออกใบเสร็จรับเงิน (หน้าระบบ)
+            </h4>
+            <span style="font-size:0.78rem; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 8px; border-radius:4px; font-weight:600;">
+              📌 วันที่บนหัวใบเสร็จ
+            </span>
+          </div>
+          <p style="font-size:0.83rem; color:var(--slate-600); margin:0 0 0.85rem 0; line-height:1.5;">
+            กำหนดวันที่ที่จะพิมพ์บนหัวใบเสร็จรับเงินทุกใบในชุดนี้ <span style="color:#b91c1c; font-weight:600;">(วันที่โอนในไฟล์ Excel จะไม่เกี่ยวข้องกับวันที่ออกใบเสร็จ โดยจะถูกเก็บเป็นประวัติการโอนเงินหลังบ้าน)</span>
+          </p>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-weight:600;">วันที่ออกใบเสร็จ *</label>
+              <input type="date" id="batchReceiptDateInput" class="form-control" required style="font-weight:600;" onchange="handleBatchReceiptDateChange()" />
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="font-weight:600;">เวลาที่ออกใบเสร็จ</label>
+              <input type="time" id="batchReceiptTimeInput" class="form-control" onchange="handleBatchReceiptTimeChange()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Upload File -->
         <div style="background:#eff6ff; border:1.5px dashed #3b82f6; border-radius:8px; padding:1.25rem; text-align:center; margin-bottom:1rem;">
           <h4 style="margin:0 0 0.35rem 0; font-size:0.95rem; color:#1e40af;">
-            📂 ขั้นตอนที่ 2: เลือกไฟล์ Excel หรือ CSV ที่กรอกข้อมูลเสร็จแล้ว
+            📂 ขั้นตอนที่ 3: เลือกไฟล์ Excel หรือ CSV ที่กรอกข้อมูลเสร็จแล้ว
           </h4>
           <p style="font-size:0.82rem; color:var(--slate-600); margin-bottom:0.75rem;">
             รองรับไฟล์นามสกุล <strong>.xlsx, .xls, .csv</strong> (ระบบจะอ่านข้อมูลแถวแรกเป็นชื่อหัวคอลัมน์)
@@ -1711,13 +1736,19 @@
           <div id="batchFileNameDisplay" style="margin-top:0.6rem; font-size:0.88rem; font-weight:600; color:var(--primary-navy);"></div>
         </div>
 
-        <!-- Card 3: Preview & Validation (Shown after file uploaded) -->
+        <!-- Card 4: Preview & Validation (Shown after file uploaded) -->
         <div id="batchPreviewSection" style="display:none; margin-bottom:1rem;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
             <h4 style="margin:0; font-size:0.95rem; color:var(--primary-navy); display:flex; align-items:center; gap:0.4rem;">
-              <span>📋</span> ขั้นตอนที่ 3: ตรวจสอบรายการข้อมูลก่อนยืนยันออกใบเสร็จ
+              <span>📋</span> ขั้นตอนที่ 4: ตรวจสอบรายการข้อมูล และรันลำดับเลขที่อัตโนมัติ
             </h4>
             <div id="batchTargetBookBadge" style="font-size:0.85rem; background:#fef3c7; border:1px solid #fde047; color:#854d0e; padding:4px 10px; border-radius:6px; font-weight:600;"></div>
+          </div>
+
+          <!-- Auto-Sequence & Backend Storage Info Banner -->
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.65rem 0.85rem; margin-bottom:0.85rem; font-size:0.82rem; color:#1e40af; display:flex; align-items:center; gap:0.5rem;">
+            <span>ℹ️</span>
+            <span><strong>ระบบรันลำดับและจัดเก็บข้อมูลอัตโนมัติ:</strong> เมื่อกดปุ่มบันทึก ระบบจะจัดเก็บข้อมูลใบเสร็จรับเงิน และอัปเดตลำดับล่าสุดลงฐานข้อมูลหลังบ้านอัตโนมัติ เพื่อให้การออกใบเสร็จใบถัดไปรันลำดับต่อได้อย่างถูกต้อง</span>
           </div>
 
           <!-- Summary Stats -->
@@ -1747,6 +1778,7 @@
                 <tr>
                   <th style="width:40px;">ที่</th>
                   <th>เลขที่ที่จะได้</th>
+                  <th>วันที่ใบเสร็จ</th>
                   <th>ชื่อ-นามสกุล / สังกัด</th>
                   <th>รายการ</th>
                   <th class="text-right">จำนวนเงิน</th>
@@ -1769,11 +1801,14 @@
       </div>
 
       <!-- Footer Buttons -->
-      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--slate-200);">
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--slate-200); flex-wrap:wrap; gap:0.5rem;">
         <button type="button" class="btn btn-outline btn-sm" onclick="closeBatchImportModal()">ยกเลิก</button>
-        <div style="display:flex; gap:0.5rem;">
-          <button type="button" id="batchConfirmBtn" class="btn btn-success" disabled onclick="executeBatchIssue()">
-            🚀 ยืนยันออกใบเสร็จทั้งหมดทันที
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button type="button" id="batchSaveOnlyBtn" class="btn btn-primary" disabled onclick="executeBatchIssue(false)" style="display:inline-flex; align-items:center; gap:0.35rem; background:#1e40af; border-color:#1e40af;">
+            💾 บันทึกข้อมูลใบเสร็จลงระบบหลังบ้าน
+          </button>
+          <button type="button" id="batchConfirmBtn" class="btn btn-success" disabled onclick="executeBatchIssue(true)" style="display:inline-flex; align-items:center; gap:0.35rem;">
+            🖨️ บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ
           </button>
         </div>
       </div>
@@ -8527,14 +8562,51 @@ ${loginUrl}
       if (previewSec) previewSec.style.display = "none";
       const progressSec = document.getElementById("batchProgressSection");
       if (progressSec) progressSec.style.display = "none";
+
+      // กำหนดวันที่ออกใบเสร็จเริ่มต้น: ใช้ค่าจากฟอร์มหน้าออกใบเสร็จ (หากมี) หรือวันปัจจุบัน
+      const mainDateInput = document.getElementById("rcpDateInput");
+      const defaultDate = (mainDateInput && mainDateInput.value) || new Date().toISOString().slice(0, 10);
+      const batchDateInput = document.getElementById("batchReceiptDateInput");
+      if (batchDateInput) batchDateInput.value = defaultDate;
+
+      const mainTimeInput = document.getElementById("rcpTimeInput");
+      const defaultTime = (mainTimeInput && mainTimeInput.value) || new Date().toTimeString().slice(0, 5);
+      const batchTimeInput = document.getElementById("batchReceiptTimeInput");
+      if (batchTimeInput) batchTimeInput.value = defaultTime;
+
+      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
+      if (saveOnlyBtn) {
+        saveOnlyBtn.disabled = true;
+        saveOnlyBtn.textContent = "💾 บันทึกข้อมูลใบเสร็จลงระบบหลังบ้าน";
+      }
       const confirmBtn = document.getElementById("batchConfirmBtn");
       if (confirmBtn) {
         confirmBtn.disabled = true;
-        confirmBtn.textContent = "🚀 ยืนยันออกใบเสร็จทั้งหมดทันที";
+        confirmBtn.textContent = "🖨️ บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ";
       }
 
       const modal = document.getElementById("batchImportModal");
       if (modal) modal.style.display = "flex";
+    }
+
+    function handleBatchReceiptDateChange() {
+      const dateVal = document.getElementById("batchReceiptDateInput")?.value;
+      if (!dateVal) return;
+      if (batchParsedReceipts && batchParsedReceipts.length > 0) {
+        batchParsedReceipts.forEach(r => {
+          r.receiptDate = dateVal;
+        });
+        renderBatchPreview();
+      }
+    }
+
+    function handleBatchReceiptTimeChange() {
+      const timeVal = document.getElementById("batchReceiptTimeInput")?.value;
+      if (batchParsedReceipts && batchParsedReceipts.length > 0) {
+        batchParsedReceipts.forEach(r => {
+          r.receiptTime = timeVal;
+        });
+      }
     }
 
     function closeBatchImportModal() {
@@ -8787,6 +8859,8 @@ ${loginUrl}
             const projectName = (colProject !== -1 ? String(r[colProject] || "").trim() : "") || activeProject;
 
             const isValid = firstName.length > 0 && amount > 0;
+            const selectedReceiptDate = document.getElementById("batchReceiptDateInput")?.value || new Date().toISOString().slice(0, 10);
+            const selectedReceiptTime = document.getElementById("batchReceiptTimeInput")?.value || new Date().toTimeString().slice(0, 5);
 
             batchParsedReceipts.push({
               index: batchParsedReceipts.length + 1,
@@ -8802,8 +8876,10 @@ ${loginUrl}
               amount,
               paymentMethod,
               payerBank,
-              transferDate: transferDate || new Date().toISOString().slice(0, 10),
-              transferTime: transferTime || "",
+              receiptDate: selectedReceiptDate, // วันที่ออกใบเสร็จ (กำหนดจากหน้าระบบ)
+              receiptTime: selectedReceiptTime,
+              transferDate: transferDate,       // วันที่โอน (จากไฟล์รายชื่อ ไม่เกี่ยวกับวันที่ใบเสร็จ)
+              transferTime: transferTime || "", // เวลาโอน (จากไฟล์รายชื่อ)
               universityBank,
               projectName
             });
@@ -8821,6 +8897,7 @@ ${loginUrl}
     function renderBatchPreview() {
       const previewSec = document.getElementById("batchPreviewSection");
       const tbody = document.getElementById("batchPreviewTableBody");
+      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
       const confirmBtn = document.getElementById("batchConfirmBtn");
       const targetBookBadge = document.getElementById("batchTargetBookBadge");
 
@@ -8828,6 +8905,7 @@ ${loginUrl}
 
       if (batchParsedReceipts.length === 0) {
         previewSec.style.display = "none";
+        if (saveOnlyBtn) saveOnlyBtn.disabled = true;
         if (confirmBtn) confirmBtn.disabled = true;
         showToast("ไม่พบรายการที่ถูกต้องในไฟล์", true);
         return;
@@ -8844,6 +8922,8 @@ ${loginUrl}
       document.getElementById("batchTotalCount").textContent = batchParsedReceipts.length;
       document.getElementById("batchValidCount").textContent = validRows.length;
       document.getElementById("batchTotalAmount").textContent = formatMoney(totalAmount, true) + " บาท";
+
+      const selectedReceiptDate = document.getElementById("batchReceiptDateInput")?.value || new Date().toISOString().slice(0, 10);
 
       if (activeBook) {
         const endNum = startNum + validRows.length - 1;
@@ -8868,11 +8948,16 @@ ${loginUrl}
         let pfx = r.title ? (standardPrefixes.includes(r.title) ? r.title : (r.title + " ")) : "";
         const fullName = `${pfx}${r.firstName}${r.lastName ? " " + r.lastName : ""}`;
         const subDetail = r.detailLine1 || r.detailLine2 || "";
+        const displayRcpDate = r.receiptDate || selectedReceiptDate;
+        const displayTransDate = r.transferDate ? formatThaiBEDateDisplay(r.transferDate) : "-";
 
         return `
           <tr style="${!r.isValid ? "background:#fef2f2; color:#991b1b;" : ""}">
             <td>${idx + 1}</td>
             <td style="font-weight:700; color:var(--primary-navy);">${escapeHtml(assignedNo)}</td>
+            <td>
+              <div style="font-weight:600; color:#166534;">${escapeHtml(formatThaiBEDateDisplay(displayRcpDate))}</div>
+            </td>
             <td>
               <div style="font-weight:600;">${escapeHtml(fullName)}</div>
               ${subDetail ? `<div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(subDetail)}</div>` : ""}
@@ -8884,7 +8969,7 @@ ${loginUrl}
             <td class="text-right" style="font-weight:600; color:var(--primary-blue);">${formatMoney(r.amount, true)}</td>
             <td>
               <div>${escapeHtml(r.paymentMethod)}</div>
-              <div style="font-size:0.75rem; color:var(--slate-500);">${escapeHtml(formatThaiBEDateDisplay(r.transferDate))} ${escapeHtml(r.transferTime)}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500);">โอน: ${escapeHtml(displayTransDate)}${r.transferTime ? " " + escapeHtml(r.transferTime) : ""}</div>
             </td>
             <td>
               ${r.isValid 
@@ -8895,13 +8980,17 @@ ${loginUrl}
         `;
       }).join("");
 
+      if (saveOnlyBtn) {
+        saveOnlyBtn.disabled = validRows.length === 0 || !activeBook;
+        saveOnlyBtn.textContent = `💾 บันทึกข้อมูลใบเสร็จ ${validRows.length} ใบ (ลงระบบหลังบ้าน)`;
+      }
       if (confirmBtn) {
         confirmBtn.disabled = validRows.length === 0 || !activeBook;
-        confirmBtn.textContent = `🚀 ยืนยันออกใบเสร็จทั้งหมด ${validRows.length} ใบ`;
+        confirmBtn.textContent = `🖨️ บันทึกข้อมูลและสั่งพิมพ์ ${validRows.length} ใบ`;
       }
     }
 
-    async function executeBatchIssue() {
+    async function executeBatchIssue(andPrint = true) {
       if (currentUser && currentUser.active === false) {
         showToast("บัญชีผู้ใช้งานของคุณถูกปิดการใช้งาน ไม่สามารถออกใบเสร็จได้", true);
         return;
@@ -8924,11 +9013,13 @@ ${loginUrl}
         return;
       }
 
+      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
       const confirmBtn = document.getElementById("batchConfirmBtn");
       const progressSec = document.getElementById("batchProgressSection");
       const progressBar = document.getElementById("batchProgressBar");
       const progressText = document.getElementById("batchProgressText");
 
+      if (saveOnlyBtn) saveOnlyBtn.disabled = true;
       if (confirmBtn) confirmBtn.disabled = true;
       if (progressSec) progressSec.style.display = "block";
 
@@ -8937,6 +9028,17 @@ ${loginUrl}
         const start = Number(activeBook.start || 1);
         let end = Number(activeBook.end || 100);
         const digits = Math.max(Number(activeBook.digits || 3), 3);
+
+        const selectedReceiptDate = document.getElementById("batchReceiptDateInput")?.value || new Date().toISOString().slice(0, 10);
+        const selectedReceiptTime = document.getElementById("batchReceiptTimeInput")?.value || new Date().toTimeString().slice(0, 5);
+
+        // กำหนดวันที่ออกใบเสร็จตามที่เลือกในระบบให้กับทุกรายการ
+        validRows.forEach(r => {
+          r.receiptDate = selectedReceiptDate;
+          r.receiptTime = selectedReceiptTime;
+          r.date = selectedReceiptDate;
+          r.time = selectedReceiptTime;
+        });
 
         let newReceipts = [];
         let usedProvider = "local";
@@ -8952,19 +9054,31 @@ ${loginUrl}
               staffCode: (currentUser && currentUser.staff_code) || "",
               position: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
               signatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
-              signatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
+              signatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100,
+              receiptDate: selectedReceiptDate,
+              receiptTime: selectedReceiptTime
             });
 
             if (serverRes && serverRes.status === "success" && Array.isArray(serverRes.receipts) && serverRes.receipts.length > 0) {
               newReceipts = serverRes.receipts;
               usedProvider = "googlesheet-atomic";
-              
-              const endNoNum = parseInt(String(serverRes.endNo || "0").replace(/\D/g, ""), 10);
-              if (endNoNum > (Number(activeBook.latest) || 0)) {
-                activeBook.latest = endNoNum;
+
+              // กำหนดวันที่ออกใบเสร็จและวันที่โอนตามที่ระบุในระบบ
+              newReceipts.forEach((r, idx) => {
+                r.date = selectedReceiptDate;
+                if (selectedReceiptTime) r.time = selectedReceiptTime;
+                if (validRows[idx] && validRows[idx].transferDate) {
+                  r.transferDate = validRows[idx].transferDate;
+                  r.transferTime = validRows[idx].transferTime;
+                }
+              });
+
+              const maxIssuedNo = Math.max(...newReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0));
+              if (maxIssuedNo > (Number(activeBook.latest) || 0)) {
+                activeBook.latest = maxIssuedNo;
               }
-              if (endNoNum > end) {
-                activeBook.end = Math.max(end + 500, endNoNum + 100);
+              if (maxIssuedNo > end) {
+                activeBook.end = Math.max(end + 500, maxIssuedNo + 100);
               }
             }
           } catch (gasErr) {
@@ -9014,13 +9128,13 @@ ${loginUrl}
               status: "ปกติ",
               cancelReason: "",
               createdAt: new Date(baseTimestamp + i * 20).toISOString(),
-              date: row.transferDate || new Date().toISOString().slice(0, 10),
-              time: row.transferTime || new Date().toTimeString().slice(0, 5),
+              date: selectedReceiptDate, // วันที่ออกใบเสร็จตามที่เลือกในหน้าระบบ
+              time: selectedReceiptTime || new Date().toTimeString().slice(0, 5),
               payerType: row.payerType || "บุคคลทั่วไป",
               paymentMethod: row.paymentMethod || "เงินโอน",
               payerBank: row.payerBank || "",
               universityBank: row.universityBank || "ธนาคารกรุงไทย (128-0-79185-3)",
-              transferDate: row.transferDate || new Date().toISOString().slice(0, 10),
+              transferDate: row.transferDate || selectedReceiptDate, // วันที่โอนจากไฟล์ (ไม่เกี่ยวกับวันที่ใบเสร็จ)
               transferTime: row.transferTime || "",
               title: row.title || "",
               firstName: row.firstName || "",
@@ -9059,22 +9173,58 @@ ${loginUrl}
 
         books[activeIdx] = activeBook;
         if (progressBar) progressBar.style.width = "95%";
-        if (progressText) progressText.textContent = `กำลังบันทึกและซิงค์ข้อมูลความเสถียรสูง...`;
+        if (progressText) progressText.textContent = `กำลังบันทึกและซิงค์ข้อมูลลงฐานข้อมูลหลังบ้าน...`;
 
         appState.books = books;
         appState.receipts = [...newReceipts, ...(appState.receipts || [])];
 
+        // บันทึกและซิงค์ข้อมูลลงฐานข้อมูลหลังบ้าน (Google Sheets, Supabase, Local)
         await persistAppState();
+
+        // รับประกันการบันทึกข้อมูลและรันลำดับลง Google Sheet และ Supabase
+        if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
+          try {
+            await persistStateToGas(gasWebAppUrl, appState);
+          } catch(e) {
+            console.warn("GAS persist state warning:", e);
+          }
+        }
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from("app_state").upsert({
+              id: "main",
+              data: appState,
+              updated_at: new Date().toISOString()
+            });
+          } catch(e) {
+            console.warn("Supabase direct upsert warning:", e);
+          }
+        }
+
         refreshAllVisibleViewsPreservingForms();
 
         const firstNo = newReceipts[0].no;
         const lastNo = newReceipts[newReceipts.length - 1].no;
-        showToast(`ออกใบเสร็จรับเงินเป็นชุดสำเร็จ ${newReceipts.length} ใบ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo})`);
+        const nextNumUpcoming = Math.max(...newReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0)) + 1;
+        const nextPadUpcoming = String(nextNumUpcoming).padStart(digits, "0");
+
+        showToast(`✓ บันทึกข้อมูลใบเสร็จ ${newReceipts.length} ใบ สำเร็จ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo}) ข้อมูลถูกจัดเก็บลงระบบหลังบ้านเรียบร้อย พร้อมรันเลขที่ถัดไป (${nextPadUpcoming}) อัตโนมัติ`);
 
         closeBatchImportModal();
 
-        // เปิดหน้าต่างพิมพ์ใบเสร็จชุดนี้ทั้งหมดทันที
-        renderReceiptPrintModal(newReceipts, "both");
+        // หากผู้ใช้เลือก "บันทึกข้อมูลและสั่งพิมพ์" ให้เปิดหน้าต่างพิมพ์ใบเสร็จ
+        if (andPrint) {
+          renderReceiptPrintModal(newReceipts, "both");
+        }
+      } catch (err) {
+        console.error("Batch issue error:", err);
+        showToast("เกิดข้อผิดพลาดในการออกใบเสร็จเป็นชุด: " + err.message, true);
+      } finally {
+        if (saveOnlyBtn) saveOnlyBtn.disabled = false;
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (progressSec) progressSec.style.display = "none";
+      }
+    }
       } catch (err) {
         console.error("Batch issue error:", err);
         showToast("เกิดข้อผิดพลาดในการออกใบเสร็จเป็นชุด: " + err.message, true);
@@ -9787,7 +9937,7 @@ ${loginUrl}
       document.getElementById("supabaseConfigModal").classList.remove("open");
     }
 
-    const GAS_WEBAPP_CODE = "/**\n * ============================================================================\n * Google Apps Script สำหรับระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ (RMUTSB)\n * รองรับการเชื่อมต่อแบบเรียลไทม์ และระบบป้องกันการออกใบเสร็จซ้ำระดับเสี้ยววินาที (High-Concurrency Lock)\n * ============================================================================\n * \n * คุณสมบัติขั้นสูงด้านความเสถียร (High Stability & Concurrency):\n * 1. LockService: ล็อกคิวประมวลผลระดับเซิร์ฟเวอร์สูงสุด 30 วินาที ป้องกัน Race Condition\n * 2. Atomic Batch Issue (issueBatchReceipts): รันเลขที่ใบเสร็จแบบ Atomic ป้องกันเลขซ้ำ 100%\n * 3. Batch Write Optimization: เขียนข้อมูลลงชีตครั้งเดียวด้วย setValues() ประมวลผลเสร็จในเสี้ยววินาที\n * 4. Non-Destructive Merge: รวมข้อมูลใบเสร็จอย่างชาญฉลาด ไม่ทับซ้อนและไม่ทำข้อมูลสูญหาย\n */\n\nconst SHEET_RECEIPTS = \"ใบเสร็จรับเงิน\";\nconst SHEET_SYSTEM_STATE = \"ข้อมูลระบบ\";\n\n// ======================== API ENDPOINTS (doGet) ========================\n\nfunction doGet(e) {\n  try {\n    const action = (e && e.parameter && e.parameter.action) || \"getState\";\n    \n    if (action === \"ping\") {\n      return jsonResponse({ \n        status: \"success\", \n        message: \"RMUTSB Google Sheet API is online\", \n        timestamp: new Date().toISOString() \n      });\n    }\n    \n    if (action === \"getState\") {\n      const state = loadSystemState();\n      try {\n        const sheetReceipts = getReceiptsFromSheet();\n        if (sheetReceipts && sheetReceipts.length > 0) {\n          if (!state.data) state.data = {};\n          if (!state.data.receipts) state.data.receipts = [];\n\n          const map = new Map();\n          state.data.receipts.forEach(r => {\n            if (r) {\n              const k = (r.bookNo || \"\") + \"-\" + (r.no || \"\");\n              map.set(k, r);\n            }\n          });\n\n          sheetReceipts.forEach(sr => {\n            if (sr && sr.bookNo && sr.no) {\n              const bUpper = String(sr.bookNo).trim().toUpperCase();\n              if (bUpper === \"AN704001\" || bUpper === \"TEST001\" || bUpper.startsWith(\"TEST\")) return;\n              const k = sr.bookNo + \"-\" + sr.no;\n              map.set(k, Object.assign({}, map.get(k) || {}, sr));\n            }\n          });\n\n          state.data.receipts = Array.from(map.values());\n\n          // ปรับปรุงค่า latest ของเล่มใบเสร็จให้เป็นเลขสูงสุดตามข้อมูลจริงเสมอ\n          if (Array.isArray(state.data.books)) {\n            state.data.books.forEach(b => {\n              const bReceipts = state.data.receipts.filter(r => r && r.bookNo === b.bookNo);\n              if (bReceipts.length > 0) {\n                const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0));\n                if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;\n              }\n            });\n          }\n        }\n      } catch (sheetErr) {\n        console.warn(\"Merge sheet receipts error:\", sheetErr);\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        updated_at: state.updated_at || new Date().toISOString(),\n        data: state.data || null\n      });\n    }\n\n    if (action === \"getReceipts\") {\n      const receipts = getReceiptsFromSheet();\n      return jsonResponse({ status: \"success\", count: receipts.length, receipts: receipts });\n    }\n\n    if (action === \"getTrueMaxNo\") {\n      const bookNo = (e && e.parameter && e.parameter.bookNo) || \"\";\n      const state = loadSystemState();\n      const sheetReceipts = getReceiptsFromSheet();\n      let maxNo = 0;\n      sheetReceipts.forEach(r => {\n        if (!bookNo || r.bookNo === bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > maxNo) maxNo = num;\n        }\n      });\n      if (state.data && Array.isArray(state.data.receipts)) {\n        state.data.receipts.forEach(r => {\n          if (!bookNo || r.bookNo === bookNo) {\n            const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n            if (num > maxNo) maxNo = num;\n          }\n        });\n      }\n      return jsonResponse({ status: \"success\", bookNo: bookNo, maxNo: maxNo });\n    }\n\n    return jsonResponse({ status: \"success\", message: \"RMUTSB Receipt System Web App is ready\" });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  }\n}\n\n// ======================== API ENDPOINTS (doPost) ========================\n\nfunction doPost(e) {\n  // 1. ระบบ LockService ป้องกัน Race Condition เมื่อมีคำขอพร้อมกันในเสี้ยววินาที\n  const lock = LockService.getScriptLock();\n  const hasLock = lock.tryLock(30000); // รอคิวล็อกได้สูงสุด 30 วินาที\n  if (!hasLock) {\n    return jsonResponse({ \n      status: \"error\", \n      message: \"เซิร์ฟเวอร์กำลังประมวลผลคำขออื่นในเสี้ยววินาทีเดียวกัน (Lock Timeout) กรุณารอสักครู่แล้วลองอีกครั้ง\" \n    });\n  }\n\n  try {\n    let payload = null;\n    if (e && e.postData && e.postData.contents) {\n      try {\n        payload = JSON.parse(e.postData.contents);\n      } catch (jsonErr) {\n        payload = e.parameter;\n      }\n    } else if (e && e.parameter) {\n      payload = e.parameter;\n    }\n\n    if (!payload) {\n      return jsonResponse({ status: \"error\", message: \"No data payload received\" });\n    }\n\n    const action = payload.action || \"syncState\";\n    const nowIso = new Date().toISOString();\n\n    // -------------------------------------------------------------------------\n    // ACTION: issueBatch / issueBatchReceipts (Atomic Batch Issuance & Auto-Numbering)\n    // -------------------------------------------------------------------------\n    if (action === \"issueBatch\" || action === \"issueBatchReceipts\") {\n      const rows = payload.rows || payload.receipts || [];\n      if (!Array.isArray(rows) || rows.length === 0) {\n        return jsonResponse({ status: \"error\", message: \"ไม่มีรายการใบเสร็จในชุดข้อมูล\" });\n      }\n\n      const state = loadSystemState();\n      if (!state.data) state.data = {};\n      if (!Array.isArray(state.data.books)) state.data.books = [];\n      if (!Array.isArray(state.data.receipts)) state.data.receipts = [];\n\n      // ค้นหาเล่มใบเสร็จที่ Active\n      let targetBook = null;\n      let targetBookIdx = -1;\n      const reqBookNo = payload.bookNo || payload.targetBookNo;\n      if (reqBookNo) {\n        targetBookIdx = state.data.books.findIndex(b => b && b.bookNo === reqBookNo);\n      }\n      if (targetBookIdx < 0) {\n        targetBookIdx = state.data.books.findIndex(b => b && b.active && !b.closed);\n      }\n      if (targetBookIdx < 0 && state.data.books.length > 0) {\n        targetBookIdx = 0;\n      }\n\n      if (targetBookIdx >= 0) {\n        targetBook = state.data.books[targetBookIdx];\n      } else {\n        targetBook = { bookNo: \"RUS70001\", start: 1, end: 1000, latest: 0, digits: 4, active: true };\n        state.data.books.push(targetBook);\n        targetBookIdx = state.data.books.length - 1;\n      }\n\n      const digits = Math.max(Number(targetBook.digits || 4), 3);\n      const startNum = Number(targetBook.start || 1);\n\n      // ค้นหาเลขที่สูงสุดที่แท้จริงจากทั้ง Sheet และ State เพื่อป้องกันเลขซ้ำ 100%\n      const sheetReceipts = getReceiptsFromSheet();\n      let trueMax = Number(targetBook.latest || 0);\n\n      sheetReceipts.forEach(r => {\n        if (r && r.bookNo === targetBook.bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > trueMax) trueMax = num;\n        }\n      });\n      state.data.receipts.forEach(r => {\n        if (r && r.bookNo === targetBook.bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > trueMax) trueMax = num;\n        }\n      });\n\n      const newReceipts = [];\n      const newSheetRows = [];\n      const startBatchNo = Math.max(trueMax + 1, startNum);\n      let runningNo = startBatchNo;\n      const baseTs = Date.now();\n\n      const standardPrefixes = [\"นาย\", \"นาง\", \"นางสาว\", \"ดร.\", \"ผศ.\", \"รศ.\", \"ศ.\", \"ผศ.ดร.\", \"รศ.ดร.\"];\n\n      for (let i = 0; i < rows.length; i++) {\n        const row = rows[i];\n        const assignedNoStr = String(runningNo).padStart(digits, \"0\");\n        const receiptId = \"rcp-\" + baseTs + \"-\" + (i + 1) + \"-\" + Math.random().toString(36).substring(2, 6);\n        const createdAtIso = new Date(baseTs + i * 20).toISOString();\n\n        let prefixFormatted = \"\";\n        if (row.title) {\n          prefixFormatted = standardPrefixes.includes(row.title) ? row.title : (row.title + \" \");\n        }\n        const payerFullName = row.payerFullName || `${prefixFormatted}${row.firstName || \"\"}${row.lastName ? \" \" + row.lastName : \"\"}`.trim();\n\n        const rcp = {\n          id: receiptId,\n          bookNo: targetBook.bookNo,\n          no: assignedNoStr,\n          status: \"ปกติ\",\n          cancelReason: \"\",\n          createdAt: createdAtIso,\n          date: row.transferDate || row.date || nowIso.slice(0, 10),\n          time: row.transferTime || row.time || new Date().toTimeString().slice(0, 5),\n          payerType: row.payerType || \"บุคคลทั่วไป\",\n          paymentMethod: row.paymentMethod || \"เงินโอน\",\n          payerBank: row.payerBank || \"\",\n          universityBank: row.universityBank || \"ธนาคารกรุงไทย (128-0-79185-3)\",\n          transferDate: row.transferDate || row.date || nowIso.slice(0, 10),\n          transferTime: row.transferTime || \"\",\n          title: row.title || \"\",\n          firstName: row.firstName || \"\",\n          lastName: row.lastName || \"\",\n          payerFullName: payerFullName,\n          detailLine1: row.detailLine1 || \"\",\n          studentCode: \"\",\n          detailLine2: row.detailLine2 || \"\",\n          items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [\n            {\n              paymentItem: row.paymentItem || \"ค่าลงทะเบียน\",\n              projectName: row.projectName || \"โครงการอบรม\",\n              amount: Number(row.amount || row.totalAmount) || 0\n            }\n          ],\n          totalAmount: Number(row.amount || row.totalAmount) || 0,\n          issuerName: row.issuerName || (payload.issuer && payload.issuer.name) || \"เจ้าหน้าที่\",\n          issuerStaffCode: row.issuerStaffCode || (payload.issuer && payload.issuer.staffCode) || \"\",\n          issuerPosition: row.issuerPosition || (payload.issuer && payload.issuer.position) || \"นักวิชาการเงินและบัญชีชำนาญการ\",\n          issuerSignatureDataUrl: row.issuerSignatureDataUrl || (payload.issuer && payload.issuer.signatureDataUrl) || \"\",\n          issuerSignatureScale: row.issuerSignatureScale || (payload.issuer && payload.issuer.signatureScale) || 100\n        };\n\n        newReceipts.push(rcp);\n\n        // แปลงเป็นแถวข้อมูล Google Sheets\n        const nextIdx = sheetReceipts.length + i + 1;\n        newSheetRows.push(receiptToRow(rcp, nextIdx));\n\n        runningNo++;\n      }\n\n      // บันทึกลง Google Sheets แบบ Batch ต่อท้ายแถวเดิมทันที (เสร็จในเสี้ยววินาที)\n      const rSheet = getOrCreateSheet(SHEET_RECEIPTS);\n      if (rSheet.getLastRow() < 1) {\n        initReceiptSheetHeaders(rSheet);\n      }\n      const appendStartRow = rSheet.getLastRow() + 1;\n      rSheet.getRange(appendStartRow, 1, newSheetRows.length, RECEIPT_HEADERS.length).setValues(newSheetRows);\n\n      // จัดรูปแบบตัวเลขและกึ่งกลางใน Batch ที่เพิ่มใหม่\n      rSheet.getRange(appendStartRow, 12, newSheetRows.length, 1).setNumberFormat(\"#,##0.00\");\n      rSheet.getRange(appendStartRow, 1, newSheetRows.length, 5).setHorizontalAlignment(\"center\");\n      rSheet.getRange(appendStartRow, 18, newSheetRows.length, 1).setHorizontalAlignment(\"center\");\n\n      // ปรับปรุง System State\n      const endBatchNo = runningNo - 1;\n      targetBook.latest = endBatchNo;\n      if (endBatchNo > (Number(targetBook.end) || 100)) {\n        targetBook.end = Math.max((Number(targetBook.end) || 100) + 500, endBatchNo + 100);\n      }\n      state.data.books[targetBookIdx] = targetBook;\n      state.data.receipts = [...newReceipts, ...state.data.receipts];\n\n      saveSystemState(state.data, nowIso);\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"ออกใบเสร็จรับเงินเป็นชุดสำเร็จแบบ Atomic Lock\",\n        count: newReceipts.length,\n        bookNo: targetBook.bookNo,\n        startNo: String(startBatchNo).padStart(digits, \"0\"),\n        endNo: String(endBatchNo).padStart(digits, \"0\"),\n        receipts: newReceipts,\n        updated_at: nowIso\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: syncState / saveState (Safe Merge & Update)\n    // -------------------------------------------------------------------------\n    if (action === \"syncState\" || action === \"saveState\") {\n      const appStateData = payload.data || payload.appState || payload;\n      \n      // ดึงข้อมูลเดิมจากชีตมาผสาน (Non-Destructive Merge) เพื่อป้องกันข้อมูลทับซ้อน\n      const existingSheetReceipts = getReceiptsFromSheet();\n      const mergedMap = new Map();\n\n      // 1. นำข้อมูลจากชีตปัจจุบันตั้งเป็นฐาน (กรองเล่มที่ถูกลบออกจากระบบจริง เช่น AN704001, TEST001)\n      existingSheetReceipts.forEach(r => {\n        if (r && r.bookNo && r.no) {\n          const bUpper = String(r.bookNo).trim().toUpperCase();\n          if (bUpper === \"AN704001\" || bUpper === \"TEST001\" || bUpper.startsWith(\"TEST\")) return;\n          const k = String(r.bookNo).trim() + \"-\" + String(r.no).trim();\n          mergedMap.set(k, r);\n        }\n      });\n\n      // 2. นำข้อมูลที่ไคลเอนต์ส่งมาผสานเข้า\n      if (appStateData && Array.isArray(appStateData.receipts)) {\n        appStateData.receipts.forEach(r => {\n          if (r && r.bookNo && r.no) {\n            const k = String(r.bookNo).trim() + \"-\" + String(r.no).trim();\n            const existing = mergedMap.get(k);\n            if (!existing) {\n              mergedMap.set(k, r);\n            } else {\n              // ถ้ามีอยู่แล้ว ให้อัปเดตข้อมูลโดยคงสถานะการยกเลิกไว้หากถูกยกเลิกแล้ว\n              mergedMap.set(k, Object.assign({}, existing, r));\n            }\n          }\n        });\n      }\n\n      const mergedReceipts = Array.from(mergedMap.values());\n      appStateData.receipts = mergedReceipts;\n\n      // ปรับปรุงค่า latest ของทุกเล่มให้ตรงกับเลขสูงสุดจริง\n      if (Array.isArray(appStateData.books)) {\n        appStateData.books.forEach(b => {\n          const bReceipts = mergedReceipts.filter(r => r && r.bookNo === b.bookNo);\n          if (bReceipts.length > 0) {\n            const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0));\n            if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;\n          }\n        });\n      }\n\n      // บันทึกสถานะระบบลงชีตข้อมูลระบบ\n      saveSystemState(appStateData, nowIso);\n      \n      // เขียนใบเสร็จทั้งหมดลงชีตใบเสร็จรับเงิน\n      syncReceiptsToSheet(mergedReceipts);\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"บันทึกและผสานข้อมูลขึ้น Google Sheet สำเร็จ\",\n        receiptsCount: mergedReceipts.length,\n        updated_at: nowIso\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: addReceipt (Fast Add Single Receipt with Conflict Prevention)\n    // -------------------------------------------------------------------------\n    if (action === \"addReceipt\") {\n      const receipt = payload.receipt;\n      if (!receipt) {\n        return jsonResponse({ status: \"error\", message: \"No receipt object provided\" });\n      }\n\n      appendReceiptRow(receipt);\n      \n      if (payload.appState) {\n        saveSystemState(payload.appState, nowIso);\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"เพิ่มใบเสร็จเลขที่ \" + (receipt.no || \"\") + \" เรียบร้อยแล้ว\",\n        receiptNo: receipt.no\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: initSheet\n    // -------------------------------------------------------------------------\n    if (action === \"initSheet\") {\n      formatAllSheets();\n      return jsonResponse({ status: \"success\", message: \"จัดรูปแบบตารางสำเร็จ\" });\n    }\n\n    return jsonResponse({ status: \"error\", message: \"Unknown action: \" + action });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  } finally {\n    // ปลดล็อกเสมอ\n    lock.releaseLock();\n  }\n}\n\n// ======================== HELPER FUNCTIONS ========================\n\nfunction jsonResponse(data) {\n  return ContentService.createTextOutput(JSON.stringify(data))\n    .setMimeType(ContentService.MimeType.JSON);\n}\n\nfunction getOrCreateSheet(sheetName) {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  let sheet = ss.getSheetByName(sheetName);\n  if (!sheet) {\n    sheet = ss.insertSheet(sheetName);\n  }\n  return sheet;\n}\n\n/**\n * บันทึกสถานะระบบ (appState) ลงแท็บ \"ข้อมูลระบบ\"\n * แบ่ง Chunk ข้อมูลละ 40,000 ตัวอักษร เพื่อป้องกันข้อจำกัด 50,000 ตัวอักษรต่อเซลล์\n */\nfunction saveSystemState(stateObj, updatedIso) {\n  const sheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  \n  if (sheet.getLastRow() < 1) {\n    sheet.getRange(1, 1, 1, 3).setValues([[\"ลำดับ Chunk\", \"ข้อมูลระบบ (System State JSON)\", \"วันที่อัปเดต\"]]);\n    sheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n    sheet.setFrozenRows(1);\n  }\n\n  const jsonStr = JSON.stringify(stateObj);\n  const chunkSize = 40000;\n  const chunks = [];\n  for (let i = 0; i < jsonStr.length; i += chunkSize) {\n    chunks.push([\n      Math.floor(i / chunkSize) + 1,\n      jsonStr.substring(i, i + chunkSize),\n      updatedIso\n    ]);\n  }\n\n  const lastRow = Math.max(sheet.getLastRow(), 2);\n  sheet.getRange(2, 1, lastRow, 3).clearContent();\n\n  if (chunks.length > 0) {\n    sheet.getRange(2, 1, chunks.length, 3).setValues(chunks);\n  }\n}\n\n/**\n * โหลดสถานะระบบจากแท็บ \"ข้อมูลระบบ\"\n */\nfunction loadSystemState() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheet = ss.getSheetByName(SHEET_SYSTEM_STATE);\n  if (!sheet || sheet.getLastRow() < 2) {\n    return { updated_at: null, data: null };\n  }\n\n  const lastRow = sheet.getLastRow();\n  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();\n  \n  let jsonStr = \"\";\n  let updatedIso = \"\";\n  for (let i = 0; i < values.length; i++) {\n    jsonStr += (values[i][1] || \"\");\n    if (values[i][2]) updatedIso = values[i][2];\n  }\n\n  try {\n    const data = JSON.parse(jsonStr);\n    return { updated_at: updatedIso, data: data };\n  } catch (e) {\n    return { updated_at: updatedIso, data: null, error: e.toString() };\n  }\n}\n\nconst RECEIPT_HEADERS = [\n  \"ลำดับ\",\n  \"เล่มที่\",\n  \"เลขที่\",\n  \"วันที่\",\n  \"เวลา\",\n  \"ชื่อผู้ชำระเงิน\",\n  \"ประเภทผู้ชำระ\",\n  \"สังกัด / หน่วยงาน (บรรทัด 1)\",\n  \"ที่อยู่ / จังหวัด (บรรทัด 2)\",\n  \"รายการชำระ\",\n  \"โครงการอบรม\",\n  \"จำนวนเงิน (บาท)\",\n  \"วิธีการชำระเงิน\",\n  \"ธนาคารต้นทาง (กรณีโอน)\",\n  \"วันที่โอน\",\n  \"เวลาโอน\",\n  \"เข้าบัญชีมหาวิทยาลัย\",\n  \"สถานะ\",\n  \"เหตุผลที่ยกเลิก\",\n  \"ผู้จัดทำใบเสร็จ\",\n  \"ตำแหน่งผู้จัดทำ\",\n  \"รหัสเจ้าหน้าที่\",\n  \"วันที่สร้างรายการ\",\n  \"รหัสอ้างอิงระบบ (ID)\"\n];\n\nfunction initReceiptSheetHeaders(sheet) {\n  if (sheet.getLastRow() < 1) {\n    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS]);\n    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length)\n      .setBackground(\"#0f2c59\")\n      .setFontColor(\"#ffffff\")\n      .setFontWeight(\"bold\")\n      .setHorizontalAlignment(\"center\");\n    sheet.setFrozenRows(1);\n    sheet.setRowHeight(1, 28);\n  }\n}\n\nfunction receiptToRow(r, index) {\n  let itemName = \"\";\n  let projectName = \"\";\n  if (r.items && Array.isArray(r.items) && r.items.length > 0) {\n    itemName = r.items.map(it => it.paymentItem || \"\").filter(Boolean).join(\", \");\n    projectName = r.items.map(it => it.projectName || \"\").filter(Boolean).join(\" | \");\n  }\n\n  return [\n    index,\n    r.bookNo || \"\",\n    String(r.no || \"\"),\n    r.date || \"\",\n    r.time || \"\",\n    r.payerFullName || ((r.title || \"\") + (r.firstName || \"\") + \" \" + (r.lastName || \"\")).trim(),\n    r.payerType || \"บุคคลทั่วไป\",\n    r.detailLine1 || \"\",\n    r.detailLine2 || \"\",\n    itemName || \"ค่าลงทะเบียน\",\n    projectName || \"\",\n    Number(r.totalAmount) || 0,\n    r.paymentMethod || \"เงินโอน\",\n    r.payerBank || \"\",\n    r.transferDate || \"\",\n    r.transferTime || \"\",\n    r.universityBank || \"\",\n    r.status || \"ปกติ\",\n    r.cancelReason || \"\",\n    r.issuerName || \"\",\n    r.issuerPosition || \"\",\n    r.issuerStaffCode || \"\",\n    r.createdAt || \"\",\n    r.id || \"\"\n  ];\n}\n\nfunction syncReceiptsToSheet(receipts) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(sheet);\n\n  if (!receipts || receipts.length === 0) return;\n\n  const sorted = receipts.slice().sort((a, b) => {\n    const dateA = a.date || \"\";\n    const dateB = b.date || \"\";\n    if (dateA !== dateB) return dateA.localeCompare(dateB);\n    const bookCmp = String(a.bookNo || \"\").localeCompare(String(b.bookNo || \"\"));\n    if (bookCmp !== 0) return bookCmp;\n    const noA = parseInt(String(a.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n    const noB = parseInt(String(b.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n    if (noA !== noB) return noA - noB;\n    return (a.time || \"\").localeCompare(b.time || \"\");\n  });\n\n  const rows = [];\n  for (let i = 0; i < sorted.length; i++) {\n    rows.push(receiptToRow(sorted[i], i + 1));\n  }\n\n  const maxClear = Math.max(sheet.getLastRow(), rows.length + 1);\n  if (maxClear >= 2) {\n    sheet.getRange(2, 1, maxClear, RECEIPT_HEADERS.length).clearContent();\n  }\n\n  sheet.getRange(2, 1, rows.length, RECEIPT_HEADERS.length).setValues(rows);\n  sheet.getRange(2, 12, rows.length, 1).setNumberFormat(\"#,##0.00\");\n  sheet.getRange(2, 1, rows.length, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment(\"center\");\n}\n\nfunction appendReceiptRow(r) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  if (sheet.getLastRow() < 1) {\n    initReceiptSheetHeaders(sheet);\n  }\n  const nextIndex = sheet.getLastRow();\n  const row = receiptToRow(r, nextIndex);\n  sheet.appendRow(row);\n\n  const newRowIndex = sheet.getLastRow();\n  sheet.getRange(newRowIndex, 12).setNumberFormat(\"#,##0.00\");\n  sheet.getRange(newRowIndex, 1, 1, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(newRowIndex, 18).setHorizontalAlignment(\"center\");\n}\n\nfunction formatAllSheets() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const rSheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(rSheet);\n  const sSheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  if (sSheet.getLastRow() < 1) {\n    sSheet.getRange(1, 1, 1, 3).setValues([[\"ลำดับ Chunk\", \"ข้อมูลระบบ (System State JSON)\", \"วันที่อัปเดต\"]]);\n    sSheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n  }\n}\n\nfunction getReceiptsFromSheet() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheet = ss.getSheetByName(SHEET_RECEIPTS);\n  if (!sheet || sheet.getLastRow() < 2) return [];\n  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RECEIPT_HEADERS.length).getValues();\n  return rows.map(r => ({\n    noIndex: r[0],\n    bookNo: r[1],\n    no: String(r[2]),\n    date: r[3],\n    time: r[4],\n    payerFullName: r[5],\n    payerType: r[6],\n    detailLine1: r[7],\n    detailLine2: r[8],\n    paymentItem: r[9],\n    projectName: r[10],\n    totalAmount: r[11],\n    paymentMethod: r[12],\n    payerBank: r[13],\n    transferDate: r[14],\n    transferTime: r[15],\n    universityBank: r[16],\n    status: r[17],\n    cancelReason: r[18],\n    issuerName: r[19],\n    issuerPosition: r[20],\n    issuerStaffCode: r[21],\n    createdAt: r[22],\n    id: r[23]\n  }));\n}\n";
+    const GAS_WEBAPP_CODE = "/**\n * ============================================================================\n * Google Apps Script สำหรับระบบออกใบเสร็จรับเงิน มทร.สุวรรณภูมิ (RMUTSB)\n * รองรับการเชื่อมต่อแบบเรียลไทม์ และระบบป้องกันการออกใบเสร็จซ้ำระดับเสี้ยววินาที (High-Concurrency Lock)\n * ============================================================================\n * \n * คุณสมบัติขั้นสูงด้านความเสถียร (High Stability & Concurrency):\n * 1. LockService: ล็อกคิวประมวลผลระดับเซิร์ฟเวอร์สูงสุด 30 วินาที ป้องกัน Race Condition\n * 2. Atomic Batch Issue (issueBatchReceipts): รันเลขที่ใบเสร็จแบบ Atomic ป้องกันเลขซ้ำ 100%\n * 3. Batch Write Optimization: เขียนข้อมูลลงชีตครั้งเดียวด้วย setValues() ประมวลผลเสร็จในเสี้ยววินาที\n * 4. Non-Destructive Merge: รวมข้อมูลใบเสร็จอย่างชาญฉลาด ไม่ทับซ้อนและไม่ทำข้อมูลสูญหาย\n */\n\nconst SHEET_RECEIPTS = \"ใบเสร็จรับเงิน\";\nconst SHEET_SYSTEM_STATE = \"ข้อมูลระบบ\";\n\n// ======================== API ENDPOINTS (doGet) ========================\n\nfunction doGet(e) {\n  try {\n    const action = (e && e.parameter && e.parameter.action) || \"getState\";\n    \n    if (action === \"ping\") {\n      return jsonResponse({ \n        status: \"success\", \n        message: \"RMUTSB Google Sheet API is online\", \n        timestamp: new Date().toISOString() \n      });\n    }\n    \n    if (action === \"getState\") {\n      const state = loadSystemState();\n      try {\n        const sheetReceipts = getReceiptsFromSheet();\n        if (sheetReceipts && sheetReceipts.length > 0) {\n          if (!state.data) state.data = {};\n          if (!state.data.receipts) state.data.receipts = [];\n\n          const map = new Map();\n          state.data.receipts.forEach(r => {\n            if (r) {\n              const k = (r.bookNo || \"\") + \"-\" + (r.no || \"\");\n              map.set(k, r);\n            }\n          });\n\n          sheetReceipts.forEach(sr => {\n            if (sr && sr.bookNo && sr.no) {\n              const bUpper = String(sr.bookNo).trim().toUpperCase();\n              if (bUpper === \"AN704001\" || bUpper === \"TEST001\" || bUpper.startsWith(\"TEST\")) return;\n              const k = sr.bookNo + \"-\" + sr.no;\n              map.set(k, Object.assign({}, map.get(k) || {}, sr));\n            }\n          });\n\n          state.data.receipts = Array.from(map.values());\n\n          // ปรับปรุงค่า latest ของเล่มใบเสร็จให้เป็นเลขสูงสุดตามข้อมูลจริงเสมอ\n          if (Array.isArray(state.data.books)) {\n            state.data.books.forEach(b => {\n              const bReceipts = state.data.receipts.filter(r => r && r.bookNo === b.bookNo);\n              if (bReceipts.length > 0) {\n                const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0));\n                if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;\n              }\n            });\n          }\n        }\n      } catch (sheetErr) {\n        console.warn(\"Merge sheet receipts error:\", sheetErr);\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        updated_at: state.updated_at || new Date().toISOString(),\n        data: state.data || null\n      });\n    }\n\n    if (action === \"getReceipts\") {\n      const receipts = getReceiptsFromSheet();\n      return jsonResponse({ status: \"success\", count: receipts.length, receipts: receipts });\n    }\n\n    if (action === \"getTrueMaxNo\") {\n      const bookNo = (e && e.parameter && e.parameter.bookNo) || \"\";\n      const state = loadSystemState();\n      const sheetReceipts = getReceiptsFromSheet();\n      let maxNo = 0;\n      sheetReceipts.forEach(r => {\n        if (!bookNo || r.bookNo === bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > maxNo) maxNo = num;\n        }\n      });\n      if (state.data && Array.isArray(state.data.receipts)) {\n        state.data.receipts.forEach(r => {\n          if (!bookNo || r.bookNo === bookNo) {\n            const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n            if (num > maxNo) maxNo = num;\n          }\n        });\n      }\n      return jsonResponse({ status: \"success\", bookNo: bookNo, maxNo: maxNo });\n    }\n\n    return jsonResponse({ status: \"success\", message: \"RMUTSB Receipt System Web App is ready\" });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  }\n}\n\n// ======================== API ENDPOINTS (doPost) ========================\n\nfunction doPost(e) {\n  // 1. ระบบ LockService ป้องกัน Race Condition เมื่อมีคำขอพร้อมกันในเสี้ยววินาที\n  const lock = LockService.getScriptLock();\n  const hasLock = lock.tryLock(30000); // รอคิวล็อกได้สูงสุด 30 วินาที\n  if (!hasLock) {\n    return jsonResponse({ \n      status: \"error\", \n      message: \"เซิร์ฟเวอร์กำลังประมวลผลคำขออื่นในเสี้ยววินาทีเดียวกัน (Lock Timeout) กรุณารอสักครู่แล้วลองอีกครั้ง\" \n    });\n  }\n\n  try {\n    let payload = null;\n    if (e && e.postData && e.postData.contents) {\n      try {\n        payload = JSON.parse(e.postData.contents);\n      } catch (jsonErr) {\n        payload = e.parameter;\n      }\n    } else if (e && e.parameter) {\n      payload = e.parameter;\n    }\n\n    if (!payload) {\n      return jsonResponse({ status: \"error\", message: \"No data payload received\" });\n    }\n\n    const action = payload.action || \"syncState\";\n    const nowIso = new Date().toISOString();\n\n    // -------------------------------------------------------------------------\n    // ACTION: issueBatch / issueBatchReceipts (Atomic Batch Issuance & Auto-Numbering)\n    // -------------------------------------------------------------------------\n    if (action === \"issueBatch\" || action === \"issueBatchReceipts\") {\n      const rows = payload.rows || payload.receipts || [];\n      if (!Array.isArray(rows) || rows.length === 0) {\n        return jsonResponse({ status: \"error\", message: \"ไม่มีรายการใบเสร็จในชุดข้อมูล\" });\n      }\n\n      const state = loadSystemState();\n      if (!state.data) state.data = {};\n      if (!Array.isArray(state.data.books)) state.data.books = [];\n      if (!Array.isArray(state.data.receipts)) state.data.receipts = [];\n\n      // ค้นหาเล่มใบเสร็จที่ Active\n      let targetBook = null;\n      let targetBookIdx = -1;\n      const reqBookNo = payload.bookNo || payload.targetBookNo;\n      if (reqBookNo) {\n        targetBookIdx = state.data.books.findIndex(b => b && b.bookNo === reqBookNo);\n      }\n      if (targetBookIdx < 0) {\n        targetBookIdx = state.data.books.findIndex(b => b && b.active && !b.closed);\n      }\n      if (targetBookIdx < 0 && state.data.books.length > 0) {\n        targetBookIdx = 0;\n      }\n\n      if (targetBookIdx >= 0) {\n        targetBook = state.data.books[targetBookIdx];\n      } else {\n        targetBook = { bookNo: \"RUS70001\", start: 1, end: 1000, latest: 0, digits: 4, active: true };\n        state.data.books.push(targetBook);\n        targetBookIdx = state.data.books.length - 1;\n      }\n\n      const digits = Math.max(Number(targetBook.digits || 4), 3);\n      const startNum = Number(targetBook.start || 1);\n\n      // ค้นหาเลขที่สูงสุดที่แท้จริงจากทั้ง Sheet และ State เพื่อป้องกันเลขซ้ำ 100%\n      const sheetReceipts = getReceiptsFromSheet();\n      let trueMax = Number(targetBook.latest || 0);\n\n      sheetReceipts.forEach(r => {\n        if (r && r.bookNo === targetBook.bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > trueMax) trueMax = num;\n        }\n      });\n      state.data.receipts.forEach(r => {\n        if (r && r.bookNo === targetBook.bookNo) {\n          const num = parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n          if (num > trueMax) trueMax = num;\n        }\n      });\n\n      const newReceipts = [];\n      const newSheetRows = [];\n      const startBatchNo = Math.max(trueMax + 1, startNum);\n      let runningNo = startBatchNo;\n      const baseTs = Date.now();\n\n      const standardPrefixes = [\"นาย\", \"นาง\", \"นางสาว\", \"ดร.\", \"ผศ.\", \"รศ.\", \"ศ.\", \"ผศ.ดร.\", \"รศ.ดร.\"];\n\n      for (let i = 0; i < rows.length; i++) {\n        const row = rows[i];\n        const assignedNoStr = String(runningNo).padStart(digits, \"0\");\n        const receiptId = \"rcp-\" + baseTs + \"-\" + (i + 1) + \"-\" + Math.random().toString(36).substring(2, 6);\n        const createdAtIso = new Date(baseTs + i * 20).toISOString();\n\n        let prefixFormatted = \"\";\n        if (row.title) {\n          prefixFormatted = standardPrefixes.includes(row.title) ? row.title : (row.title + \" \");\n        }\n        const payerFullName = row.payerFullName || `${prefixFormatted}${row.firstName || \"\"}${row.lastName ? \" \" + row.lastName : \"\"}`.trim();\n\n        const rcp = {\n          id: receiptId,\n          bookNo: targetBook.bookNo,\n          no: assignedNoStr,\n          status: \"ปกติ\",\n          cancelReason: \"\",\n          createdAt: createdAtIso,\n          date: row.receiptDate || row.date || (payload.issuer && payload.issuer.receiptDate) || payload.receiptDate || nowIso.slice(0, 10),\n          time: row.receiptTime || row.time || (payload.issuer && payload.issuer.receiptTime) || payload.receiptTime || new Date().toTimeString().slice(0, 5),\n          payerType: row.payerType || \"บุคคลทั่วไป\",\n          paymentMethod: row.paymentMethod || \"เงินโอน\",\n          payerBank: row.payerBank || \"\",\n          universityBank: row.universityBank || \"ธนาคารกรุงไทย (128-0-79185-3)\",\n          transferDate: row.transferDate || \"\",\n          transferTime: row.transferTime || \"\",\n          title: row.title || \"\",\n          firstName: row.firstName || \"\",\n          lastName: row.lastName || \"\",\n          payerFullName: payerFullName,\n          detailLine1: row.detailLine1 || \"\",\n          studentCode: \"\",\n          detailLine2: row.detailLine2 || \"\",\n          items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [\n            {\n              paymentItem: row.paymentItem || \"ค่าลงทะเบียน\",\n              projectName: row.projectName || \"โครงการอบรม\",\n              amount: Number(row.amount || row.totalAmount) || 0\n            }\n          ],\n          totalAmount: Number(row.amount || row.totalAmount) || 0,\n          issuerName: row.issuerName || (payload.issuer && payload.issuer.name) || \"เจ้าหน้าที่\",\n          issuerStaffCode: row.issuerStaffCode || (payload.issuer && payload.issuer.staffCode) || \"\",\n          issuerPosition: row.issuerPosition || (payload.issuer && payload.issuer.position) || \"นักวิชาการเงินและบัญชีชำนาญการ\",\n          issuerSignatureDataUrl: row.issuerSignatureDataUrl || (payload.issuer && payload.issuer.signatureDataUrl) || \"\",\n          issuerSignatureScale: row.issuerSignatureScale || (payload.issuer && payload.issuer.signatureScale) || 100\n        };\n\n        newReceipts.push(rcp);\n\n        // แปลงเป็นแถวข้อมูล Google Sheets\n        const nextIdx = sheetReceipts.length + i + 1;\n        newSheetRows.push(receiptToRow(rcp, nextIdx));\n\n        runningNo++;\n      }\n\n      // บันทึกลง Google Sheets แบบ Batch ต่อท้ายแถวเดิมทันที (เสร็จในเสี้ยววินาที)\n      const rSheet = getOrCreateSheet(SHEET_RECEIPTS);\n      if (rSheet.getLastRow() < 1) {\n        initReceiptSheetHeaders(rSheet);\n      }\n      const appendStartRow = rSheet.getLastRow() + 1;\n      rSheet.getRange(appendStartRow, 1, newSheetRows.length, RECEIPT_HEADERS.length).setValues(newSheetRows);\n\n      // จัดรูปแบบตัวเลขและกึ่งกลางใน Batch ที่เพิ่มใหม่\n      rSheet.getRange(appendStartRow, 12, newSheetRows.length, 1).setNumberFormat(\"#,##0.00\");\n      rSheet.getRange(appendStartRow, 1, newSheetRows.length, 5).setHorizontalAlignment(\"center\");\n      rSheet.getRange(appendStartRow, 18, newSheetRows.length, 1).setHorizontalAlignment(\"center\");\n\n      // ปรับปรุง System State\n      const endBatchNo = runningNo - 1;\n      targetBook.latest = endBatchNo;\n      if (endBatchNo > (Number(targetBook.end) || 100)) {\n        targetBook.end = Math.max((Number(targetBook.end) || 100) + 500, endBatchNo + 100);\n      }\n      state.data.books[targetBookIdx] = targetBook;\n      state.data.receipts = [...newReceipts, ...state.data.receipts];\n\n      saveSystemState(state.data, nowIso);\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"ออกใบเสร็จรับเงินเป็นชุดสำเร็จแบบ Atomic Lock\",\n        count: newReceipts.length,\n        bookNo: targetBook.bookNo,\n        startNo: String(startBatchNo).padStart(digits, \"0\"),\n        endNo: String(endBatchNo).padStart(digits, \"0\"),\n        receipts: newReceipts,\n        updated_at: nowIso\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: syncState / saveState (Safe Merge & Update)\n    // -------------------------------------------------------------------------\n    if (action === \"syncState\" || action === \"saveState\") {\n      const appStateData = payload.data || payload.appState || payload;\n      \n      // ดึงข้อมูลเดิมจากชีตมาผสาน (Non-Destructive Merge) เพื่อป้องกันข้อมูลทับซ้อน\n      const existingSheetReceipts = getReceiptsFromSheet();\n      const mergedMap = new Map();\n\n      // 1. นำข้อมูลจากชีตปัจจุบันตั้งเป็นฐาน (กรองเล่มที่ถูกลบออกจากระบบจริง เช่น AN704001, TEST001)\n      existingSheetReceipts.forEach(r => {\n        if (r && r.bookNo && r.no) {\n          const bUpper = String(r.bookNo).trim().toUpperCase();\n          if (bUpper === \"AN704001\" || bUpper === \"TEST001\" || bUpper.startsWith(\"TEST\")) return;\n          const k = String(r.bookNo).trim() + \"-\" + String(r.no).trim();\n          mergedMap.set(k, r);\n        }\n      });\n\n      // 2. นำข้อมูลที่ไคลเอนต์ส่งมาผสานเข้า\n      if (appStateData && Array.isArray(appStateData.receipts)) {\n        appStateData.receipts.forEach(r => {\n          if (r && r.bookNo && r.no) {\n            const k = String(r.bookNo).trim() + \"-\" + String(r.no).trim();\n            const existing = mergedMap.get(k);\n            if (!existing) {\n              mergedMap.set(k, r);\n            } else {\n              // ถ้ามีอยู่แล้ว ให้อัปเดตข้อมูลโดยคงสถานะการยกเลิกไว้หากถูกยกเลิกแล้ว\n              mergedMap.set(k, Object.assign({}, existing, r));\n            }\n          }\n        });\n      }\n\n      const mergedReceipts = Array.from(mergedMap.values());\n      appStateData.receipts = mergedReceipts;\n\n      // ปรับปรุงค่า latest ของทุกเล่มให้ตรงกับเลขสูงสุดจริง\n      if (Array.isArray(appStateData.books)) {\n        appStateData.books.forEach(b => {\n          const bReceipts = mergedReceipts.filter(r => r && r.bookNo === b.bookNo);\n          if (bReceipts.length > 0) {\n            const maxNo = Math.max(...bReceipts.map(r => parseInt(String(r.no || \"0\").replace(/\\D/g, \"\"), 10) || 0));\n            if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;\n          }\n        });\n      }\n\n      // บันทึกสถานะระบบลงชีตข้อมูลระบบ\n      saveSystemState(appStateData, nowIso);\n      \n      // เขียนใบเสร็จทั้งหมดลงชีตใบเสร็จรับเงิน\n      syncReceiptsToSheet(mergedReceipts);\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"บันทึกและผสานข้อมูลขึ้น Google Sheet สำเร็จ\",\n        receiptsCount: mergedReceipts.length,\n        updated_at: nowIso\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: addReceipt (Fast Add Single Receipt with Conflict Prevention)\n    // -------------------------------------------------------------------------\n    if (action === \"addReceipt\") {\n      const receipt = payload.receipt;\n      if (!receipt) {\n        return jsonResponse({ status: \"error\", message: \"No receipt object provided\" });\n      }\n\n      appendReceiptRow(receipt);\n      \n      if (payload.appState) {\n        saveSystemState(payload.appState, nowIso);\n      }\n\n      return jsonResponse({\n        status: \"success\",\n        message: \"เพิ่มใบเสร็จเลขที่ \" + (receipt.no || \"\") + \" เรียบร้อยแล้ว\",\n        receiptNo: receipt.no\n      });\n    }\n\n    // -------------------------------------------------------------------------\n    // ACTION: initSheet\n    // -------------------------------------------------------------------------\n    if (action === \"initSheet\") {\n      formatAllSheets();\n      return jsonResponse({ status: \"success\", message: \"จัดรูปแบบตารางสำเร็จ\" });\n    }\n\n    return jsonResponse({ status: \"error\", message: \"Unknown action: \" + action });\n  } catch (err) {\n    return jsonResponse({ status: \"error\", message: err.toString() });\n  } finally {\n    // ปลดล็อกเสมอ\n    lock.releaseLock();\n  }\n}\n\n// ======================== HELPER FUNCTIONS ========================\n\nfunction jsonResponse(data) {\n  return ContentService.createTextOutput(JSON.stringify(data))\n    .setMimeType(ContentService.MimeType.JSON);\n}\n\nfunction getOrCreateSheet(sheetName) {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  let sheet = ss.getSheetByName(sheetName);\n  if (!sheet) {\n    sheet = ss.insertSheet(sheetName);\n  }\n  return sheet;\n}\n\n/**\n * บันทึกสถานะระบบ (appState) ลงแท็บ \"ข้อมูลระบบ\"\n * แบ่ง Chunk ข้อมูลละ 40,000 ตัวอักษร เพื่อป้องกันข้อจำกัด 50,000 ตัวอักษรต่อเซลล์\n */\nfunction saveSystemState(stateObj, updatedIso) {\n  const sheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  \n  if (sheet.getLastRow() < 1) {\n    sheet.getRange(1, 1, 1, 3).setValues([[\"ลำดับ Chunk\", \"ข้อมูลระบบ (System State JSON)\", \"วันที่อัปเดต\"]]);\n    sheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n    sheet.setFrozenRows(1);\n  }\n\n  const jsonStr = JSON.stringify(stateObj);\n  const chunkSize = 40000;\n  const chunks = [];\n  for (let i = 0; i < jsonStr.length; i += chunkSize) {\n    chunks.push([\n      Math.floor(i / chunkSize) + 1,\n      jsonStr.substring(i, i + chunkSize),\n      updatedIso\n    ]);\n  }\n\n  const lastRow = Math.max(sheet.getLastRow(), 2);\n  sheet.getRange(2, 1, lastRow, 3).clearContent();\n\n  if (chunks.length > 0) {\n    sheet.getRange(2, 1, chunks.length, 3).setValues(chunks);\n  }\n}\n\n/**\n * โหลดสถานะระบบจากแท็บ \"ข้อมูลระบบ\"\n */\nfunction loadSystemState() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheet = ss.getSheetByName(SHEET_SYSTEM_STATE);\n  if (!sheet || sheet.getLastRow() < 2) {\n    return { updated_at: null, data: null };\n  }\n\n  const lastRow = sheet.getLastRow();\n  const values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();\n  \n  let jsonStr = \"\";\n  let updatedIso = \"\";\n  for (let i = 0; i < values.length; i++) {\n    jsonStr += (values[i][1] || \"\");\n    if (values[i][2]) updatedIso = values[i][2];\n  }\n\n  try {\n    const data = JSON.parse(jsonStr);\n    return { updated_at: updatedIso, data: data };\n  } catch (e) {\n    return { updated_at: updatedIso, data: null, error: e.toString() };\n  }\n}\n\nconst RECEIPT_HEADERS = [\n  \"ลำดับ\",\n  \"เล่มที่\",\n  \"เลขที่\",\n  \"วันที่\",\n  \"เวลา\",\n  \"ชื่อผู้ชำระเงิน\",\n  \"ประเภทผู้ชำระ\",\n  \"สังกัด / หน่วยงาน (บรรทัด 1)\",\n  \"ที่อยู่ / จังหวัด (บรรทัด 2)\",\n  \"รายการชำระ\",\n  \"โครงการอบรม\",\n  \"จำนวนเงิน (บาท)\",\n  \"วิธีการชำระเงิน\",\n  \"ธนาคารต้นทาง (กรณีโอน)\",\n  \"วันที่โอน\",\n  \"เวลาโอน\",\n  \"เข้าบัญชีมหาวิทยาลัย\",\n  \"สถานะ\",\n  \"เหตุผลที่ยกเลิก\",\n  \"ผู้จัดทำใบเสร็จ\",\n  \"ตำแหน่งผู้จัดทำ\",\n  \"รหัสเจ้าหน้าที่\",\n  \"วันที่สร้างรายการ\",\n  \"รหัสอ้างอิงระบบ (ID)\"\n];\n\nfunction initReceiptSheetHeaders(sheet) {\n  if (sheet.getLastRow() < 1) {\n    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS]);\n    sheet.getRange(1, 1, 1, RECEIPT_HEADERS.length)\n      .setBackground(\"#0f2c59\")\n      .setFontColor(\"#ffffff\")\n      .setFontWeight(\"bold\")\n      .setHorizontalAlignment(\"center\");\n    sheet.setFrozenRows(1);\n    sheet.setRowHeight(1, 28);\n  }\n}\n\nfunction receiptToRow(r, index) {\n  let itemName = \"\";\n  let projectName = \"\";\n  if (r.items && Array.isArray(r.items) && r.items.length > 0) {\n    itemName = r.items.map(it => it.paymentItem || \"\").filter(Boolean).join(\", \");\n    projectName = r.items.map(it => it.projectName || \"\").filter(Boolean).join(\" | \");\n  }\n\n  return [\n    index,\n    r.bookNo || \"\",\n    String(r.no || \"\"),\n    r.date || \"\",\n    r.time || \"\",\n    r.payerFullName || ((r.title || \"\") + (r.firstName || \"\") + \" \" + (r.lastName || \"\")).trim(),\n    r.payerType || \"บุคคลทั่วไป\",\n    r.detailLine1 || \"\",\n    r.detailLine2 || \"\",\n    itemName || \"ค่าลงทะเบียน\",\n    projectName || \"\",\n    Number(r.totalAmount) || 0,\n    r.paymentMethod || \"เงินโอน\",\n    r.payerBank || \"\",\n    r.transferDate || \"\",\n    r.transferTime || \"\",\n    r.universityBank || \"\",\n    r.status || \"ปกติ\",\n    r.cancelReason || \"\",\n    r.issuerName || \"\",\n    r.issuerPosition || \"\",\n    r.issuerStaffCode || \"\",\n    r.createdAt || \"\",\n    r.id || \"\"\n  ];\n}\n\nfunction syncReceiptsToSheet(receipts) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(sheet);\n\n  if (!receipts || receipts.length === 0) return;\n\n  const sorted = receipts.slice().sort((a, b) => {\n    const dateA = a.date || \"\";\n    const dateB = b.date || \"\";\n    if (dateA !== dateB) return dateA.localeCompare(dateB);\n    const bookCmp = String(a.bookNo || \"\").localeCompare(String(b.bookNo || \"\"));\n    if (bookCmp !== 0) return bookCmp;\n    const noA = parseInt(String(a.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n    const noB = parseInt(String(b.no || \"0\").replace(/\\D/g, \"\"), 10) || 0;\n    if (noA !== noB) return noA - noB;\n    return (a.time || \"\").localeCompare(b.time || \"\");\n  });\n\n  const rows = [];\n  for (let i = 0; i < sorted.length; i++) {\n    rows.push(receiptToRow(sorted[i], i + 1));\n  }\n\n  const maxClear = Math.max(sheet.getLastRow(), rows.length + 1);\n  if (maxClear >= 2) {\n    sheet.getRange(2, 1, maxClear, RECEIPT_HEADERS.length).clearContent();\n  }\n\n  sheet.getRange(2, 1, rows.length, RECEIPT_HEADERS.length).setValues(rows);\n  sheet.getRange(2, 12, rows.length, 1).setNumberFormat(\"#,##0.00\");\n  sheet.getRange(2, 1, rows.length, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment(\"center\");\n}\n\nfunction appendReceiptRow(r) {\n  const sheet = getOrCreateSheet(SHEET_RECEIPTS);\n  if (sheet.getLastRow() < 1) {\n    initReceiptSheetHeaders(sheet);\n  }\n  const nextIndex = sheet.getLastRow();\n  const row = receiptToRow(r, nextIndex);\n  sheet.appendRow(row);\n\n  const newRowIndex = sheet.getLastRow();\n  sheet.getRange(newRowIndex, 12).setNumberFormat(\"#,##0.00\");\n  sheet.getRange(newRowIndex, 1, 1, 5).setHorizontalAlignment(\"center\");\n  sheet.getRange(newRowIndex, 18).setHorizontalAlignment(\"center\");\n}\n\nfunction formatAllSheets() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const rSheet = getOrCreateSheet(SHEET_RECEIPTS);\n  initReceiptSheetHeaders(rSheet);\n  const sSheet = getOrCreateSheet(SHEET_SYSTEM_STATE);\n  if (sSheet.getLastRow() < 1) {\n    sSheet.getRange(1, 1, 1, 3).setValues([[\"ลำดับ Chunk\", \"ข้อมูลระบบ (System State JSON)\", \"วันที่อัปเดต\"]]);\n    sSheet.getRange(1, 1, 1, 3).setBackground(\"#1e3a8a\").setFontColor(\"#ffffff\").setFontWeight(\"bold\");\n  }\n}\n\nfunction getReceiptsFromSheet() {\n  const ss = SpreadsheetApp.getActiveSpreadsheet();\n  const sheet = ss.getSheetByName(SHEET_RECEIPTS);\n  if (!sheet || sheet.getLastRow() < 2) return [];\n  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RECEIPT_HEADERS.length).getValues();\n  return rows.map(r => ({\n    noIndex: r[0],\n    bookNo: r[1],\n    no: String(r[2]),\n    date: r[3],\n    time: r[4],\n    payerFullName: r[5],\n    payerType: r[6],\n    detailLine1: r[7],\n    detailLine2: r[8],\n    paymentItem: r[9],\n    projectName: r[10],\n    totalAmount: r[11],\n    paymentMethod: r[12],\n    payerBank: r[13],\n    transferDate: r[14],\n    transferTime: r[15],\n    universityBank: r[16],\n    status: r[17],\n    cancelReason: r[18],\n    issuerName: r[19],\n    issuerPosition: r[20],\n    issuerStaffCode: r[21],\n    createdAt: r[22],\n    id: r[23]\n  }));\n}\n";
 
     function openDatabaseConfigModal(defaultTab = null) {
       const gasUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url"));
