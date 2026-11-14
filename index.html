@@ -1687,15 +1687,9 @@
             กรุณากรอกข้อมูลตามหัวคอลัมน์ของไฟล์แม่แบบ ระบบจะจับคู่ข้อมูล ตรวจสอบความถูกต้อง และออกใบเสร็จรับเงินเรียงเลขที่ให้อัตโนมัติทันที
           </p>
           <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-            <a href="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" download="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" class="btn btn-outline btn-sm" style="background:#fff; border-color:#059669; color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem;">
+            <a href="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" download="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.xlsx" class="btn btn-outline btn-sm" style="background:#fff; border-color:#059669; color:#059669; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem; padding:0.4rem 0.85rem;">
               <span>📊</span> ดาวน์โหลดแม่แบบ Excel (.xlsx)
             </a>
-            <a href="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.csv" download="แบบฟอร์มนำเข้ารายชื่อออกใบเสร็จ_RMUTSB.csv" class="btn btn-outline btn-sm" style="background:#fff; border-color:#0284c7; color:#0284c7; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem;">
-              <span>📄</span> ดาวน์โหลดแม่แบบ CSV (.csv)
-            </a>
-            <button type="button" class="btn btn-outline btn-sm" onclick="downloadBatchTemplateDynamically()" style="font-size:0.8rem; color:var(--slate-600);">
-              ⚡ สร้างไฟล์แม่แบบสำรอง (SheetJS)
-            </button>
           </div>
         </div>
 
@@ -2746,7 +2740,7 @@
         <div class="panel-card" style="margin-top:1.25rem;">
           <div class="panel-header" style="flex-wrap:wrap; gap:0.5rem;">
             <div>
-              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลังล่าสุด (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลังล่าสุด (พิมพ์ / ดาวน์โหลด)</h3>
               <div id="userRecentFilterNotice" style="font-size:0.8rem; margin-top:4px;"></div>
             </div>
             <button type="button" class="btn btn-outline btn-sm" onclick="switchUserTab('history')">ดูประวัติทั้งหมดและค้นหา →</button>
@@ -2779,7 +2773,7 @@
         <div class="panel-card">
           <div class="panel-header" style="flex-wrap:wrap; gap:0.5rem;">
             <div>
-              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลัง (แก้ไขข้อมูล / พิมพ์ / ดาวน์โหลด)</h3>
+              <h3 style="margin:0;">ประวัติข้อมูลใบเสร็จรับเงินย้อนหลัง (พิมพ์ / ดาวน์โหลด)</h3>
               <div id="userHistoryFilterNotice" style="font-size:0.8rem; margin-top:4px;"></div>
             </div>
             <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูล</button>
@@ -2922,7 +2916,7 @@
           <div class="form-group">
             <label class="form-label">สิทธิ์การปฏิบัติงาน *</label>
             <select id="modalUserPermission" class="form-select" onchange="toggleUserSignatureVisibility()">
-              <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ / พิมพ์ / แก้ไขข้อมูลใบเสร็จย้อนหลังได้ / ยกเลิกตามสิทธิ์)</option>
+              <option value="issuer">เจ้าหน้าที่ออกใบเสร็จ (ออกใบเสร็จ / พิมพ์ / ยกเลิกตามสิทธิ์)</option>
               <option value="viewer">เจ้าหน้าที่เรียกดูและพิมพ์เอกสาร (Viewer)</option>
               <option value="full">ผู้ดูแลระบบ (จัดการได้ทุกเมนู)</option>
             </select>
@@ -5631,7 +5625,7 @@
           ? "จัดการได้ทุกอย่าง (Admin)"
           : (u.permission_level === "viewer"
               ? "เรียกดูและพิมพ์เอกสาร (Viewer)"
-              : "ออกใบเสร็จ/พิมพ์/แก้ไขข้อมูลใบเสร็จย้อนหลังได้/ยกเลิกตามสิทธิ์");
+              : "ออกใบเสร็จ / พิมพ์ / ยกเลิกตามสิทธิ์");
 
         const isShown = Boolean(visiblePasswordMap[u.user_id]);
         const rawPass = u.password || (u.role === "admin" ? "admin1234" : "123456");
@@ -7763,9 +7757,9 @@ ${loginUrl}
       const r = (appState.receipts || []).find(x => x.id === receiptId);
       if (!r) return;
 
-      // ตรวจสอบสิทธิ์: ป้องกันการแก้ไขใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
-      if (currentUser && currentUser.role !== "admin" && !isReceiptIssuedByCurrentUser(r, currentUser)) {
-        showToast("คุณสามารถแก้ไขได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันข้อผิดพลาด", true);
+      // ตรวจสอบสิทธิ์: สิทธิ์แก้ไขข้อมูลใบเสร็จสงวนไว้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น
+      if (!currentUser || currentUser.role !== "admin") {
+        showToast("คุณไม่มีสิทธิ์แก้ไขข้อมูลใบเสร็จ (สิทธิ์นี้สำหรับผู้ดูแลระบบ Admin เท่านั้น)", true);
         return;
       }
 
@@ -7806,9 +7800,9 @@ ${loginUrl}
       const idx = receipts.findIndex(r => r.id === id);
       if (idx < 0) return;
 
-      // ตรวจสอบสิทธิ์: ป้องกันการแก้ไขใบเสร็จที่ออกโดยเจ้าหน้าที่ท่านอื่น
-      if (currentUser && currentUser.role !== "admin" && !isReceiptIssuedByCurrentUser(receipts[idx], currentUser)) {
-        showToast("คุณสามารถแก้ไขได้เฉพาะใบเสร็จที่คุณเป็นผู้ออกเท่านั้น เพื่อป้องกันข้อผิดพลาด", true);
+      // ตรวจสอบสิทธิ์: สิทธิ์แก้ไขข้อมูลใบเสร็จสงวนไว้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น
+      if (!currentUser || currentUser.role !== "admin") {
+        showToast("คุณไม่มีสิทธิ์แก้ไขข้อมูลใบเสร็จ (สิทธิ์นี้สำหรับผู้ดูแลระบบ Admin เท่านั้น)", true);
         closeReceiptEditModal();
         return;
       }
@@ -9246,7 +9240,7 @@ ${loginUrl}
       const notice = document.getElementById("userHistoryFilterNotice");
       if (notice) {
         if (currentUser && currentUser.role !== "admin") {
-          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)}) เพื่อป้องกันการแก้ไขหรือลบข้อมูลผิดพลาด</span>`;
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
         } else {
           notice.innerHTML = "";
         }
@@ -9309,7 +9303,7 @@ ${loginUrl}
               ${isViewerOnly ? `
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
               ` : `
-                <button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>
+                ${(currentUser && currentUser.role === "admin") ? `<button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>` : ""}
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
                 <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
               `}
@@ -9330,7 +9324,7 @@ ${loginUrl}
       const notice = document.getElementById("userRecentFilterNotice");
       if (notice) {
         if (currentUser && currentUser.role !== "admin") {
-          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)}) เพื่อป้องกันการแก้ไขหรือลบข้อมูลผิดพลาด</span>`;
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
         } else {
           notice.innerHTML = "";
         }
@@ -9384,7 +9378,7 @@ ${loginUrl}
               ${isViewerOnly ? `
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
               ` : `
-                <button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>
+                ${(currentUser && currentUser.role === "admin") ? `<button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>` : ""}
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
                 <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
               `}
