@@ -2797,11 +2797,11 @@
                 <option value="ยกเลิก">ยกเลิก</option>
               </select>
             </div>
-            <div>
+            <div id="userHistoryIssuerFilterWrap" style="display:none;">
               <label class="form-label">กรองตามเจ้าหน้าที่ผู้ออก</label>
               <select id="userHistoryIssuerFilter" class="form-select" onchange="renderUserHistoryTable()">
-                <option value="all">แสดงใบเสร็จทั้งหมดในระบบ (ทุกคน)</option>
-                <option value="mine">เฉพาะรายการที่คุณเป็นผู้ออก</option>
+                <option value="mine">เฉพาะรายการที่คุณเป็นผู้บันทึกข้อมูล</option>
+                <option value="all">แสดงใบเสร็จทั้งหมดในระบบ (เฉพาะ Admin)</option>
               </select>
             </div>
           </div>
@@ -4837,6 +4837,8 @@
       if (forceToast) showToast("รีเฟรชข้อมูลเรียบร้อยแล้ว");
     }
 
+    let realtimeReconnectTimer = null;
+
     async function persistAppState(customNewState = null) {
       if (isPersistingState) {
         await new Promise(r => setTimeout(r, 100));
@@ -4856,13 +4858,22 @@
         // 1. บันทึกขึ้น Supabase ทันที เพื่อกระจาย Realtime WebSocket ระดับเสี้ยววินาที (< 50ms) ข้ามทุกเครื่อง
         if (supabaseClient) {
           try {
-            await supabaseClient
+            const { error: upErr } = await supabaseClient
               .from("app_state")
               .upsert({
                 id: "main",
                 data: appState,
                 updated_at: nowIso
               });
+            if (upErr) {
+              console.warn("Supabase upsert warning, auto-retrying in 200ms:", upErr);
+              await new Promise(r => setTimeout(r, 200));
+              await supabaseClient.from("app_state").upsert({
+                id: "main",
+                data: appState,
+                updated_at: nowIso
+              });
+            }
           } catch(e) {
             console.warn("Supabase realtime sync warning:", e);
           }
@@ -4870,7 +4881,9 @@
 
         // 2. ส่งสัญญาณข้ามแท็บในเครื่องเดียวกันทันที 0ms ผ่าน BroadcastChannel
         if (broadcastChannel) {
-          broadcastChannel.postMessage({ type: "STATE_UPDATED", data: appState, updatedAt: nowIso });
+          try {
+            broadcastChannel.postMessage({ type: "STATE_UPDATED", data: appState, updatedAt: nowIso });
+          } catch(e) {}
         }
 
         // 3. บันทึกสำรองขึ้น Google Sheet Web App ในพื้นหลัง (Background Async Dual-Sync) ไม่หน่วงหน้าจอ
@@ -4887,10 +4900,27 @@
 
     function updateSyncTimestamp() {
       const badge = document.getElementById("lastSyncTimeBadge");
+      const dot = document.getElementById("connDot");
+      const txt = document.getElementById("connStatusText");
+      const now = new Date();
+      const isWs = supabaseClient && realtimeChannel && realtimeChannel.state === "joined";
+      
+      if (dot && txt) {
+        if (isWs) {
+          dot.className = "conn-dot";
+          dot.style.background = "#10b981";
+          dot.style.boxShadow = "0 0 10px #10b981";
+          txt.textContent = "ออนไลน์ (เรียลไทม์ WebSocket)";
+        } else if (supabaseClient) {
+          dot.className = "conn-dot";
+          dot.style.background = "#059669";
+          dot.style.boxShadow = "0 0 8px #059669";
+          txt.textContent = "ออนไลน์ (เรียลไทม์ Sync)";
+        }
+      }
+
       if (badge) {
-        const now = new Date();
-        const isWs = supabaseClient && realtimeChannel && realtimeChannel.state === "joined";
-        const modeLabel = isWs ? "Supabase WebSocket" : (isSupabaseMode() ? "Supabase" : (isGoogleSheetMode() ? "Google Sheet" : "เครื่อง"));
+        const modeLabel = isWs ? "WebSocket 0ms" : (isSupabaseMode() ? "Supabase" : (isGoogleSheetMode() ? "Google Sheet" : "เครื่อง"));
         badge.innerHTML = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; margin-right:5px; box-shadow:0 0 8px #10b981;"></span>เรียลไทม์ (${modeLabel}): ` + now.toLocaleTimeString("th-TH");
       }
     }
@@ -4925,49 +4955,61 @@
         }
       }, intervalMs);
 
-      // เมื่อผู้ใช้สลับกลับมาที่แท็บเบราว์เซอร์หรือหน้าต่าง ให้ซิงค์ข้อมูลล่าสุดทันที 0ms
-      document.addEventListener("visibilitychange", () => {
+      // เมื่อผู้ใช้สลับกลับมาที่แท็บเบราว์เซอร์หรือหน้าต่าง ให้ซิงค์ข้อมูลล่าสุดทันที 0ms และฟื้นฟู WebSocket
+      const handleTabWakeup = () => {
         if (!document.hidden) {
           loadAppStateFromStorageOrSupabase(false, true);
-        }
-      });
-      window.addEventListener("focus", () => {
-        loadAppStateFromStorageOrSupabase(false, true);
-      });
-      window.addEventListener("online", () => {
-        loadAppStateFromStorageOrSupabase(false, true);
-      });
-
-      // รองรับ Realtime WebSocket ทันทีเมื่อมี client เชื่อมต่ออยู่
-      if (supabaseClient) {
-        try {
-          if (realtimeChannel) {
-            supabaseClient.removeChannel(realtimeChannel);
+          if (supabaseClient && (!realtimeChannel || realtimeChannel.state !== "joined")) {
+            connectRealtimeWebSocket();
           }
-          realtimeChannel = supabaseClient
-            .channel("rmutsb-realtime-channel")
-            .on(
-              "postgres_changes",
-              { event: "*", schema: "public", table: "app_state", filter: "id=eq.main" },
-              (payload) => {
-                if (payload && payload.new && payload.new.id && payload.new.id !== "main") return;
-                console.log("Realtime event received from Supabase WebSocket:", payload);
-                if (payload && payload.new && payload.new.data) {
-                  applyIncomingState(payload.new.data, payload.new.updated_at, "Supabase WebSocket (0ms)");
-                } else {
-                  loadAppStateFromStorageOrSupabase(false, true);
-                }
-              }
-            )
-            .subscribe((status) => {
-              console.log("Supabase Realtime status:", status);
-              if (status === "SUBSCRIBED") {
-                updateSyncTimestamp();
-              }
-            });
-        } catch (e) {
-          console.warn("Realtime subscription fallback to polling:", e);
         }
+      };
+      document.addEventListener("visibilitychange", handleTabWakeup);
+      window.addEventListener("focus", handleTabWakeup);
+      window.addEventListener("online", handleTabWakeup);
+
+      // เริ่มต้นเชื่อมต่อ WebSocket
+      connectRealtimeWebSocket();
+    }
+
+    function connectRealtimeWebSocket() {
+      if (!supabaseClient) return;
+      try {
+        if (realtimeChannel) {
+          try { supabaseClient.removeChannel(realtimeChannel); } catch(e) {}
+        }
+        realtimeChannel = supabaseClient
+          .channel("rmutsb-realtime-channel")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "app_state", filter: "id=eq.main" },
+            (payload) => {
+              if (payload && payload.new && payload.new.id && payload.new.id !== "main") return;
+              if (payload && payload.new && payload.new.data) {
+                applyIncomingState(payload.new.data, payload.new.updated_at, "Supabase WebSocket (0ms)");
+              } else {
+                loadAppStateFromStorageOrSupabase(false, true);
+              }
+            }
+          )
+          .subscribe((status, err) => {
+            console.log("Supabase Realtime status:", status, err || "");
+            if (status === "SUBSCRIBED") {
+              if (realtimeReconnectTimer) clearTimeout(realtimeReconnectTimer);
+              realtimeReconnectTimer = null;
+              updateSyncTimestamp();
+            } else if (status === "CLOSED" || status === "TIMED_OUT" || status === "CHANNEL_ERROR") {
+              // กำหนด auto-reconnect หลังหลุดการเชื่อมต่อ
+              if (!realtimeReconnectTimer) {
+                realtimeReconnectTimer = setTimeout(() => {
+                  realtimeReconnectTimer = null;
+                  connectRealtimeWebSocket();
+                }, 2500);
+              }
+            }
+          });
+      } catch (e) {
+        console.warn("Realtime subscription fallback to polling:", e);
       }
     }
 
@@ -5522,18 +5564,38 @@
 
     // ======================== NON-DESTRUCTIVE LIVE RENDERING ========================
     function refreshAllVisibleViewsPreservingForms() {
-      renderAdminDashboard();
-      renderAdminUsersTable();
-      renderAdminMasterLists();
-      renderUniversityBanksTable();
-      renderReceiptBooksTable();
-      populateBookFilterDropdowns();
-      renderAdminReceiptsTable();
-      renderAdminReportTable();
-      renderAdminEmailSettings();
-      renderUserPortalBannersAndDropdowns();
-      renderUserHistoryTable();
-      renderUserRecentReceiptsTable();
+      const adminView = document.getElementById("adminPortalView");
+      const userView = document.getElementById("userPortalView");
+      const isAdminVisible = adminView && adminView.style.display !== "none";
+      const isUserVisible = userView && userView.style.display !== "none";
+
+      if (isUserVisible) {
+        renderUserPortalBannersAndDropdowns();
+        renderUserRecentReceiptsTable();
+        const userHistTab = document.getElementById("userTab_history");
+        if (userHistTab && userHistTab.style.display !== "none") {
+          renderUserHistoryTable();
+        }
+      }
+
+      if (isAdminVisible) {
+        populateBookFilterDropdowns();
+        const activeAdminTab = document.querySelector(".admin-tab-pane:not([style*='display: none'])")?.id;
+        if (activeAdminTab === "adminTab_dashboard") renderAdminDashboard();
+        else if (activeAdminTab === "adminTab_users") renderAdminUsersTable();
+        else if (activeAdminTab === "adminTab_master") renderAdminMasterLists();
+        else if (activeAdminTab === "adminTab_banks") renderUniversityBanksTable();
+        else if (activeAdminTab === "adminTab_books") renderReceiptBooksTable();
+        else if (activeAdminTab === "adminTab_receipts") renderAdminReceiptsTable();
+        else if (activeAdminTab === "adminTab_reports") renderAdminReportTable();
+        else if (activeAdminTab === "adminTab_email") renderAdminEmailSettings();
+        else renderAdminDashboard();
+      }
+
+      if (!isAdminVisible && !isUserVisible) {
+        populateBookFilterDropdowns();
+        renderUserPortalBannersAndDropdowns();
+      }
     }
 
     // ======================== ADMIN 1: DASHBOARD ========================
@@ -8474,57 +8536,47 @@ ${loginUrl}
       submitBtn.disabled = true;
 
       try {
-        let issuedReceipt = null;
+        // ซิงค์ข้อมูลล่าสุดจากฐานข้อมูลกลางก่อนเสมอ เพื่อให้เลขที่ใบเสร็จตรงกันแบบเรียลไทม์
+        await loadAppStateFromStorageOrSupabase(false);
 
-        if (isSupabaseMode()) {
-          await loadAppStateFromStorageOrSupabase(false);
-          const { data, error } = await supabaseClient.rpc("issue_receipt", {
-            p_receipt: payload
-          });
-          if (!error && data && data.receipt) {
-            if (data.state) {
-              appState = normalizeAndMigrateAppState(data.state);
-              safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-            }
-            issuedReceipt = data.receipt;
-            await persistAppState();
-          }
+        const books = [...(appState.books || [])];
+        const activeIdx = books.findIndex(b => b.active && !b.closed);
+        if (activeIdx < 0) {
+          throw new Error("ไม่พบเล่มใบเสร็จที่เปิดใช้งาน (Active) กรุณาแจ้ง Admin เปิดเล่มใบเสร็จ");
         }
-        if (!issuedReceipt) {
-          const books = [...(appState.books || [])];
-          const activeIdx = books.findIndex(b => b.active && !b.closed);
-          if (activeIdx < 0) {
-            throw new Error("ไม่พบเล่มใบเสร็จที่เปิดใช้งาน (Active) กรุณาแจ้ง Admin เปิดเล่มใบเสร็จ");
-          }
-          const activeBook = Object.assign({}, books[activeIdx]);
-          const start = Number(activeBook.start || 1);
-          const end = Number(activeBook.end || 100);
-          const latest = Number(activeBook.latest || 0);
-          const digits = Math.max(Number(activeBook.digits || 3), 3);
-          const nextNum = Math.max(latest + 1, start);
+        const activeBook = Object.assign({}, books[activeIdx]);
+        const start = Number(activeBook.start || 1);
+        const end = Number(activeBook.end || 100);
+        const digits = Math.max(Number(activeBook.digits || 3), 3);
 
-          if (nextNum > end) {
-            // ขยายจำนวนเลขสูงสุดของเล่มโดยอัตโนมัติ เพื่อไม่ให้การออกใบเสร็จสะดุด
-            activeBook.end = Math.max(end + 500, nextNum + 100);
-          }
+        // ตรวจสอบเลขที่สูงสุดที่มีอยู่จริงในระบบ ป้องกันการออกเลขซ้ำ 100%
+        const existingNos = (appState.receipts || [])
+          .filter(r => r && r.bookNo === activeBook.bookNo)
+          .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
+        const trueLatest = Math.max(Number(activeBook.latest || 0), ...existingNos);
+        const nextNum = Math.max(trueLatest + 1, start);
 
-          const receiptNo = String(nextNum).padStart(digits, "0");
-          activeBook.latest = nextNum;
-          books[activeIdx] = activeBook;
-
-          issuedReceipt = Object.assign({}, payload, {
-            id: "rcp-" + Date.now(),
-            bookNo: activeBook.bookNo,
-            no: receiptNo,
-            status: "ปกติ",
-            cancelReason: "",
-            createdAt: new Date().toISOString()
-          });
-
-          appState.books = books;
-          appState.receipts = [issuedReceipt, ...(appState.receipts || [])];
-          await persistAppState();
+        if (nextNum > end) {
+          // ขยายจำนวนเลขสูงสุดของเล่มโดยอัตโนมัติ เพื่อไม่ให้การออกใบเสร็จสะดุด
+          activeBook.end = Math.max(end + 500, nextNum + 100);
         }
+
+        const receiptNo = String(nextNum).padStart(digits, "0");
+        activeBook.latest = nextNum;
+        books[activeIdx] = activeBook;
+
+        const issuedReceipt = Object.assign({}, payload, {
+          id: "rcp-" + Date.now(),
+          bookNo: activeBook.bookNo,
+          no: receiptNo,
+          status: "ปกติ",
+          cancelReason: "",
+          createdAt: new Date().toISOString()
+        });
+
+        appState.books = books;
+        appState.receipts = [issuedReceipt, ...(appState.receipts || [])];
+        await persistAppState();
 
         refreshAllVisibleViewsPreservingForms();
         showToast(`ออกใบเสร็จรับเงิน เล่มที่ ${issuedReceipt.bookNo} เลขที่ ${issuedReceipt.no} สำเร็จ!`);
@@ -9208,12 +9260,8 @@ ${loginUrl}
       const rDisp = String(receipt.issuerName || "").trim();
 
       // 1. ตรวจสอบชื่อ-สกุลผู้ออกใบเสร็จ (display_name เทียบกับ issuerName)
-      if (uDisp && rDisp) {
-        if (isSamePersonName(uDisp, rDisp)) {
-          return true;
-        }
-        // หากในใบเสร็จมีระบุชื่อผู้ออกไว้อย่างชัดเจน และไม่ตรงกับชื่อของผู้ใช้นี้ ถือว่าไม่ใช่ใบเสร็จของผู้ใช้นี้
-        return false;
+      if (uDisp && rDisp && isSamePersonName(uDisp, rDisp)) {
+        return true;
       }
 
       // 2. ตรวจสอบรหัสเจ้าหน้าที่ (staff_code เทียบกับ issuerStaffCode)
@@ -9243,27 +9291,30 @@ ${loginUrl}
       const q = (document.getElementById("userHistorySearch")?.value || "").trim().toLowerCase();
       const bookFilter = document.getElementById("userHistoryBookFilter")?.value || "";
       const statusFilter = document.getElementById("userHistoryStatusFilter")?.value || "";
-      const issuerFilter = document.getElementById("userHistoryIssuerFilter")?.value || "all";
+      const issuerFilter = document.getElementById("userHistoryIssuerFilter")?.value || "mine";
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
+
+      const issuerFilterWrap = document.getElementById("userHistoryIssuerFilterWrap");
+      if (issuerFilterWrap) {
+        issuerFilterWrap.style.display = (currentUser && currentUser.role === "admin") ? "block" : "none";
+      }
 
       const notice = document.getElementById("userHistoryFilterNotice");
       if (notice) {
         if (currentUser && currentUser.role !== "admin") {
-          if (issuerFilter === "mine") {
-            notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
-          } else {
-            notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; border:1px solid #bfdbfe; font-size:0.75rem;">📋 แสดงรายการใบเสร็จทั้งหมดในระบบ (คุณสามารถค้นหาและพิมพ์/ดาวน์โหลดเอกสารได้ทุกใบ)</span>`;
-          }
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะประวัติใบเสร็จที่คุณเป็นผู้บันทึกข้อมูล (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
         } else {
           notice.innerHTML = "";
         }
       }
 
       const list = (appState.receipts || []).filter(r => {
-        // กรองตามผู้ออกใบเสร็จ (หากเลือก "เฉพาะที่คุณเป็นผู้ออก")
+        // สำหรับ User ทั่วไป แสดงเฉพาะที่ตนเองเป็นผู้บันทึกข้อมูลเสมอ
         if (currentUser && currentUser.role !== "admin") {
-          if (issuerFilter === "mine" && !isReceiptIssuedByCurrentUser(r, currentUser)) return false;
+          if (!isReceiptIssuedByCurrentUser(r, currentUser)) return false;
+        } else if (issuerFilter === "mine" && !isReceiptIssuedByCurrentUser(r, currentUser)) {
+          return false;
         }
 
         if (bookFilter && r.bookNo !== bookFilter) return false;
@@ -9279,9 +9330,9 @@ ${loginUrl}
       const sortedList = sortReceiptsNewestFirst(list);
 
       if (sortedList.length === 0) {
-        const emptyMsg = (currentUser && currentUser.role !== "admin" && issuerFilter === "mine")
-          ? `ไม่พบรายการใบเสร็จรับเงินที่คุณเป็นผู้ออก (${currentUser.display_name || currentUser.username})`
-          : "ไม่พบรายการใบเสร็จรับเงิน";
+        const emptyMsg = (currentUser && currentUser.role !== "admin")
+          ? `ไม่พบรายการใบเสร็จรับเงินที่คุณเป็นผู้บันทึกข้อมูล (${currentUser.display_name || currentUser.username})`
+          : "ไม่พบรายการใบเสร็จรับเงินตามเงื่อนไขที่ค้นหา";
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
         return;
       }
@@ -9341,18 +9392,29 @@ ${loginUrl}
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
 
-      const notice = document.getElementById("userRecentFilterNotice");
-      if (notice) {
-        notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; border:1px solid #bfdbfe; font-size:0.75rem;">📋 แสดงรายการใบเสร็จล่าสุดในระบบ เพื่อให้เห็นลำดับเลขที่ต่อเนื่อง (คุณสามารถพิมพ์/ดาวน์โหลดเอกสารได้ทุกใบ)</span>`;
+      let userReceipts = appState.receipts || [];
+      // ในหน้าระบบ User ประวัติใบเสร็จย้อนหลัง แสดงแค่ประวัติที่ User นั้นเป็นผู้บันทึกข้อมูล
+      if (currentUser && currentUser.role !== "admin") {
+        userReceipts = userReceipts.filter(r => isReceiptIssuedByCurrentUser(r, currentUser));
       }
 
-      let allReceipts = appState.receipts || [];
+      const notice = document.getElementById("userRecentFilterNotice");
+      if (notice) {
+        if (currentUser && currentUser.role !== "admin") {
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะประวัติใบเสร็จที่คุณเป็นผู้บันทึกข้อมูล (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
+        } else {
+          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; border:1px solid #bfdbfe; font-size:0.75rem;">📋 แสดงรายการใบเสร็จล่าสุดในระบบทั้งหมด</span>`;
+        }
+      }
 
       // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จที่ออกล่าสุดขึ้นก่อน (Newest First)
-      const receipts = sortReceiptsNewestFirst(allReceipts).slice(0, 15);
+      const receipts = sortReceiptsNewestFirst(userReceipts).slice(0, 15);
 
       if (receipts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
+        const emptyMsg = (currentUser && currentUser.role !== "admin")
+          ? `ยังไม่มีประวัติการออกใบเสร็จรับเงินที่คุณเป็นผู้บันทึกข้อมูล (${currentUser.display_name || currentUser.username})`
+          : "ยังไม่มีประวัติการออกใบเสร็จรับเงินในระบบ";
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
         return;
       }
 
@@ -9470,39 +9532,24 @@ ${loginUrl}
       }
 
       try {
-        let cancelledViaRpc = false;
-        if (isSupabaseMode()) {
-          await loadAppStateFromStorageOrSupabase(false);
-          const { data, error } = await supabaseClient.rpc("cancel_receipt", {
-            p_receipt_id: targetIdOrComposite,
-            p_reason: reason
-          });
-          if (!error && data && data.state) {
-            appState = normalizeAndMigrateAppState(data.state);
-            safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
-            refreshAllVisibleViewsPreservingForms();
-            cancelledViaRpc = true;
-            await persistAppState();
-          }
+        await loadAppStateFromStorageOrSupabase(false);
+        const receipts = [...(appState.receipts || [])];
+        const idx = receipts.findIndex(r =>
+          r.id === targetIdOrComposite ||
+          (r.bookNo === bookNo && (r.no === no || Number(r.no) === Number(no)))
+        );
+        if (idx < 0) {
+          throw new Error(`ไม่พบใบเสร็จเล่มที่ ${bookNo} เลขที่ ${no}`);
         }
-        if (!cancelledViaRpc) {
-          const receipts = [...(appState.receipts || [])];
-          const idx = receipts.findIndex(r =>
-            r.id === targetIdOrComposite ||
-            (r.bookNo === bookNo && (r.no === no || Number(r.no) === Number(no)))
-          );
-          if (idx < 0) {
-            throw new Error(`ไม่พบใบเสร็จเล่มที่ ${bookNo} เลขที่ ${no}`);
-          }
-          receipts[idx] = Object.assign({}, receipts[idx], {
-            status: "ยกเลิก",
-            cancelReason: reason,
-            cancelledAt: new Date().toISOString(),
-            cancelledBy: (currentUser && currentUser.display_name) || "เจ้าหน้าที่"
-          });
-          appState.receipts = receipts;
-          await persistAppState();
-        }
+        receipts[idx] = Object.assign({}, receipts[idx], {
+          status: "ยกเลิก",
+          cancelReason: reason,
+          cancelledAt: new Date().toISOString(),
+          cancelledBy: (currentUser && currentUser.display_name) || "เจ้าหน้าที่"
+        });
+        appState.receipts = receipts;
+        await persistAppState();
+        refreshAllVisibleViewsPreservingForms();
         showToast("ยกเลิกใบเสร็จรับเงินและบันทึกเหตุผลเรียบร้อยแล้ว");
       } catch (err) {
         showToast(err.message || "ไม่สามารถยกเลิกใบเสร็จได้", true);
