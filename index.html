@@ -5101,9 +5101,7 @@
       if (btnEl) btnEl.disabled = true;
 
       try {
-        if (isSupabaseMode()) {
-          await loadAppStateFromStorageOrSupabase(false);
-        }
+        await loadAppStateFromStorageOrSupabase(false);
 
         const users = appState.users || [];
         const loginLower = loginId.toLowerCase();
@@ -5236,9 +5234,7 @@
       btnEl.disabled = true;
 
       try {
-        if (isSupabaseMode()) {
-          await loadAppStateFromStorageOrSupabase(false);
-        }
+        await loadAppStateFromStorageOrSupabase(false);
 
         const users = appState.users || [];
         const loginLower = loginId.toLowerCase();
@@ -6719,7 +6715,6 @@ ${loginUrl}
         if (appState.emailLogs.length > 50) appState.emailLogs.pop();
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
         renderAdminEmailSettings();
-        await persistAppState();
 
         return { success: true, log: logEntry };
       } catch (err) {
@@ -6731,7 +6726,6 @@ ${loginUrl}
         if (appState.emailLogs.length > 50) appState.emailLogs.pop();
         safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
         renderAdminEmailSettings();
-        await persistAppState();
         return { success: false, error: err.message, log: logEntry };
       }
     }
