@@ -9225,16 +9225,8 @@ ${loginUrl}
         if (progressSec) progressSec.style.display = "none";
       }
     }
-      } catch (err) {
-        console.error("Batch issue error:", err);
-        showToast("เกิดข้อผิดพลาดในการออกใบเสร็จเป็นชุด: " + err.message, true);
-      } finally {
-        if (confirmBtn) confirmBtn.disabled = false;
-        if (progressSec) progressSec.style.display = "none";
-      }
-    }
 
-        function resetIssueReceiptForm() {
+    function resetIssueReceiptForm() {
       document.getElementById("rcpFirstNameInput").value = "";
       document.getElementById("rcpLastNameInput").value = "";
       document.getElementById("rcpDetailLine1Input").value = "";
