@@ -7746,7 +7746,7 @@ ${loginUrl}
             </td>
             <td>${escapeHtml(r.issuerName || "-")}</td>
             <td class="text-center" style="white-space:nowrap;">
-              <button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>
+              ${(currentUser && currentUser.role === "admin") ? `<button class="btn btn-outline btn-sm" onclick="openReceiptEditModal('${escapeAttr(r.id)}')">แก้ไขข้อมูล</button>` : ""}
               <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ (2 หน้า)</button>
               <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">สำเนา</button>
               ${!isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
