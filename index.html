@@ -9087,7 +9087,7 @@ ${loginUrl}
             issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
             issuerStaffCode: (currentUser && currentUser.staff_code) || "",
             issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
-            issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
+            issuerSignatureDataUrl: "", // ดึงลายเซ็นอัตโนมัติจากโปรไฟล์เจ้าหน้าที่ STF ป้องกัน payload ขนาดใหญ่เกินพิกัดฐานข้อมูล
             issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
           };
 
