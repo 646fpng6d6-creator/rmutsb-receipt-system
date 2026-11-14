@@ -2317,25 +2317,38 @@
       <div id="adminTab_reports" class="admin-tab-pane" style="display:none;">
         <div class="page-title-bar">
           <div>
-            <h2>รายงานสรุปการรับชำระเงิน</h2>
+            <h2>รายงานใบเสร็จรับเงิน</h2>
             <p style="font-size:0.88rem; color:var(--slate-500);">
-              แยกรายการย่อยของใบเสร็จออกเป็นรายการละ 1 แถวตามมาตรฐานการตรวจสอบการเงิน พร้อมส่งออก CSV / Excel และส่งออกแยกตามเล่มใบเสร็จ
+              แสดงรายการข้อมูลใบเสร็จรับเงินตามมาตรฐาน สามารถเลือกช่วงวันที่เริ่มต้น - วันที่สิ้นสุด และดาวน์โหลดเป็นไฟล์ Excel (.xlsx) ได้ทันที
             </p>
           </div>
         </div>
 
         <div class="panel-card">
-          <div class="panel-header">
-            <h3>ตัวกรองรายงานและการส่งออกข้อมูล (Export Data)</h3>
-            <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-              <button class="btn btn-success btn-sm" onclick="exportGranularReportCSV()">Export รายงานแยกแถว (CSV)</button>
-              <button class="btn btn-primary btn-sm" onclick="exportGranularReportExcel()">Export รายงานแยกแถว (Excel .xls)</button>
-              <button class="btn btn-outline btn-sm" onclick="exportSummaryReceiptsCSV()">Export สรุปรายใบเสร็จ (CSV)</button>
-              <button class="btn btn-warning btn-sm" onclick="printAllCopiesInFilter()">พิมพ์สำเนาใบเสร็จทั้งหมดตามตัวกรอง</button>
+          <div class="panel-header" style="flex-wrap:wrap; gap:0.75rem;">
+            <div>
+              <h3 style="margin:0;">ตัวกรองรายงานและการส่งออกข้อมูล Excel (.xlsx)</h3>
+              <p style="font-size:0.82rem; color:var(--slate-500); margin:3px 0 0 0;">กำหนดวันที่เริ่มต้นและวันสิ้นสุดเพื่อดูรายงานและดาวน์โหลด</p>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+              <button type="button" class="btn btn-success" onclick="exportAdminReportXLSX()" style="display:inline-flex; align-items:center; gap:0.45rem; font-weight:600; padding:0.55rem 1.25rem; background:#16a34a; border-color:#16a34a; box-shadow:0 2px 4px rgba(22, 163, 74, 0.2);">
+                <span>📊</span> ดาวน์โหลดรายงาน Excel (.xlsx)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="printAllCopiesInFilter()" style="display:inline-flex; align-items:center; gap:0.35rem;">
+                <span>🖨️</span> พิมพ์สำเนาใบเสร็จตามตัวกรอง
+              </button>
             </div>
           </div>
 
           <div class="grid-4" style="margin-bottom:1rem;">
+            <div>
+              <label class="form-label" style="font-weight:600; color:var(--primary-navy);">📅 วันที่เริ่มต้น (ตั้งแต่วันที่)</label>
+              <input type="date" id="reportDateFrom" class="form-control" onchange="renderAdminReportTable()" />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:600; color:var(--primary-navy);">📅 วันที่สิ้นสุด (ถึงวันที่)</label>
+              <input type="date" id="reportDateTo" class="form-control" onchange="renderAdminReportTable()" />
+            </div>
             <div>
               <label class="form-label">เลือกเล่มใบเสร็จ</label>
               <select id="reportBookFilter" class="form-select" onchange="renderAdminReportTable()">
@@ -2350,14 +2363,6 @@
                 <option value="ยกเลิก">เฉพาะสถานะยกเลิก</option>
               </select>
             </div>
-            <div>
-              <label class="form-label">ตั้งแต่วันที่</label>
-              <input type="date" id="reportDateFrom" class="form-control" onchange="renderAdminReportTable()" />
-            </div>
-            <div>
-              <label class="form-label">ถึงวันที่</label>
-              <input type="date" id="reportDateTo" class="form-control" onchange="renderAdminReportTable()" />
-            </div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem; background:var(--slate-50); padding:0.65rem 0.9rem; border-radius:8px; border:1px solid var(--slate-200);">
@@ -2366,7 +2371,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="data-table" id="granularReportTable">
+            <table class="data-table" id="granularReportTable" style="font-size:0.85rem;">
               <thead>
                 <tr>
                   <th>วันที่</th>
@@ -2374,11 +2379,14 @@
                   <th>เล่มที่</th>
                   <th>เลขที่</th>
                   <th>ผู้ชำระ</th>
-                  <th>ชื่อโครงการ</th>
+                  <th>สถานะ</th>
                   <th>รายการ</th>
+                  <th>ชื่อโครงการ</th>
                   <th class="text-right">จำนวนเงิน</th>
                   <th>ช่องทางชำระ</th>
-                  <th>สถานะ</th>
+                  <th>วันที่โอน</th>
+                  <th>เวลา</th>
+                  <th>ธนาคารที่โอน</th>
                   <th>ผู้ออก</th>
                 </tr>
               </thead>
@@ -7901,6 +7909,14 @@ ${loginUrl}
     }
 
     // ======================== ADMIN 7: GRANULAR LINE-ITEM REPORT (1 ROW PER ITEM) ========================
+    function formatTimeWithSeconds(timeStr) {
+      if (!timeStr) return "";
+      const s = String(timeStr).trim();
+      if (!s || s === "-") return "";
+      if (s.length === 5 && s.includes(":")) return s + ":00";
+      return s;
+    }
+
     function getFilteredGranularReportRows() {
       const bookFilter = document.getElementById("reportBookFilter")?.value || "";
       const statusFilter = document.getElementById("reportStatusFilter")?.value || "";
@@ -7922,32 +7938,36 @@ ${loginUrl}
           ? r.items
           : [{ paymentItem: "-", projectName: "", amount: r.totalAmount || 0 }];
 
+        const isTransfer = r.paymentMethod === "เงินโอน";
+        const tDate = isTransfer ? (r.transferDate || "") : "";
+        const tTime = isTransfer ? formatTimeWithSeconds(r.transferTime || "") : "";
+        const tBank = isTransfer ? (r.universityBank || r.payerBank || "") : "";
+        const rTime = formatTimeWithSeconds(r.time || "");
+
         items.forEach(item => {
           const itemAmt = Number(item.amount || 0);
           if ((r.status || "ปกติ") !== "ยกเลิก") {
             netAmountNormal += itemAmt;
           }
           const projDisplay = (!item.projectName || item.projectName === "ไม่ระบุโครงการ")
-            ? "-"
+            ? ""
             : item.projectName;
 
           rows.push({
             receiptId: r.id,
-            dateFormatted: formatThaiDateShortReport(r.date),
-            rawDate: r.date,
-            time: r.time || "-",
-            bookNo: r.bookNo || "-",
-            no: r.no || "-",
+            rawDate: r.date || "",
+            time: rTime,
+            bookNo: r.bookNo || "",
+            no: r.no || "",
             payerFullName: r.payerFullName || `${r.title || ""}${r.firstName || ""} ${r.lastName || ""}`.trim(),
+            status: r.status || "ปกติ",
+            paymentItem: item.paymentItem || "",
             projectName: projDisplay,
-            paymentItem: item.paymentItem || "-",
             amount: itemAmt,
             paymentMethod: r.paymentMethod || "เงินสด",
-            universityBank: r.universityBank || "",
-            transferDate: r.transferDate || "",
-            transferTime: r.transferTime || "",
-            payerBank: r.payerBank || "",
-            status: r.status || "ปกติ",
+            transferDate: tDate,
+            transferTime: tTime,
+            transferBank: tBank,
             cancelReason: r.cancelReason || "",
             issuerName: r.issuerName || "เจ้าหน้าที่"
           });
@@ -7965,146 +7985,127 @@ ${loginUrl}
       const { rows, netAmountNormal, matchedReceiptsCount } = getFilteredGranularReportRows();
 
       if (summaryEl) {
-        summaryEl.textContent = `จำนวนใบเสร็จ: ${matchedReceiptsCount} ใบ | แยกเป็นรายการย่อย: ${rows.length} แถว | ยอดรวมสุทธิ (เฉพาะสถานะปกติ): ${formatMoney(netAmountNormal, true)} บาท`;
+        summaryEl.textContent = `จำนวนใบเสร็จ: ${matchedReceiptsCount} ใบ | รายการย่อย: ${rows.length} รายการ | ยอดรวมสุทธิ (เฉพาะสถานะปกติ): ${formatMoney(netAmountNormal, true)} บาท`;
       }
 
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบข้อมูลรายงานตามตัวกรองที่เลือก</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ไม่พบข้อมูลรายงานตามช่วงวันที่หรือตัวกรองที่เลือก</td></tr>`;
         return;
       }
 
       tbody.innerHTML = rows.map(row => `
         <tr>
-          <td>${escapeHtml(row.dateFormatted)}</td>
-          <td>${escapeHtml(row.time)}</td>
+          <td>${escapeHtml(row.rawDate)}</td>
+          <td>${escapeHtml(row.time || "-")}</td>
           <td><strong>${escapeHtml(row.bookNo)}</strong></td>
           <td><strong>${escapeHtml(row.no)}</strong></td>
           <td>${escapeHtml(row.payerFullName)}</td>
-          <td>${escapeHtml(row.projectName)}</td>
-          <td><strong>${escapeHtml(row.paymentItem)}</strong></td>
-          <td class="text-right"><strong>${formatMoney(row.amount, false)}</strong></td>
-          <td>
-            <div><strong>${escapeHtml(row.paymentMethod)}</strong></div>
-            ${row.paymentMethod === "เงินโอน" ? `
-              <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px; line-height:1.35;">
-                ${row.universityBank ? `<div>โอนเข้า: ${escapeHtml(row.universityBank)}</div>` : ""}
-                <div>${escapeHtml(formatTransferDateThai(row.transferDate || row.rawDate))}</div>
-                <div>เวลา: ${row.transferTime ? `${escapeHtml(row.transferTime)} น.` : `<span style="color:var(--slate-400);">(ไม่ระบุเวลา)</span>`}</div>
-              </div>
-            ` : ""}
-          </td>
           <td><span class="status-pill ${row.status === 'ยกเลิก' ? 'cancelled' : 'normal'}">${escapeHtml(row.status)}</span></td>
+          <td><strong>${escapeHtml(row.paymentItem)}</strong></td>
+          <td style="max-width:320px; white-space:normal; font-size:0.8rem; line-height:1.35;">${escapeHtml(row.projectName || "-")}</td>
+          <td class="text-right"><strong>${formatMoney(row.amount, true)}</strong></td>
+          <td>${escapeHtml(row.paymentMethod)}</td>
+          <td>${escapeHtml(row.transferDate || "-")}</td>
+          <td>${escapeHtml(row.transferTime || "-")}</td>
+          <td>${escapeHtml(row.transferBank || "-")}</td>
           <td>${escapeHtml(row.issuerName)}</td>
         </tr>
       `).join("");
     }
 
-    // ======================== DATA EXPORT FUNCTIONS (CSV / EXCEL / BOOK COPIES) ========================
-    function downloadBlobFile(content, filename, mimeType) {
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 200);
-    }
-
-    function csvEscape(val) {
-      const s = String(val ?? "");
-      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-        return '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
-    }
-
-    function exportGranularReportCSV() {
+    // ======================== DATA EXPORT FUNCTIONS (EXCEL .XLSX ONLY) ========================
+    function exportAdminReportXLSX() {
       const { rows } = getFilteredGranularReportRows();
-      if (rows.length === 0) {
-        showToast("ไม่มีข้อมูลในรายงานสำหรับส่งออก", true);
+      if (!rows || rows.length === 0) {
+        showToast("ไม่มีข้อมูลในรายงานตามช่วงวันที่และตัวกรองที่เลือกสำหรับดาวน์โหลด", true);
         return;
       }
-      const headers = ["วันที่", "เวลา", "เล่มที่", "เลขที่", "ผู้ชำระ", "ชื่อโครงการ", "รายการ", "จำนวนเงิน", "ช่องทางชำระ", "สถานะ", "ผู้ออก"];
-      const csvLines = [
-        headers.join(","),
-        ...rows.map(r => {
-          let payChannelStr = r.paymentMethod;
-          if (r.paymentMethod === "เงินโอน") {
-            const timeDesc = r.transferTime ? (r.transferTime + " น.") : "ไม่ระบุเวลา";
-            payChannelStr = `เงินโอน (เข้า: ${r.universityBank || "-"} | วันที่: ${r.transferDate || r.rawDate} | เวลา: ${timeDesc})`;
-          }
-          return [
-            csvEscape(r.dateFormatted),
-            csvEscape(r.time),
-            csvEscape(r.bookNo),
-            csvEscape("'" + r.no),
-            csvEscape(r.payerFullName),
-            csvEscape(r.projectName === "-" ? "" : r.projectName),
-            csvEscape(r.paymentItem),
-            csvEscape(r.amount),
-            csvEscape(payChannelStr),
-            csvEscape(r.status),
-            csvEscape(r.issuerName)
-          ].join(",");
-        })
+
+      if (typeof XLSX === "undefined") {
+        showToast("ไลบรารีสร้างไฟล์ Excel กำลังโหลด กรุณารอสักครู่แล้วกดใหม่อีกครั้ง", true);
+        return;
+      }
+
+      const headers = [
+        "วันที่",
+        "เวลา",
+        "เล่มที่",
+        "เลขที่",
+        "ผู้ชำระ",
+        "สถานะ",
+        "รายการ",
+        "ชื่อโครงการ",
+        "จำนวนเงิน",
+        "ช่องทางชำระ",
+        "วันที่โอน",
+        "เวลา",
+        "ธนาคารที่โอน",
+        "ผู้ออก"
       ];
-      downloadBlobFile("\uFEFF" + csvLines.join("\r\n"), `รายงานการชำระเงิน_มทร_สุวรรณภูมิ_${new Date().toISOString().slice(0,10)}.csv`, "text/csv;charset=utf-8;");
-      showToast("ดาวน์โหลดไฟล์รายงาน CSV (แยกรายการย่อยละ 1 แถว) เรียบร้อยแล้ว");
+
+      const dataAoa = [
+        headers,
+        ...rows.map(r => [
+          r.rawDate || "",
+          r.time || "",
+          r.bookNo || "",
+          String(r.no || ""),
+          r.payerFullName || "",
+          r.status || "ปกติ",
+          r.paymentItem || "",
+          r.projectName === "-" ? "" : (r.projectName || ""),
+          Number(r.amount || 0),
+          r.paymentMethod || "เงินสด",
+          r.transferDate || "",
+          r.transferTime || "",
+          r.transferBank || "",
+          r.issuerName || ""
+        ])
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(dataAoa);
+
+      // กำหนดความกว้างคอลัมน์ให้จัดวางสวยงามพอดีข้อมูล
+      ws['!cols'] = [
+        { wch: 13 }, // วันที่
+        { wch: 11 }, // เวลา
+        { wch: 12 }, // เล่มที่
+        { wch: 9 },  // เลขที่
+        { wch: 26 }, // ผู้ชำระ
+        { wch: 10 }, // สถานะ
+        { wch: 16 }, // รายการ
+        { wch: 55 }, // ชื่อโครงการ
+        { wch: 14 }, // จำนวนเงิน
+        { wch: 14 }, // ช่องทางชำระ
+        { wch: 13 }, // วันที่โอน
+        { wch: 11 }, // เวลา
+        { wch: 32 }, // ธนาคารที่โอน
+        { wch: 24 }  // ผู้ออก
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "รายงานใบเสร็จรับเงิน");
+
+      const dateFrom = document.getElementById("reportDateFrom")?.value;
+      const dateTo = document.getElementById("reportDateTo")?.value;
+      let filenameDatePart = "";
+      if (dateFrom && dateTo) {
+        filenameDatePart = `_${dateFrom}_ถึง_${dateTo}`;
+      } else if (dateFrom) {
+        filenameDatePart = `_ตั้งแต่_${dateFrom}`;
+      } else if (dateTo) {
+        filenameDatePart = `_ถึง_${dateTo}`;
+      } else {
+        filenameDatePart = `_${new Date().toISOString().slice(0, 10)}`;
+      }
+
+      const filename = `รายงานใบเสร็จรับเงิน_RMUTSB${filenameDatePart}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      showToast(`ดาวน์โหลดรายงาน Excel (.xlsx) จำนวน ${rows.length} รายการ เรียบร้อยแล้ว!`);
     }
 
-    function exportGranularReportExcel() {
-      const { rows, netAmountNormal } = getFilteredGranularReportRows();
-      if (rows.length === 0) {
-        showToast("ไม่มีข้อมูลในรายงานสำหรับส่งออก", true);
-        return;
-      }
-      let tableHtml = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head><meta charset="UTF-8"></head>
-        <body>
-          <h3>รายงานการชำระเงิน มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ</h3>
-          <table border="1" style="border-collapse:collapse; font-family:Sarabun, sans-serif;">
-            <thead style="background:#dbeafe; font-weight:bold;">
-              <tr>
-                <th>วันที่</th><th>เวลา</th><th>เล่มที่</th><th>เลขที่</th><th>ผู้ชำระ</th>
-                <th>ชื่อโครงการ</th><th>รายการ</th><th>จำนวนเงิน</th><th>ช่องทางชำระ</th><th>สถานะ</th><th>ผู้ออก</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(r => `
-                <tr>
-                  <td>${escapeHtml(r.dateFormatted)}</td>
-                  <td>${escapeHtml(r.time)}</td>
-                  <td>${escapeHtml(r.bookNo)}</td>
-                  <td style="mso-number-format:'\@';">${escapeHtml(r.no)}</td>
-                  <td>${escapeHtml(r.payerFullName)}</td>
-                  <td>${escapeHtml(r.projectName === "-" ? "" : r.projectName)}</td>
-                  <td>${escapeHtml(r.paymentItem)}</td>
-                  <td>${Number(r.amount)}</td>
-                  <td>
-                    ${escapeHtml(r.paymentMethod)}
-                    ${r.paymentMethod === "เงินโอน" ? `<br/><small>เข้า: ${escapeHtml(r.universityBank || "-")}<br/>${escapeHtml(formatTransferDateThai(r.transferDate || r.rawDate))}<br/>เวลา: ${r.transferTime ? escapeHtml(r.transferTime) + " น." : "(ไม่ระบุเวลา)"}</small>` : ""}
-                  </td>
-                  <td>${escapeHtml(r.status)}</td>
-                  <td>${escapeHtml(r.issuerName)}</td>
-                </tr>
-              `).join("")}
-              <tr style="font-weight:bold; background:#f0fdfa;">
-                <td colspan="7" align="right">ยอดรวมสุทธิ (เฉพาะสถานะปกติ)</td>
-                <td>${Number(netAmountNormal)}</td>
-                <td colspan="3"></td>
-              </tr>
-            </tbody>
-          </table>
-        </body></html>
-      `;
-      downloadBlobFile("\uFEFF" + tableHtml, `รายงานการชำระเงิน_มทร_สุวรรณภูมิ_${new Date().toISOString().slice(0,10)}.xls`, "application/vnd.ms-excel;charset=utf-8;");
-      showToast("ดาวน์โหลดไฟล์รายงาน Excel (.xls) เรียบร้อยแล้ว");
-    }
+    const exportGranularReportExcel = exportAdminReportXLSX;
+    const exportGranularReportCSV = exportAdminReportXLSX;
 
     function exportSummaryReceiptsCSV() {
       const receipts = appState.receipts || [];
