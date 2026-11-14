@@ -2778,7 +2778,7 @@
             </div>
             <button class="btn btn-outline btn-sm" onclick="manualRefreshState()">Refresh ข้อมูล</button>
           </div>
-          <div class="grid-3" style="margin-bottom:0.9rem;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.9rem; margin-bottom:0.9rem;">
             <div>
               <label class="form-label">ค้นหาตามเลขที่ / ชื่อผู้ชำระ / รายการ</label>
               <input type="text" id="userHistorySearch" class="form-control" placeholder="พิมพ์เลขที่ใบเสร็จ หรือชื่อผู้ชำระ..." oninput="renderUserHistoryTable()" />
@@ -2795,6 +2795,13 @@
                 <option value="">ทุกสถานะ</option>
                 <option value="ปกติ">ปกติ</option>
                 <option value="ยกเลิก">ยกเลิก</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">กรองตามเจ้าหน้าที่ผู้ออก</label>
+              <select id="userHistoryIssuerFilter" class="form-select" onchange="renderUserHistoryTable()">
+                <option value="all">แสดงใบเสร็จทั้งหมดในระบบ (ทุกคน)</option>
+                <option value="mine">เฉพาะรายการที่คุณเป็นผู้ออก</option>
               </select>
             </div>
           </div>
@@ -9234,29 +9241,34 @@ ${loginUrl}
       const q = (document.getElementById("userHistorySearch")?.value || "").trim().toLowerCase();
       const bookFilter = document.getElementById("userHistoryBookFilter")?.value || "";
       const statusFilter = document.getElementById("userHistoryStatusFilter")?.value || "";
+      const issuerFilter = document.getElementById("userHistoryIssuerFilter")?.value || "all";
       const canCancel = currentUser && (currentUser.role === "admin" || currentUser.permission_level !== "viewer");
       const isViewerOnly = currentUser && currentUser.permission_level === "viewer" && currentUser.role !== "admin";
 
       const notice = document.getElementById("userHistoryFilterNotice");
       if (notice) {
         if (currentUser && currentUser.role !== "admin") {
-          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
+          if (issuerFilter === "mine") {
+            notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
+          } else {
+            notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; border:1px solid #bfdbfe; font-size:0.75rem;">📋 แสดงรายการใบเสร็จทั้งหมดในระบบ (คุณสามารถค้นหาและพิมพ์/ดาวน์โหลดเอกสารได้ทุกใบ)</span>`;
+          }
         } else {
           notice.innerHTML = "";
         }
       }
 
       const list = (appState.receipts || []).filter(r => {
-        // [สิทธิ์ผู้ออกใบเสร็จ]: ในหน้าระบบผู้ใช้งาน แสดงเฉพาะใบเสร็จที่ User ผู้เข้าใช้งาน เป็นคนออกใบเสร็จ
+        // กรองตามผู้ออกใบเสร็จ (หากเลือก "เฉพาะที่คุณเป็นผู้ออก")
         if (currentUser && currentUser.role !== "admin") {
-          if (!isReceiptIssuedByCurrentUser(r, currentUser)) return false;
+          if (issuerFilter === "mine" && !isReceiptIssuedByCurrentUser(r, currentUser)) return false;
         }
 
         if (bookFilter && r.bookNo !== bookFilter) return false;
         if (statusFilter && (r.status || "ปกติ") !== statusFilter) return false;
         if (q) {
           const itemStr = (r.items || []).map(i => `${i.paymentItem} ${i.projectName}`).join(" ").toLowerCase();
-          const hay = `${r.bookNo} ${r.no} ${r.payerFullName} ${itemStr}`.toLowerCase();
+          const hay = `${r.bookNo} ${r.no} ${r.payerFullName} ${r.issuerName || ""} ${itemStr}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -9265,7 +9277,7 @@ ${loginUrl}
       const sortedList = sortReceiptsNewestFirst(list);
 
       if (sortedList.length === 0) {
-        const emptyMsg = (currentUser && currentUser.role !== "admin")
+        const emptyMsg = (currentUser && currentUser.role !== "admin" && issuerFilter === "mine")
           ? `ไม่พบรายการใบเสร็จรับเงินที่คุณเป็นผู้ออก (${currentUser.display_name || currentUser.username})`
           : "ไม่พบรายการใบเสร็จรับเงิน";
         tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
@@ -9275,6 +9287,12 @@ ${loginUrl}
       tbody.innerHTML = sortedList.map(r => {
         const itemsSummary = (r.items || []).map(it => `${escapeHtml(it.paymentItem)} (${formatMoney(it.amount, true)})`).join(", ");
         const isCancelled = r.status === "ยกเลิก";
+        const isMine = currentUser && isReceiptIssuedByCurrentUser(r, currentUser);
+        const issuerBadge = isMine
+          ? `<span style="display:inline-block; background:#ecfdf5; color:#065f46; font-size:0.75rem; border:1px solid #a7f3d0; padding:2px 6px; border-radius:4px; font-weight:600;">(ของคุณ) ${escapeHtml(r.issuerName || "-")}</span>`
+          : `<span style="font-size:0.8rem; color:var(--slate-600);">${escapeHtml(r.issuerName || "-")}</span>`;
+        const canCancelThis = !isCancelled && canCancel && (currentUser.role === "admin" || isMine);
+
         return `
           <tr>
             <td>${escapeHtml(formatThaiDateShortReport(r.date))}</td>
@@ -9298,7 +9316,7 @@ ${loginUrl}
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
               ${r.cancelReason ? `<div style="font-size:0.75rem; color:#991b1b;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
             </td>
-            <td>${escapeHtml(r.issuerName || "-")}</td>
+            <td>${issuerBadge}</td>
             <td class="text-center" style="white-space:nowrap;">
               ${isViewerOnly ? `
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
@@ -9307,7 +9325,7 @@ ${loginUrl}
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
                 <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
               `}
-              ${canCancel && !isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
+              ${canCancelThis ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
             </td>
           </tr>
         `;
@@ -9323,33 +9341,28 @@ ${loginUrl}
 
       const notice = document.getElementById("userRecentFilterNotice");
       if (notice) {
-        if (currentUser && currentUser.role !== "admin") {
-          notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#ecfdf5; color:#065f46; padding:3px 10px; border-radius:9999px; border:1px solid #a7f3d0; font-size:0.75rem;">🔒 แสดงเฉพาะรายการใบเสร็จที่คุณเป็นผู้ออก (เจ้าหน้าที่: ${escapeHtml(currentUser.display_name || currentUser.username)})</span>`;
-        } else {
-          notice.innerHTML = "";
-        }
+        notice.innerHTML = `<span style="display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1e40af; padding:3px 10px; border-radius:9999px; border:1px solid #bfdbfe; font-size:0.75rem;">📋 แสดงรายการใบเสร็จล่าสุดในระบบ เพื่อให้เห็นลำดับเลขที่ต่อเนื่อง (คุณสามารถพิมพ์/ดาวน์โหลดเอกสารได้ทุกใบ)</span>`;
       }
 
       let allReceipts = appState.receipts || [];
-      // [สิทธิ์ผู้ออกใบเสร็จ]: ในหน้าระบบผู้ใช้งาน แสดงเฉพาะใบเสร็จที่ User ผู้เข้าใช้งาน เป็นคนออกใบเสร็จ
-      if (currentUser && currentUser.role !== "admin") {
-        allReceipts = allReceipts.filter(r => isReceiptIssuedByCurrentUser(r, currentUser));
-      }
 
       // เรียงลำดับไทม์ไลน์: แสดงใบเสร็จที่ออกล่าสุดขึ้นก่อน (Newest First)
       const receipts = sortReceiptsNewestFirst(allReceipts).slice(0, 15);
 
       if (receipts.length === 0) {
-        const emptyMsg = (currentUser && currentUser.role !== "admin")
-          ? `ยังไม่มีประวัติการออกใบเสร็จรับเงินที่คุณเป็นผู้ออก (${currentUser.display_name || currentUser.username})`
-          : "ยังไม่มีประวัติการออกใบเสร็จรับเงิน";
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">${escapeHtml(emptyMsg)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding:1.5rem; color:var(--slate-500);">ยังไม่มีประวัติการออกใบเสร็จรับเงิน</td></tr>`;
         return;
       }
 
       tbody.innerHTML = receipts.map(r => {
         const itemsSummary = (r.items || []).map(it => `${escapeHtml(it.paymentItem)} (${formatMoney(it.amount, true)})`).join(", ");
         const isCancelled = r.status === "ยกเลิก";
+        const isMine = currentUser && isReceiptIssuedByCurrentUser(r, currentUser);
+        const issuerBadge = isMine
+          ? `<span style="display:inline-block; background:#ecfdf5; color:#065f46; font-size:0.75rem; border:1px solid #a7f3d0; padding:2px 6px; border-radius:4px; font-weight:600;">(ของคุณ) ${escapeHtml(r.issuerName || "-")}</span>`
+          : `<span style="font-size:0.8rem; color:var(--slate-600);">${escapeHtml(r.issuerName || "-")}</span>`;
+        const canCancelThis = !isCancelled && canCancel && (currentUser.role === "admin" || isMine);
+
         return `
           <tr>
             <td>${escapeHtml(formatThaiDateShortReport(r.date))}</td>
@@ -9373,7 +9386,7 @@ ${loginUrl}
               <span class="status-pill ${isCancelled ? 'cancelled' : 'normal'}">${escapeHtml(r.status || "ปกติ")}</span>
               ${r.cancelReason ? `<div style="font-size:0.75rem; color:#991b1b;">เหตุผล: ${escapeHtml(r.cancelReason)}</div>` : ""}
             </td>
-            <td>${escapeHtml(r.issuerName || "-")}</td>
+            <td>${issuerBadge}</td>
             <td class="text-center" style="white-space:nowrap;">
               ${isViewerOnly ? `
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'original')">พิมพ์ต้นฉบับ / PDF</button>
@@ -9382,7 +9395,7 @@ ${loginUrl}
                 <button class="btn btn-primary btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'both')">พิมพ์ / PDF (2 หน้า)</button>
                 <button class="btn btn-outline btn-sm" onclick="openPrintReceiptById('${escapeAttr(r.id)}', 'copy')">เฉพาะสำเนา</button>
               `}
-              ${canCancel && !isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
+              ${canCancelThis ? `<button class="btn btn-danger btn-sm" onclick="openCancelReceiptModal('${escapeAttr(r.bookNo)}', '${escapeAttr(r.no)}', '${escapeAttr(r.id)}')">ยกเลิก</button>` : ""}
             </td>
           </tr>
         `;
