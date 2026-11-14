@@ -8156,7 +8156,14 @@ ${loginUrl}
       if (bookBanner) {
         if (activeBook) {
           const digits = Math.max(Number(activeBook.digits || 3), 3);
-          const nextNum = Math.max(Number(activeBook.latest || 0) + 1, Number(activeBook.start || 1));
+          const existingNos = (appState.receipts || [])
+            .filter(r => r && r.bookNo === activeBook.bookNo)
+            .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
+          const trueLatest = Math.max(Number(activeBook.latest || 0), ...existingNos);
+          if (trueLatest > (Number(activeBook.latest) || 0)) {
+            activeBook.latest = trueLatest;
+          }
+          const nextNum = Math.max(trueLatest + 1, Number(activeBook.start || 1));
           bookBanner.textContent = `เล่มที่ ${activeBook.bookNo} | เลขที่ถัดไปที่จะออก: ${String(nextNum).padStart(digits, "0")}`;
         } else {
           bookBanner.textContent = "ยังไม่มีเล่มใบเสร็จที่เปิดใช้งาน (กรุณาแจ้ง Admin เปิดเล่มใบเสร็จ)";
@@ -8898,7 +8905,14 @@ ${loginUrl}
 
       const activeBook = (appState.books || []).find(b => b.active && !b.closed);
       const digits = activeBook ? Math.max(Number(activeBook.digits || 3), 3) : 3;
-      const startNum = activeBook ? Math.max(Number(activeBook.latest || 0) + 1, Number(activeBook.start || 1)) : 1;
+      const existingNos = (appState.receipts || [])
+        .filter(r => r && activeBook && r.bookNo === activeBook.bookNo)
+        .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
+      const trueLatest = activeBook ? Math.max(Number(activeBook.latest || 0), ...existingNos) : 0;
+      if (activeBook && trueLatest > (Number(activeBook.latest) || 0)) {
+        activeBook.latest = trueLatest;
+      }
+      const startNum = activeBook ? Math.max(trueLatest + 1, Number(activeBook.start || 1)) : 1;
       const validRows = batchParsedReceipts.filter(r => r.isValid);
       const totalAmount = validRows.reduce((sum, r) => sum + r.amount, 0);
 
