@@ -1805,13 +1805,10 @@
 
       <!-- Footer Buttons -->
       <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--slate-200); flex-wrap:wrap; gap:0.5rem;">
-        <button type="button" class="btn btn-outline btn-sm" onclick="closeBatchImportModal()">ยกเลิก</button>
-        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-          <button type="button" id="batchSaveOnlyBtn" class="btn btn-primary" disabled onclick="executeBatchIssue(false)" style="display:inline-flex; align-items:center; gap:0.35rem; background:#1e40af; border-color:#1e40af;">
-            💾 บันทึกข้อมูลใบเสร็จลงระบบหลังบ้าน
-          </button>
-          <button type="button" id="batchConfirmBtn" class="btn btn-success" disabled onclick="executeBatchIssue(true)" style="display:inline-flex; align-items:center; gap:0.35rem;">
-            🖨️ บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ
+        <button type="button" class="btn btn-outline" onclick="closeBatchImportModal()">ยกเลิก</button>
+        <div>
+          <button type="button" id="batchSaveAndPrintBtn" class="btn btn-primary" disabled onclick="executeBatchIssue()" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.65rem 1.4rem; font-size:0.95rem; font-weight:600; background:#1e40af; border-color:#1e40af; box-shadow: 0 2px 4px rgba(30, 64, 175, 0.25);">
+            💾 บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ
           </button>
         </div>
       </div>
@@ -8573,15 +8570,10 @@ ${loginUrl}
       const batchTimeInput = document.getElementById("batchReceiptTimeInput");
       if (batchTimeInput) batchTimeInput.value = defaultTime;
 
-      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
-      if (saveOnlyBtn) {
-        saveOnlyBtn.disabled = true;
-        saveOnlyBtn.textContent = "💾 บันทึกข้อมูลใบเสร็จลงระบบหลังบ้าน";
-      }
-      const confirmBtn = document.getElementById("batchConfirmBtn");
-      if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = "🖨️ บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ";
+      const saveAndPrintBtn = document.getElementById("batchSaveAndPrintBtn") || document.getElementById("batchSaveOnlyBtn") || document.getElementById("batchConfirmBtn");
+      if (saveAndPrintBtn) {
+        saveAndPrintBtn.disabled = true;
+        saveAndPrintBtn.textContent = "💾 บันทึกข้อมูลและสั่งพิมพ์ใบเสร็จ";
       }
 
       const modal = document.getElementById("batchImportModal");
@@ -8896,16 +8888,14 @@ ${loginUrl}
     function renderBatchPreview() {
       const previewSec = document.getElementById("batchPreviewSection");
       const tbody = document.getElementById("batchPreviewTableBody");
-      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
-      const confirmBtn = document.getElementById("batchConfirmBtn");
+      const saveAndPrintBtn = document.getElementById("batchSaveAndPrintBtn") || document.getElementById("batchSaveOnlyBtn") || document.getElementById("batchConfirmBtn");
       const targetBookBadge = document.getElementById("batchTargetBookBadge");
 
       if (!previewSec || !tbody) return;
 
       if (batchParsedReceipts.length === 0) {
         previewSec.style.display = "none";
-        if (saveOnlyBtn) saveOnlyBtn.disabled = true;
-        if (confirmBtn) confirmBtn.disabled = true;
+        if (saveAndPrintBtn) saveAndPrintBtn.disabled = true;
         showToast("ไม่พบรายการที่ถูกต้องในไฟล์", true);
         return;
       }
@@ -8979,17 +8969,13 @@ ${loginUrl}
         `;
       }).join("");
 
-      if (saveOnlyBtn) {
-        saveOnlyBtn.disabled = validRows.length === 0 || !activeBook;
-        saveOnlyBtn.textContent = `💾 บันทึกข้อมูลใบเสร็จ ${validRows.length} ใบ (ลงระบบหลังบ้าน)`;
-      }
-      if (confirmBtn) {
-        confirmBtn.disabled = validRows.length === 0 || !activeBook;
-        confirmBtn.textContent = `🖨️ บันทึกข้อมูลและสั่งพิมพ์ ${validRows.length} ใบ`;
+      if (saveAndPrintBtn) {
+        saveAndPrintBtn.disabled = validRows.length === 0 || !activeBook;
+        saveAndPrintBtn.innerHTML = `💾 บันทึกข้อมูลและสั่งพิมพ์ ${validRows.length} ใบ (ลงระบบหลังบ้าน)`;
       }
     }
 
-    async function executeBatchIssue(andPrint = true) {
+    async function executeBatchIssue() {
       if (currentUser && currentUser.active === false) {
         showToast("บัญชีผู้ใช้งานของคุณถูกปิดการใช้งาน ไม่สามารถออกใบเสร็จได้", true);
         return;
@@ -9005,14 +8991,12 @@ ${loginUrl}
         return;
       }
 
-      const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
-      const confirmBtn = document.getElementById("batchConfirmBtn");
+      const saveAndPrintBtn = document.getElementById("batchSaveAndPrintBtn") || document.getElementById("batchSaveOnlyBtn") || document.getElementById("batchConfirmBtn");
       const progressSec = document.getElementById("batchProgressSection");
       const progressBar = document.getElementById("batchProgressBar");
       const progressText = document.getElementById("batchProgressText");
 
-      if (saveOnlyBtn) saveOnlyBtn.disabled = true;
-      if (confirmBtn) confirmBtn.disabled = true;
+      if (saveAndPrintBtn) saveAndPrintBtn.disabled = true;
       if (progressSec) progressSec.style.display = "block";
       if (progressBar) progressBar.style.width = "20%";
       if (progressText) progressText.textContent = "กำลังซิงค์และตรวจสอบเลขที่ใบเสร็จล่าสุดจากฐานข้อมูลกลาง...";
@@ -9120,36 +9104,26 @@ ${loginUrl}
         activeBook.end = end;
         books[activeIdx] = activeBook;
 
-        if (progressBar) progressBar.style.width = "80%";
-        if (progressText) progressText.textContent = `กำลังบันทึกและซิงค์ข้อมูลลงฐานข้อมูลหลังบ้าน...`;
+        if (progressBar) progressBar.style.width = "75%";
+        if (progressText) progressText.textContent = `กำลังบันทึกและซิงค์ข้อมูลเรียลไทม์ (Admin & User)...`;
 
         appState.books = books;
         appState.receipts = [...newReceipts, ...(appState.receipts || [])];
 
-        // บันทึกและซิงค์ข้อมูลลงฐานข้อมูลหลังบ้าน (Google Sheets, Supabase, Local)
+        // บันทึกลงระบบข้อมูลหลังบ้านและส่งอัปเดตเรียลไทม์ทุกระบบทันที (Supabase, BroadcastChannel, Local)
         await persistAppState();
 
-        // รับประกันการบันทึกข้อมูลและรันลำดับลง Google Sheet และ Supabase
+        // ซิงค์ข้อมูลลง Google Sheets ในระบบหลังบ้าน (พร้อม Safety Timeout เพื่อความรวดเร็วและเสถียร)
         if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
           if (progressBar) progressBar.style.width = "90%";
           if (progressText) progressText.textContent = "กำลังซิงค์ข้อมูลลง Google Sheets...";
           try {
-            await persistStateToGas(gasWebAppUrl, appState);
+            await Promise.race([
+              persistStateToGas(gasWebAppUrl, appState),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("GAS sync running in background")), 7000))
+            ]);
           } catch(e) {
-            console.warn("GAS persist state warning:", e);
-          }
-        }
-        if (supabaseClient) {
-          if (progressBar) progressBar.style.width = "95%";
-          if (progressText) progressText.textContent = "กำลังซิงค์ข้อมูลลงฐานข้อมูล Supabase...";
-          try {
-            await supabaseClient.from("app_state").upsert({
-              id: "main",
-              data: appState,
-              updated_at: new Date().toISOString()
-            });
-          } catch(e) {
-            console.warn("Supabase direct upsert warning:", e);
+            console.warn("GAS persist state notice:", e.message);
           }
         }
 
@@ -9160,20 +9134,17 @@ ${loginUrl}
         const nextNumUpcoming = currentLatest + 1;
         const nextPadUpcoming = String(nextNumUpcoming).padStart(digits, "0");
 
-        showToast(`✓ บันทึกข้อมูลใบเสร็จ ${newReceipts.length} ใบ สำเร็จ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo}) ข้อมูลถูกจัดเก็บลงระบบหลังบ้านเรียบร้อย พร้อมรันเลขที่ถัดไป (${nextPadUpcoming}) อัตโนมัติ`);
+        showToast(`✓ บันทึกข้อมูลใบเสร็จ ${newReceipts.length} ใบ สำเร็จ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo}) และเปิดหน้าต่างสั่งพิมพ์เรียบร้อย`);
 
         closeBatchImportModal();
 
-        // หากผู้ใช้เลือก "บันทึกข้อมูลและสั่งพิมพ์" ให้เปิดหน้าต่างพิมพ์ใบเสร็จ
-        if (andPrint) {
-          renderReceiptPrintModal(newReceipts, "both");
-        }
+        // แสดงหน้าต่างสั่งพิมพ์ใบเสร็จ เพื่อสั่งพิมพ์หรือดาวน์โหลดทันที
+        renderReceiptPrintModal(newReceipts, "both");
       } catch (err) {
         console.error("Batch issue error:", err);
         showToast("เกิดข้อผิดพลาดในการออกใบเสร็จเป็นชุด: " + err.message, true);
       } finally {
-        if (saveOnlyBtn) saveOnlyBtn.disabled = false;
-        if (confirmBtn) confirmBtn.disabled = false;
+        if (saveAndPrintBtn) saveAndPrintBtn.disabled = false;
         if (progressSec) progressSec.style.display = "none";
       }
     }
