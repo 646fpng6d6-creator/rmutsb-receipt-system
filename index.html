@@ -3898,14 +3898,10 @@
       // 1. เล่ม TEST001 หรือชื่อเล่มขึ้นต้นด้วย TEST (ข้อมูลทดสอบ ไม่เกี่ยวข้องกับระบบจริง)
       if (b === "TEST001" || b.startsWith("TEST")) return true;
 
-      // 2. ข้อมูลการออกใบเสร็จวันที่ 10 พ.ย. 69 (2026-11-10) จากการทดสอบระบบ
+      // 2. ข้อมูลการออกใบเสร็จวันที่ 10 พ.ย. 69 (2026-11-10) จากการทดสอบระบบในอดีต (ไม่รวมวันที่อื่น)
       if (r.date === "2026-11-10") return true;
 
-      // 3. เล่ม RUS70001 เลขที่ 0208 ถึง 0232 (หรือข้อมูลทดสอบที่เกินเลขที่จริง 207 ในช่วงทดลอง)
-      const noNum = parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0;
-      if (b === "RUS70001" && (noNum >= 208 && noNum <= 250)) return true;
-
-      // 4. ลบข้อมูลใบเสร็จเล่ม AN704001 ทั้งหมดตามคำสั่งของผู้ใช้งาน
+      // 3. ลบข้อมูลใบเสร็จเล่ม AN704001 ทั้งหมดตามคำสั่งของผู้ใช้งาน
       if (b === "AN704001") return true;
 
       return false;
@@ -4190,7 +4186,7 @@
             const rusNos = (merged.receipts || [])
               .filter(r => r && r.bookNo === "RUS70001")
               .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
-            const maxRus = rusNos.length > 0 ? Math.max(...rusNos) : 207;
+            const maxRus = Math.max(Number(rusBook.latest || 0), ...rusNos, 207);
             rusBook.latest = maxRus;
             if (rusBook.end < 1000) rusBook.end = 1000;
             rusBook.active = true;
@@ -4557,11 +4553,11 @@
         }
       }
 
-      // ล้างข้อมูลทดลอง (TEST001, RUS70001 0208-0232, วันที่ 2026-11-10, AN704001) จาก LocalStorage ของเครื่องทันที
+      // ล้างข้อมูลทดลอง (TEST001, วันที่ 2026-11-10, AN704001) จาก LocalStorage ของเครื่องทันที
       try {
         ["rmutsb_fallback_app_state", "rmutsb_app_state"].forEach(key => {
           const raw = safeGetItem(key);
-          if (raw && (raw.includes("TEST001") || raw.includes("0208") || raw.includes("2026-11-10") || raw.includes("AN704001"))) {
+          if (raw && (raw.includes("TEST001") || raw.includes("2026-11-10") || raw.includes("AN704001"))) {
             try {
               const parsed = JSON.parse(raw);
               if (parsed) {
@@ -9006,13 +9002,6 @@ ${loginUrl}
         return;
       }
 
-      const books = [...(appState.books || [])];
-      const activeIdx = books.findIndex(b => b.active && !b.closed);
-      if (activeIdx < 0) {
-        showToast("ไม่พบเล่มใบเสร็จที่เปิดใช้งาน (Active) กรุณาแจ้ง Admin เปิดเล่มใบเสร็จก่อนดำเนินการ", true);
-        return;
-      }
-
       const saveOnlyBtn = document.getElementById("batchSaveOnlyBtn");
       const confirmBtn = document.getElementById("batchConfirmBtn");
       const progressSec = document.getElementById("batchProgressSection");
@@ -9022,8 +9011,20 @@ ${loginUrl}
       if (saveOnlyBtn) saveOnlyBtn.disabled = true;
       if (confirmBtn) confirmBtn.disabled = true;
       if (progressSec) progressSec.style.display = "block";
+      if (progressBar) progressBar.style.width = "20%";
+      if (progressText) progressText.textContent = "กำลังซิงค์และตรวจสอบเลขที่ใบเสร็จล่าสุดจากฐานข้อมูลกลาง...";
 
       try {
+        // 1. ซิงค์ข้อมูลล่าสุดจากฐานข้อมูลกลางก่อนเสมอ เพื่อให้ได้เลขที่ล่าสุดที่แท้จริง
+        await loadAppStateFromStorageOrSupabase(false);
+
+        const books = [...(appState.books || [])];
+        const activeIdx = books.findIndex(b => b.active && !b.closed);
+        if (activeIdx < 0) {
+          showToast("ไม่พบเล่มใบเสร็จที่เปิดใช้งาน (Active) กรุณาแจ้ง Admin เปิดเล่มใบเสร็จก่อนดำเนินการ", true);
+          return;
+        }
+
         const activeBook = Object.assign({}, books[activeIdx]);
         const start = Number(activeBook.start || 1);
         let end = Number(activeBook.end || 100);
@@ -9032,147 +9033,91 @@ ${loginUrl}
         const selectedReceiptDate = document.getElementById("batchReceiptDateInput")?.value || new Date().toISOString().slice(0, 10);
         const selectedReceiptTime = document.getElementById("batchReceiptTimeInput")?.value || new Date().toTimeString().slice(0, 5);
 
-        // กำหนดวันที่ออกใบเสร็จตามที่เลือกในระบบให้กับทุกรายการ
-        validRows.forEach(r => {
-          r.receiptDate = selectedReceiptDate;
-          r.receiptTime = selectedReceiptTime;
-          r.date = selectedReceiptDate;
-          r.time = selectedReceiptTime;
-        });
+        if (progressBar) progressBar.style.width = "40%";
+        if (progressText) progressText.textContent = "กำลังคำนวณและจัดสรรเลขที่ใบเสร็จ (Zero-Duplicate Sequencer)...";
 
-        let newReceipts = [];
-        let usedProvider = "local";
+        // ค้นหาเลขที่สูงสุดที่แท้จริงจากใบเสร็จที่มีอยู่ทั้งหมดในระบบ
+        const existingNos = (appState.receipts || [])
+          .filter(r => r && r.bookNo === activeBook.bookNo)
+          .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
 
-        // 2. หากเชื่อมต่อ Google Sheets Web App ให้ใช้ Atomic Batch Issue (LockService) บนเซิร์ฟเวอร์
-        if (isGoogleSheetMode()) {
-          if (progressText) progressText.textContent = "กำลังส่งคำขอ Atomic Lock ไปยัง Google Sheets API...";
-          if (progressBar) progressBar.style.width = "50%";
+        let currentLatest = Math.max(Number(activeBook.latest || 0), ...existingNos, start - 1);
+        const baseTimestamp = Date.now();
+        const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
 
-          try {
-            const serverRes = await requestBatchIssueFromGas(gasWebAppUrl, validRows, activeBook.bookNo, {
-              name: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
-              staffCode: (currentUser && currentUser.staff_code) || "",
-              position: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
-              signatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
-              signatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100,
-              receiptDate: selectedReceiptDate,
-              receiptTime: selectedReceiptTime
-            });
+        const newReceipts = [];
+        for (let i = 0; i < validRows.length; i++) {
+          const row = validRows[i];
+          currentLatest++;
+          let receiptNo = String(currentLatest).padStart(digits, "0");
 
-            if (serverRes && serverRes.status === "success" && Array.isArray(serverRes.receipts) && serverRes.receipts.length > 0) {
-              newReceipts = serverRes.receipts;
-              usedProvider = "googlesheet-atomic";
-
-              // กำหนดวันที่ออกใบเสร็จและวันที่โอนตามที่ระบุในระบบ
-              newReceipts.forEach((r, idx) => {
-                r.date = selectedReceiptDate;
-                if (selectedReceiptTime) r.time = selectedReceiptTime;
-                if (validRows[idx] && validRows[idx].transferDate) {
-                  r.transferDate = validRows[idx].transferDate;
-                  r.transferTime = validRows[idx].transferTime;
-                }
-              });
-
-              const maxIssuedNo = Math.max(...newReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0));
-              if (maxIssuedNo > (Number(activeBook.latest) || 0)) {
-                activeBook.latest = maxIssuedNo;
-              }
-              if (maxIssuedNo > end) {
-                activeBook.end = Math.max(end + 500, maxIssuedNo + 100);
-              }
-            }
-          } catch (gasErr) {
-            console.warn("Google Sheet Atomic API failed, falling back to local atomic sequencer:", gasErr);
-          }
-        }
-
-        // 3. หากยังไม่ได้สร้างใบเสร็จ (เช่น โหมด Supabase หรือ Offline Fallback) ให้ใช้ Local Atomic Sequencer
-        if (newReceipts.length === 0) {
-          if (progressText) progressText.textContent = "กำลังจัดสรรเลขที่ใบเสร็จด้วยระบบคำนวณขั้นสูง (Zero-Duplicate Sequencer)...";
-          if (progressBar) progressBar.style.width = "65%";
-
-          // ค้นหาเลขที่สูงสุดที่แท้จริงจากใบเสร็จที่มีอยู่ทั้งหมดในระบบ
-          const existingNos = (appState.receipts || [])
-            .filter(r => r && r.bookNo === activeBook.bookNo)
-            .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
-
-          let currentLatest = Math.max(Number(activeBook.latest || 0), ...existingNos, start - 1);
-          const baseTimestamp = Date.now();
-          const standardPrefixesNoSpace = ["นาย", "นาง", "นางสาว", "ดร.", "ผศ.", "รศ.", "ศ.", "ผศ.ดร.", "รศ.ดร."];
-
-          for (let i = 0; i < validRows.length; i++) {
-            const row = validRows[i];
+          // ดับเบิ้ลเช็ค: หากเลขนี้ถูกใช้ไปแล้วไม่ว่าจะด้วยกรณีใด ให้เลื่อนไปเลขถัดไปทันที
+          while ((appState.receipts || []).some(r => r && r.bookNo === activeBook.bookNo && r.no === receiptNo)) {
             currentLatest++;
-            let receiptNo = String(currentLatest).padStart(digits, "0");
-
-            // ดับเบิ้ลเช็ค: หากเลขนี้ถูกใช้ไปแล้วไม่ว่าจะด้วยกรณีใด ให้เลื่อนไปเลขถัดไปทันที
-            while ((appState.receipts || []).some(r => r && r.bookNo === activeBook.bookNo && r.no === receiptNo)) {
-              currentLatest++;
-              receiptNo = String(currentLatest).padStart(digits, "0");
-            }
-
-            if (currentLatest > end) {
-              end = Math.max(end + 500, currentLatest + 100);
-            }
-
-            let prefixFormatted = "";
-            if (row.title) {
-              prefixFormatted = standardPrefixesNoSpace.includes(row.title) ? row.title : (row.title + " ");
-            }
-            const payerFullName = `${prefixFormatted}${row.firstName}${row.lastName ? " " + row.lastName : ""}`.trim();
-
-            const rcp = {
-              id: "rcp-" + (baseTimestamp + i) + "-" + Math.random().toString(36).substring(2, 6),
-              bookNo: activeBook.bookNo,
-              no: receiptNo,
-              status: "ปกติ",
-              cancelReason: "",
-              createdAt: new Date(baseTimestamp + i * 20).toISOString(),
-              date: selectedReceiptDate, // วันที่ออกใบเสร็จตามที่เลือกในหน้าระบบ
-              time: selectedReceiptTime || new Date().toTimeString().slice(0, 5),
-              payerType: row.payerType || "บุคคลทั่วไป",
-              paymentMethod: row.paymentMethod || "เงินโอน",
-              payerBank: row.payerBank || "",
-              universityBank: row.universityBank || "ธนาคารกรุงไทย (128-0-79185-3)",
-              transferDate: row.transferDate || selectedReceiptDate, // วันที่โอนจากไฟล์ (ไม่เกี่ยวกับวันที่ใบเสร็จ)
-              transferTime: row.transferTime || "",
-              title: row.title || "",
-              firstName: row.firstName || "",
-              lastName: row.lastName || "",
-              payerFullName: payerFullName,
-              detailLine1: row.detailLine1 || "",
-              studentCode: "",
-              detailLine2: row.detailLine2 || "",
-              items: [
-                {
-                  paymentItem: row.paymentItem || "ค่าลงทะเบียน",
-                  projectName: row.projectName || "โครงการอบรม",
-                  amount: row.amount
-                }
-              ],
-              totalAmount: row.amount,
-              issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
-              issuerStaffCode: (currentUser && currentUser.staff_code) || "",
-              issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
-              issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
-              issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
-            };
-
-            newReceipts.push(rcp);
-
-            if (progressBar && progressText && (i % 10 === 0 || i === validRows.length - 1)) {
-              const pct = 65 + Math.round(((i + 1) / validRows.length) * 25);
-              progressBar.style.width = pct + "%";
-              progressText.textContent = `กำลังสร้างใบเสร็จ... ${i + 1} / ${validRows.length} (${pct}%)`;
-            }
+            receiptNo = String(currentLatest).padStart(digits, "0");
           }
 
-          activeBook.latest = currentLatest;
-          activeBook.end = end;
+          if (currentLatest > end) {
+            end = Math.max(end + 500, currentLatest + 100);
+          }
+
+          let prefixFormatted = "";
+          if (row.title) {
+            prefixFormatted = standardPrefixesNoSpace.includes(row.title) ? row.title : (row.title + " ");
+          }
+          const payerFullName = `${prefixFormatted}${row.firstName}${row.lastName ? " " + row.lastName : ""}`.trim();
+
+          const rcp = {
+            id: "rcp-" + (baseTimestamp + i) + "-" + Math.random().toString(36).substring(2, 6),
+            bookNo: activeBook.bookNo,
+            no: receiptNo,
+            status: "ปกติ",
+            cancelReason: "",
+            createdAt: new Date(baseTimestamp + i * 20).toISOString(),
+            date: selectedReceiptDate, // วันที่ออกใบเสร็จตามที่เลือกในหน้าระบบ
+            time: selectedReceiptTime || new Date().toTimeString().slice(0, 5),
+            payerType: row.payerType || "บุคคลทั่วไป",
+            paymentMethod: row.paymentMethod || "เงินโอน",
+            payerBank: row.payerBank || "",
+            universityBank: row.universityBank || "ธนาคารกรุงไทย (128-0-79185-3)",
+            transferDate: row.transferDate || selectedReceiptDate, // วันที่โอนจากไฟล์ (ไม่เกี่ยวกับวันที่ใบเสร็จ)
+            transferTime: row.transferTime || "",
+            title: row.title || "",
+            firstName: row.firstName || "",
+            lastName: row.lastName || "",
+            payerFullName: payerFullName,
+            detailLine1: row.detailLine1 || "",
+            studentCode: "",
+            detailLine2: row.detailLine2 || "",
+            items: [
+              {
+                paymentItem: row.paymentItem || "ค่าลงทะเบียน",
+                projectName: row.projectName || "โครงการอบรม",
+                amount: row.amount
+              }
+            ],
+            totalAmount: row.amount,
+            issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
+            issuerStaffCode: (currentUser && currentUser.staff_code) || "",
+            issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
+            issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
+            issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
+          };
+
+          newReceipts.push(rcp);
+
+          if (progressBar && progressText && (i % 10 === 0 || i === validRows.length - 1)) {
+            const pct = 40 + Math.round(((i + 1) / validRows.length) * 35);
+            progressBar.style.width = pct + "%";
+            progressText.textContent = `กำลังสร้างใบเสร็จ... ${i + 1} / ${validRows.length} (${pct}%)`;
+          }
         }
 
+        activeBook.latest = currentLatest;
+        activeBook.end = end;
         books[activeIdx] = activeBook;
-        if (progressBar) progressBar.style.width = "95%";
+
+        if (progressBar) progressBar.style.width = "80%";
         if (progressText) progressText.textContent = `กำลังบันทึกและซิงค์ข้อมูลลงฐานข้อมูลหลังบ้าน...`;
 
         appState.books = books;
@@ -9183,6 +9128,8 @@ ${loginUrl}
 
         // รับประกันการบันทึกข้อมูลและรันลำดับลง Google Sheet และ Supabase
         if (gasWebAppUrl && gasWebAppUrl.startsWith("http")) {
+          if (progressBar) progressBar.style.width = "90%";
+          if (progressText) progressText.textContent = "กำลังซิงค์ข้อมูลลง Google Sheets...";
           try {
             await persistStateToGas(gasWebAppUrl, appState);
           } catch(e) {
@@ -9190,6 +9137,8 @@ ${loginUrl}
           }
         }
         if (supabaseClient) {
+          if (progressBar) progressBar.style.width = "95%";
+          if (progressText) progressText.textContent = "กำลังซิงค์ข้อมูลลงฐานข้อมูล Supabase...";
           try {
             await supabaseClient.from("app_state").upsert({
               id: "main",
@@ -9205,7 +9154,7 @@ ${loginUrl}
 
         const firstNo = newReceipts[0].no;
         const lastNo = newReceipts[newReceipts.length - 1].no;
-        const nextNumUpcoming = Math.max(...newReceipts.map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0)) + 1;
+        const nextNumUpcoming = currentLatest + 1;
         const nextPadUpcoming = String(nextNumUpcoming).padStart(digits, "0");
 
         showToast(`✓ บันทึกข้อมูลใบเสร็จ ${newReceipts.length} ใบ สำเร็จ (เล่มที่ ${activeBook.bookNo} เลขที่ ${firstNo} ถึง ${lastNo}) ข้อมูลถูกจัดเก็บลงระบบหลังบ้านเรียบร้อย พร้อมรันเลขที่ถัดไป (${nextPadUpcoming}) อัตโนมัติ`);
