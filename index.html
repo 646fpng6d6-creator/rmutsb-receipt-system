@@ -4209,6 +4209,63 @@
           }
         }
 
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0222 และ 0223 ให้มีชื่อโครงการปี พ.ศ. 2569 ถูกต้องตรงตามคำสั่ง
+        const project2569Asset = "โครงการอบรมเชิงปฏิบัติการ หลักสูตร “เสริมสร้างความรู้และทักษะการบริหารจัดการงานทะเบียนสินทรัพย์และบัญชีสินทรัพย์ขององค์กรปกครองส่วนท้องถิ่น รุ่นที่ 5 ระหว่างวันที่ 13 - 15 พฤศจิกายน พ.ศ. 2569";
+        ["0222", "0223"].forEach(targetNo => {
+          const r = merged.receipts.find(x => x && x.bookNo === "RUS70001" && (x.no === targetNo || x.no === String(parseInt(targetNo, 10))));
+          if (r) {
+            if (r.items && r.items.length > 0) {
+              r.items[0].projectName = project2569Asset;
+            } else {
+              r.items = [{ paymentItem: "ค่าลงทะเบียน", amount: 4900, projectName: project2569Asset }];
+            }
+          }
+        });
+
+        // ตรวจสอบและปรับปรุงข้อมูลใบเสร็จ RUS70001 เลขที่ 0349-0355 ให้ตรงตามไฟล์ 2.สินทรัพย์-เพิ่มเติมแก้ไข.xlsx
+        const assetFixedMap = {
+          "0349": { title: "นางสาว", firstName: "สกุลรัตน์", lastName: "ไชยชมภู", fullName: "นางสาวสกุลรัตน์ ไชยชมภู", org1: "เทศบาลตำบลพอกน้อย", org2: "อำเภอพรรณานิคม  จังหวัดสกลนคร", method: "เงินสด", amount: 4900, bank: "", transferDate: "", transferTime: "" },
+          "0350": { title: "นางสาว", firstName: "น้ำฝน", lastName: "ทิพกุล", fullName: "นางสาวน้ำฝน ทิพกุล", org1: "เทศบาลตำบลพอกน้อย", org2: "อำเภอพรรณานิคม  จังหวัดสกลนคร", method: "เงินสด", amount: 4900, bank: "", transferDate: "", transferTime: "" },
+          "0351": { title: "นางสาว", firstName: "ทิพธิวา", lastName: "จันทร์มาลา", fullName: "นางสาวทิพธิวา จันทร์มาลา", org1: "เทศบาลตำบลพอกน้อย", org2: "อำเภอพรรณานิคม  จังหวัดสกลนคร", method: "เงินสด", amount: 4900, bank: "", transferDate: "", transferTime: "" },
+          "0352": { title: "นางสาว", firstName: "ประภาพร", lastName: "รูปสูง", fullName: "นางสาวประภาพร รูปสูง", org1: "เทศบาลตำบลพอกน้อย", org2: "อำเภอพรรณานิคม  จังหวัดสกลนคร", method: "เงินสด", amount: 4900, bank: "", transferDate: "", transferTime: "" },
+          "0353": { title: "นางสาว", firstName: "สุนิสา", lastName: "นาดประนิล", fullName: "นางสาวสุนิสา นาดประนิล", org1: "เทศบาลตำบลพอกน้อย", org2: "อำเภอพรรณานิคม  จังหวัดสกลนคร", method: "เงินสด", amount: 4900, bank: "", transferDate: "", transferTime: "" },
+          "0354": { title: "นางสาว", firstName: "กนกวรรณ", lastName: "รังคะราช", fullName: "นางสาวกนกวรรณ รังคะราช", org1: "เทศบาลตำบลผาเสวย", org2: "อำเภอสมเด็จ  จังหวัดกาฬสินธุ์", method: "เงินโอน", amount: 4900, bank: "ธนาคารกรุงไทย", transferDate: "2026-11-11", transferTime: "16:23" },
+          "0355": { title: "นางสาว", firstName: "อรัญญา", lastName: "กาวี", fullName: "นางสาวอรัญญา กาวี", org1: "เทศบาลตำบลผาเสวย", org2: "อำเภอสมเด็จ  จังหวัดกาฬสินธุ์", method: "เงินโอน", amount: 4900, bank: "ธนาคารกรุงไทย", transferDate: "2026-11-11", transferTime: "16:23" }
+        };
+
+        for (const [noKey, info] of Object.entries(assetFixedMap)) {
+          const r = merged.receipts.find(x => x && x.bookNo === "RUS70001" && (x.no === noKey || x.no === String(parseInt(noKey, 10))));
+          if (r) {
+            r.title = info.title;
+            r.firstName = info.firstName;
+            r.lastName = info.lastName;
+            r.payerFullName = info.fullName;
+            r.detailLine1 = info.org1;
+            r.detailLine2 = info.org2;
+            r.totalAmount = info.amount;
+            r.paymentMethod = info.method;
+            r.payerBank = info.bank || "";
+            r.transferDate = info.transferDate || "";
+            r.transferTime = info.transferTime || "";
+            r.universityBank = "ธนาคารกรุงไทย (128-0-79185-3)";
+            r.status = "ปกติ";
+            if (r.items && r.items.length > 0) {
+              r.items[0].paymentItem = "ค่าลงทะเบียน";
+              r.items[0].amount = info.amount;
+              r.items[0].projectName = project2569Asset;
+            } else {
+              r.items = [{ paymentItem: "ค่าลงทะเบียน", amount: info.amount, projectName: project2569Asset }];
+            }
+          }
+        }
+
+        // เคลียร์ลายเซ็น base64 ที่ซ้ำซ้อนในรายการใบเสร็จ เพื่อป้องกัน payload บวมเกินพิกัดฐานข้อมูล
+        merged.receipts.forEach(r => {
+          if (r && r.issuerSignatureDataUrl) {
+            r.issuerSignatureDataUrl = "";
+          }
+        });
+
         // ตรวจสอบว่าเล่ม AN704001 และ RUS70001 มีค่าล่าสุดอย่างถูกต้อง และไม่มีเล่มทดสอบ TEST001
         if (Array.isArray(merged.books)) {
           // ลบเล่มทดสอบ TEST001 ออกจากระบบจริง
@@ -4237,7 +4294,7 @@
         }
       }
       merged.emailConfig = Object.assign({}, def.emailConfig, (rawState && rawState.emailConfig) || {});
-      merged.emailLogs = Array.isArray(rawState && rawState.emailLogs) ? rawState.emailLogs : [];
+      merged.emailLogs = Array.isArray(rawState && rawState.emailLogs) ? rawState.emailLogs.slice(0, 50) : [];
       return merged;
     }
 
@@ -8610,7 +8667,7 @@ ${loginUrl}
         issuerName: (currentUser && currentUser.display_name) || "เจ้าหน้าที่",
         issuerStaffCode: (currentUser && currentUser.staff_code) || "",
         issuerPosition: (currentUser && currentUser.position) || (appState.officeInfo && appState.officeInfo.defaultPosition) || "นักวิชาการเงินและบัญชีชำนาญการ",
-        issuerSignatureDataUrl: (currentUser && currentUser.signatureDataUrl) || "",
+        issuerSignatureDataUrl: "", // ดึงลายเซ็นอัตโนมัติจากโปรไฟล์เจ้าหน้าที่ STF ป้องกัน payload ขนาดใหญ่เกินพิกัดฐานข้อมูล
         issuerSignatureScale: (currentUser && currentUser.signatureScale) || (appState.officeInfo && appState.officeInfo.signatureScale) || 100
       };
     }
