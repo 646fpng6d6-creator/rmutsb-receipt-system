@@ -5303,27 +5303,17 @@
         const cfgAdminUser = ((appState.admin && appState.admin.adminUsername) || "Admin").trim();
         const cfgAdminPass = ((appState.admin && appState.admin.adminPassword) || "admin1234").trim();
 
-        // 1. ค้นหา Candidate Profile จาก username, staff_code, email, email prefix, display_name
+        // 1. ค้นหา Candidate Profile แบบตรงตัว (Exact Match) เป็นลำดับแรก
         let candidateProfiles = users.filter(u => {
           const uName = (u.username || "").trim().toLowerCase();
           const uEmail = (u.email || "").trim().toLowerCase();
           const uCode = (u.staff_code || "").trim().toLowerCase();
-          const uCodeDigits = uCode.replace(/\D/g, "");
-          const uEmailPrefix = uEmail.split("@")[0];
-          const uDisplayName = (u.display_name || "").trim().toLowerCase();
+          const uEmailPrefix = uEmail.split("@")[0].toLowerCase();
 
-          if (uName && uName === loginLower) return true;
-          if (uEmail && uEmail === loginLower) return true;
-          if (uCode && uCode === loginLower) return true;
-          if (uEmailPrefix && uEmailPrefix === loginLower) return true;
-
-          // เลขรหัสเจ้าหน้าที่ตรงกัน (เช่น 001, 010, 1)
-          if (loginDigits && uCodeDigits && (loginDigits === uCodeDigits || parseInt(loginDigits, 10) === parseInt(uCodeDigits, 10))) return true;
-
-          // ชื่อภาษาไทยตรงกันหรือมีชื่ออยู่ใน display_name
-          if (rawLogin.length >= 2 && uDisplayName.includes(loginLower)) return true;
-
-          return false;
+          return (uName && uName === loginLower) ||
+                 (uCode && uCode === loginLower) ||
+                 (uEmail && uEmail === loginLower) ||
+                 (uEmailPrefix && uEmailPrefix === loginLower);
         });
 
         // 2. ตรวจสอบบัญชีผู้ดูแลระบบ (Admin)
@@ -5352,11 +5342,28 @@
           }
         }
 
+        // 3. หากยังไม่พบคู่ตรงตัว ค้นหาจากชื่อภาษาไทย หรือตัวเลขรหัสเจ้าหน้าที่ล้วนๆ
         if (candidateProfiles.length === 0) {
-          throw new Error("ไม่พบชื่อผู้ใช้งานหรือรหัสเจ้าหน้าที่นี้ในระบบ กรุณาตรวจสอบหรือเลือกจากรายการด่วนด้านล่าง");
+          if (rawLogin.length >= 2) {
+            const nameMatches = users.filter(u => (u.display_name || "").trim().toLowerCase().includes(loginLower));
+            if (nameMatches.length > 0) candidateProfiles.push(...nameMatches);
+          }
+
+          if (candidateProfiles.length === 0 && /^\d+$/.test(rawLogin)) {
+            const digitNum = parseInt(rawLogin, 10);
+            const digitMatches = users.filter(u => {
+              const uCodeDigits = (u.staff_code || "").replace(/\D/g, "");
+              return uCodeDigits && parseInt(uCodeDigits, 10) === digitNum;
+            });
+            if (digitMatches.length > 0) candidateProfiles.push(...digitMatches);
+          }
         }
 
-        // 3. ตรวจสอบรหัสผ่าน (รองรับรหัสในฐานข้อมูล, รหัสมาตรฐาน 123456, userXXX, รหัสเจ้าหน้าที่)
+        if (candidateProfiles.length === 0) {
+          throw new Error("ไม่พบชื่อผู้ใช้งานหรือรหัสเจ้าหน้าที่นี้ในระบบ กรุณาตรวจสอบหรือลองใหม่อีกครั้ง");
+        }
+
+        // 4. ตรวจสอบรหัสผ่าน (รองรับรหัสในฐานข้อมูล, รหัสมาตรฐาน 123456, userXXX, รหัสเจ้าหน้าที่)
         let matchedProfile = candidateProfiles.find(u => {
           const exp = ((u.password || (u.role === "admin" ? cfgAdminPass : "123456"))).trim();
           const passMatches = exp === password || exp.toLowerCase() === password.toLowerCase();
@@ -5369,13 +5376,13 @@
           );
 
           const uDigits = (u.staff_code || "").replace(/\D/g, "");
+          const uPrefix = (u.staff_code || "").replace(/\d/g, "").toLowerCase();
           const userPassMatches = u.role !== "admin" && (
             password === "123456" || password === "user1234" || password === "1234" ||
             password.toLowerCase() === (u.username || "").toLowerCase() ||
             password.toLowerCase() === (u.staff_code || "").toLowerCase() ||
-            (uDigits && password.toLowerCase() === `user${uDigits}`) ||
-            (uDigits && password.toLowerCase() === `user0${uDigits}`) ||
-            password === "user001"
+            (uPrefix === "stf" && uDigits && (password.toLowerCase() === `user${uDigits}` || password.toLowerCase() === `user0${uDigits}`)) ||
+            (uPrefix === "aud" && (password.toLowerCase() === "user1234" || password.toLowerCase() === "aud1234" || password.toLowerCase() === "viewer1234"))
           );
 
           return passMatches || adminPassMatches || userPassMatches;
@@ -5508,10 +5515,13 @@
               password.toLowerCase() === "admin" || password === "123456" ||
               password.toLowerCase() === "rmutsb" || password.toLowerCase() === "rmutsb1234"
             );
+            const uDigits = (u.staff_code || "").replace(/\D/g, "");
+            const uPrefix = (u.staff_code || "").replace(/\d/g, "").toLowerCase();
             const userPassMatches = u.role !== "admin" && (
-              password === "123456" || password === "user001" || password === "user1234" ||
-              password === "1234" || password.toLowerCase() === (u.username || "").toLowerCase() ||
-              password.toLowerCase() === (u.staff_code || "").toLowerCase()
+              password === "123456" || password === "user1234" || password === "1234" ||
+              password.toLowerCase() === (u.username || "").toLowerCase() ||
+              password.toLowerCase() === (u.staff_code || "").toLowerCase() ||
+              (uPrefix === "stf" && uDigits && (password.toLowerCase() === `user${uDigits}` || password.toLowerCase() === `user0${uDigits}`))
             );
             return passMatches || adminPassMatches || userPassMatches;
           });
