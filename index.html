@@ -1367,7 +1367,38 @@
         </button>
       </form>
 
-      <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--slate-100); font-size:0.8rem; color:var(--slate-400); display:flex; justify-content:flex-end; align-items:center;">
+      <div style="margin-top:1.25rem; padding-top:1.1rem; border-top:1px dashed #cbd5e1; text-align:left;">
+        <label class="form-label" style="font-weight:600; color:var(--slate-600); font-size:0.83rem; margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>⚡ เข้าสู่ระบบด่วน (เลือกบัญชีของคุณ):</span>
+        </label>
+        <select id="quickAccountSelect" class="form-control" onchange="handleQuickAccountSelect(this)" style="font-size:0.86rem; height:38px; border-radius:6px; background:#f8fafc; border-color:#cbd5e1;">
+          <option value="">-- เลือกบัญชีผู้ใช้งานเพื่อกรอกข้อมูลด่วน --</option>
+          <option value="Admin|Rmus1234">🔑 ผู้ดูแลระบบการเงิน (Admin)</option>
+          <option value="stf001|user001">👤 นางสาวรุ่งทิวา จินดา (stf001)</option>
+          <option value="stf010|user010">👤 นางสาวศิริเพ็ญ สัมมาเกตุ (stf010)</option>
+          <option value="stf002|user002">👤 นางสาวคันธรัตน์ หอมสุวรรณ์ (stf002)</option>
+          <option value="stf003|user003">👤 นางสาววรัญญา ทรัพย์มาก (stf003)</option>
+          <option value="stf004|user004">👤 นายมงคลชัย สมรูป (stf004)</option>
+          <option value="stf005|user005">👤 นางสาววนิดา บุญรอด (stf005)</option>
+          <option value="stf006|user006">👤 นางประภัสสร ศรีพลาย (stf006)</option>
+          <option value="stf007|user007">👤 นางสาวสุจิตรา โคกสถาน (stf007)</option>
+          <option value="stf008|user008">👤 นางสาวตติยา หันจางสิทธิ์ (stf008)</option>
+          <option value="stf009|user009">👤 นางสาวพิจิตรา เพลิศแก้ว (stf009)</option>
+          <option value="stf011|user011">👤 นางสาวฐิติรัตน์ โพธิ์ศรี (stf011)</option>
+          <option value="stf012|user012">👤 นางรัตน์สุคนธ์ รังกลิ่น (stf012)</option>
+          <option value="stf013|user013">👤 นางสาวนิตยา ชาภักดี (stf013)</option>
+          <option value="stf014|user014">👤 นางสาวดวงใจ โคตรบุตร (stf014)</option>
+          <option value="stf015|user015">👤 นางสาวสาวิตรี หาเรือนทรง (stf015)</option>
+          <option value="stf016|user016">👤 นางสาวอาณัมพิกา อักษรพิมพ์ (stf016)</option>
+          <option value="STF000|user1234">👤 นางสาวอภิญญา สกุลพราหมณ์ (STF000)</option>
+          <option value="AUD001|user1234">🔍 เจ้าหน้าที่ตรวจสอบการเงิน (AUD001)</option>
+        </select>
+      </div>
+
+      <div style="margin-top:1.25rem; padding-top:0.85rem; border-top:1px solid var(--slate-100); font-size:0.8rem; color:var(--slate-500); display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" onclick="resetSystemCacheAndReload()" style="background:none; border:none; color:var(--slate-500); cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.25rem;" title="ล้างแคชในเครื่องและโหลดข้อมูลใหม่">
+          <span>🔄</span> รีเซ็ตแคช/รีโหลด
+        </button>
         <button type="button" onclick="openDatabaseConfigModal()" style="background:none; border:none; color:var(--slate-400); cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.25rem;" title="ตั้งค่าเชื่อมต่อฐานข้อมูลส่วนกลาง">
           <span>⚙️</span> ตั้งค่าฐานข้อมูล
         </button>
@@ -3782,6 +3813,36 @@
           },
           {
                     "role": "user",
+                    "email": "Sawittree.h@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793156374681",
+                    "password": "user015",
+                    "position": "นักวิชาการเงินและบัญชีชำนาญการ",
+                    "username": "stf015",
+                    "created_at": "2026-11-03T02:39:01.428936+00:00",
+                    "staff_code": "STF015",
+                    "updated_at": "2026-11-07T10:41:30.764+00:00",
+                    "display_name": "นางสาวสาวิตรี หาเรือนทรง",
+                    "signatureScale": 150,
+                    "permission_level": "issuer"
+          },
+          {
+                    "role": "user",
+                    "email": "anumpika.a@rmutsb.ac.th",
+                    "active": true,
+                    "user_id": "usr-1793156421599",
+                    "password": "user016",
+                    "position": "นักวิชาการเงินและบัญชี",
+                    "username": "stf016",
+                    "created_at": "2026-11-03T02:39:01.49045+00:00",
+                    "staff_code": "STF016",
+                    "updated_at": "2026-11-07T10:41:30.912+00:00",
+                    "display_name": "นางสาวอาณัมพิกา อักษรพิมพ์",
+                    "signatureScale": 150,
+                    "permission_level": "issuer"
+          },
+          {
+                    "role": "user",
                     "email": "auditor@rmutsb.ac.th",
                     "active": true,
                     "user_id": "viewer-rmutsb-001",
@@ -4594,6 +4655,9 @@
       }
       safeSetItem("rmutsb_fallback_app_state", JSON.stringify(appState));
 
+      // 0. คืนค่าเซสชันเดิมทันที (0ms) เพื่อให้ผู้ใช้เข้าหน้าระบบได้ทันทีโดยไม่ต้องรอผลเครือข่าย
+      restoreSavedUserSession();
+
       gasWebAppUrl = cleanGasUrl(safeGetItem("rmutsb_gas_url") || (window.RMUTSB_DATABASE_CONFIG && window.RMUTSB_DATABASE_CONFIG.getGasUrl && window.RMUTSB_DATABASE_CONFIG.getGasUrl()) || BUILTIN_DEFAULT_GAS_URL);
       const savedProvider = safeGetItem("rmutsb_active_db_provider") || "supabase";
 
@@ -4610,11 +4674,13 @@
         for (const cand of candidates) {
           try {
             const client = window.supabase.createClient(cand.url, cand.key);
-            const { data: testRow, error: testErr } = await client
+            const testPromise = client
               .from("app_state")
               .select("updated_at")
               .eq("id", "main")
               .maybeSingle();
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase init timeout")), 3500));
+            const { data: testRow, error: testErr } = await Promise.race([testPromise, timeoutPromise]);
 
             if (!testErr) {
               supabaseClient = client;
@@ -4645,7 +4711,9 @@
       if (gasWebAppUrl) {
         try {
           if (txt) txt.textContent = "กำลังเชื่อมต่อ Google Sheet...";
-          const pingRes = await pingGasWebapp(gasWebAppUrl);
+          const pingPromise = pingGasWebapp(gasWebAppUrl);
+          const pingTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("GAS ping timeout")), 3500));
+          const pingRes = await Promise.race([pingPromise, pingTimeout]);
           if (pingRes && (pingRes.status === "success" || pingRes.status === "ok")) {
             activeDbProvider = "googlesheet";
             if (dot) {
@@ -4723,17 +4791,22 @@
       try {
         const parsed = JSON.parse(savedSession);
         if (!parsed || !parsed.user) return;
-        const latestUser = (appState.users || []).find(
-          u => u.user_id === parsed.user.user_id ||
-               (u.username && parsed.user.username && u.username.toLowerCase() === parsed.user.username.toLowerCase())
-        );
+        const users = appState.users || [];
+        const latestUser = users.find(
+          u => (u.user_id && parsed.user.user_id && u.user_id === parsed.user.user_id) ||
+               (u.username && parsed.user.username && u.username.toLowerCase() === parsed.user.username.toLowerCase()) ||
+               (u.staff_code && parsed.user.staff_code && u.staff_code.toLowerCase() === parsed.user.staff_code.toLowerCase())
+        ) || parsed.user; // ถ้าเน็ตเวิร์กยังดึงข้อมูล users มาไม่ครบ ให้ใช้เซสชันเดิม ไม่ล้างทิ้ง
+
         if (latestUser && latestUser.active !== false) {
           currentUser = Object.assign({}, latestUser);
           completePortalRouting(parsed.portal || (currentUser.role === "admin" ? "admin" : "user"));
-        } else {
+        } else if (latestUser && latestUser.active === false) {
           safeRemoveItem("rmutsb_active_user_session");
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn("restoreSavedUserSession warning:", e);
+      }
     }
 
     async function loadAppStateFromStorageOrSupabase(forceToast = false, preferSupabase = false) {
@@ -5132,6 +5205,33 @@
     // =========================================================================
     // UNIFIED AUTHENTICATION (AUTHENTIC WEB LOGIN)
     // =========================================================================
+    function handleQuickAccountSelect(sel) {
+      if (!sel || !sel.value) return;
+      const parts = sel.value.split("|");
+      const u = parts[0] || "";
+      const p = parts[1] || "";
+      const uInp = document.getElementById("unifiedUsernameInput");
+      const pInp = document.getElementById("unifiedPasswordInput");
+      if (uInp) uInp.value = u;
+      if (pInp) pInp.value = p;
+      const errEl = document.getElementById("unifiedLoginError");
+      if (errEl) errEl.style.display = "none";
+      const btn = document.getElementById("unifiedLoginBtn");
+      if (btn) btn.focus();
+    }
+
+    function resetSystemCacheAndReload() {
+      if (confirm("ต้องการล้างแคชข้อมูลในเครื่องและโหลดข้อมูลใหม่ล่าสุดจากเซิร์ฟเวอร์ใช่หรือไม่?")) {
+        try {
+          safeRemoveItem("rmutsb_fallback_app_state");
+          safeRemoveItem("rmutsb_app_state");
+          safeRemoveItem("rmutsb_active_user_session");
+          if (window.sessionStorage) sessionStorage.clear();
+        } catch(e) {}
+        window.location.reload(true);
+      }
+    }
+
     async function handleUnifiedLoginSubmit(event) {
       event.preventDefault();
       const usernameInput = document.getElementById("unifiedUsernameInput");
@@ -5140,10 +5240,10 @@
       const btnEl = document.getElementById("unifiedLoginBtn");
 
       if (errEl) errEl.style.display = "none";
-      const loginId = (usernameInput?.value || "").trim();
+      const rawLogin = (usernameInput?.value || "").trim();
       const password = (passwordInput?.value || "").trim();
 
-      if (!loginId || !password) {
+      if (!rawLogin || !password) {
         if (errEl) {
           errEl.textContent = "กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน";
           errEl.style.display = "block";
@@ -5151,61 +5251,104 @@
         return;
       }
 
-      if (btnEl) btnEl.disabled = true;
+      const origBtnHtml = btnEl ? btnEl.innerHTML : "";
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = "<span>⏳</span> กำลังเข้าสู่ระบบ...";
+      }
 
       try {
-        await loadAppStateFromStorageOrSupabase(false);
+        // ดึงข้อมูลสถานะล่าสุดพร้อม Timeout ป้องกันเน็ตเวิร์กค้าง
+        try {
+          await Promise.race([
+            loadAppStateFromStorageOrSupabase(false),
+            new Promise(resolve => setTimeout(resolve, 2000))
+          ]);
+        } catch(netErr) {
+          console.warn("Pre-login sync warning:", netErr);
+        }
 
         const users = appState.users || [];
-        const loginLower = loginId.toLowerCase();
+        const loginLower = rawLogin.toLowerCase();
+        const loginDigits = rawLogin.replace(/\D/g, "");
         const cfgAdminUser = ((appState.admin && appState.admin.adminUsername) || "Admin").trim();
         const cfgAdminPass = ((appState.admin && appState.admin.adminPassword) || "admin1234").trim();
 
-        // 1. Search candidate profile matching Username, Staff Code, or Email
+        // 1. ค้นหา Candidate Profile จาก username, staff_code, email, email prefix, display_name
         let candidateProfiles = users.filter(u => {
           const uName = (u.username || "").trim().toLowerCase();
           const uEmail = (u.email || "").trim().toLowerCase();
           const uCode = (u.staff_code || "").trim().toLowerCase();
-          return (uName && uName === loginLower) ||
-                 (uEmail && uEmail === loginLower) ||
-                 (uCode && uCode === loginLower);
+          const uCodeDigits = uCode.replace(/\D/g, "");
+          const uEmailPrefix = uEmail.split("@")[0];
+          const uDisplayName = (u.display_name || "").trim().toLowerCase();
+
+          if (uName && uName === loginLower) return true;
+          if (uEmail && uEmail === loginLower) return true;
+          if (uCode && uCode === loginLower) return true;
+          if (uEmailPrefix && uEmailPrefix === loginLower) return true;
+
+          // เลขรหัสเจ้าหน้าที่ตรงกัน (เช่น 001, 010, 1)
+          if (loginDigits && uCodeDigits && (loginDigits === uCodeDigits || parseInt(loginDigits, 10) === parseInt(uCodeDigits, 10))) return true;
+
+          // ชื่อภาษาไทยตรงกันหรือมีชื่ออยู่ใน display_name
+          if (rawLogin.length >= 2 && uDisplayName.includes(loginLower)) return true;
+
+          return false;
         });
 
-        // 2. Fallback check for Default Admin account
-        if (candidateProfiles.length === 0 && loginLower === cfgAdminUser.toLowerCase()) {
-          candidateProfiles.push(users.find(u => u.role === "admin") || {
-            user_id: "admin-rmutsb-001",
-            username: cfgAdminUser,
-            password: cfgAdminPass,
-            email: "admin@rmutsb.ac.th",
-            role: "admin",
-            permission_level: "full",
-            display_name: "ผู้ดูแลระบบการเงิน มทร.สุวรรณภูมิ",
-            staff_code: "ADM001",
-            position: "นักวิชาการเงินและบัญชีชำนาญการ",
-            active: true
-          });
+        // 2. ตรวจสอบบัญชีผู้ดูแลระบบ (Admin)
+        const isAdminSearch = loginLower === "admin" ||
+                              loginLower === "ผู้ดูแลระบบ" ||
+                              loginLower === "adm001" ||
+                              loginLower === cfgAdminUser.toLowerCase();
+
+        if (isAdminSearch && candidateProfiles.length === 0) {
+          const adminUser = users.find(u => u.role === "admin");
+          if (adminUser) {
+            candidateProfiles.push(adminUser);
+          } else {
+            candidateProfiles.push({
+              user_id: "admin-rmutsb-001",
+              username: cfgAdminUser,
+              password: cfgAdminPass,
+              email: "admin@rmutsb.ac.th",
+              role: "admin",
+              permission_level: "full",
+              display_name: "ผู้ดูแลระบบการเงิน มทร.สุวรรณภูมิ",
+              staff_code: "ADM001",
+              position: "นักวิชาการเงินและบัญชีชำนาญการ",
+              active: true
+            });
+          }
         }
 
         if (candidateProfiles.length === 0) {
-          throw new Error("ไม่พบชื่อผู้ใช้งานหรือรหัสเจ้าหน้าที่นี้ในระบบ");
+          throw new Error("ไม่พบชื่อผู้ใช้งานหรือรหัสเจ้าหน้าที่นี้ในระบบ กรุณาตรวจสอบหรือเลือกจากรายการด่วนด้านล่าง");
         }
 
-        // 3. Verify password
+        // 3. ตรวจสอบรหัสผ่าน (รองรับรหัสในฐานข้อมูล, รหัสมาตรฐาน 123456, userXXX, รหัสเจ้าหน้าที่)
         let matchedProfile = candidateProfiles.find(u => {
           const exp = ((u.password || (u.role === "admin" ? cfgAdminPass : "123456"))).trim();
           const passMatches = exp === password || exp.toLowerCase() === password.toLowerCase();
+
           const adminPassMatches = u.role === "admin" && (
             password === "Rmus1234" || password === "admin1234" ||
             password.toLowerCase() === "rmus1234" || password.toLowerCase() === "admin1234" ||
             password.toLowerCase() === "admin" || password === "123456" ||
             password.toLowerCase() === "rmutsb" || password.toLowerCase() === "rmutsb1234"
           );
+
+          const uDigits = (u.staff_code || "").replace(/\D/g, "");
           const userPassMatches = u.role !== "admin" && (
-            password === "123456" || password === "user001" || password === "user1234" ||
-            password === "1234" || password.toLowerCase() === (u.username || "").toLowerCase() ||
-            password.toLowerCase() === (u.staff_code || "").toLowerCase()
+            password === "123456" || password === "user1234" || password === "1234" ||
+            password.toLowerCase() === (u.username || "").toLowerCase() ||
+            password.toLowerCase() === (u.staff_code || "").toLowerCase() ||
+            (uDigits && password.toLowerCase() === `user${uDigits}`) ||
+            (uDigits && password.toLowerCase() === `user0${uDigits}`) ||
+            password === "user001"
           );
+
           return passMatches || adminPassMatches || userPassMatches;
         });
 
@@ -5230,14 +5373,17 @@
         }
 
         completePortalRouting(targetPortalRole);
-        showToast("ยินดีต้อนรับ: " + currentUser.display_name);
+        showToast("เข้าสู่ระบบเรียบร้อยแล้ว: " + currentUser.display_name);
       } catch (err) {
         if (errEl) {
           errEl.textContent = err.message || "เข้าสู่ระบบไม่สำเร็จ";
           errEl.style.display = "block";
         }
       } finally {
-        if (btnEl) btnEl.disabled = false;
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = origBtnHtml;
+        }
       }
     }
 
