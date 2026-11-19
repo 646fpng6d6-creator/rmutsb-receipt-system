@@ -4295,8 +4295,9 @@
               .filter(r => r && r.bookNo === b.bookNo)
               .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
             if (bNos.length > 0) {
-              const maxNo = Math.max(...bNos);
-              if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;
+              b.latest = Math.max(...bNos);
+            } else if (b.bookNo !== "RUS70001") {
+              b.latest = Math.max(0, (Number(b.start) || 1) - 1);
             }
             if (b.closed) {
               b.active = false;
