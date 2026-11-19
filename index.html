@@ -5767,6 +5767,16 @@
       });
       const target = document.getElementById("adminTab_" + tabName);
       if (target) target.style.display = "block";
+
+      if (tabName === "dashboard") renderAdminDashboard();
+      else if (tabName === "users") renderAdminUsersTable();
+      else if (tabName === "master") renderAdminMasterLists();
+      else if (tabName === "banks") renderUniversityBanksTable();
+      else if (tabName === "books") renderReceiptBooksTable();
+      else if (tabName === "receipts") renderAdminReceiptsTable();
+      else if (tabName === "reports") renderAdminReportTable();
+      else if (tabName === "email") renderAdminEmailSettings();
+
       refreshAllVisibleViewsPreservingForms();
     }
 
@@ -5779,6 +5789,13 @@
       });
       const target = document.getElementById("userTab_" + tabName);
       if (target) target.style.display = "block";
+
+      if (tabName === "history") renderUserHistoryTable();
+      else if (tabName === "issue") {
+        renderUserPortalBannersAndDropdowns();
+        renderUserRecentReceiptsTable();
+      }
+
       refreshAllVisibleViewsPreservingForms();
     }
 
@@ -5792,15 +5809,17 @@
       if (isUserVisible) {
         renderUserPortalBannersAndDropdowns();
         renderUserRecentReceiptsTable();
-        const userHistTab = document.getElementById("userTab_history");
-        if (userHistTab && userHistTab.style.display !== "none") {
+        const activeUserBtn = document.querySelector("[data-user-tab].active");
+        const activeUserTab = activeUserBtn ? activeUserBtn.getAttribute("data-user-tab") : "issue";
+        if (activeUserTab === "history") {
           renderUserHistoryTable();
         }
       }
 
       if (isAdminVisible) {
         populateBookFilterDropdowns();
-        const activeAdminTab = document.querySelector(".admin-tab-pane:not([style*='display: none'])")?.id;
+        const activeAdminBtn = document.querySelector("[data-admin-tab].active");
+        const activeAdminTab = activeAdminBtn ? ("adminTab_" + activeAdminBtn.getAttribute("data-admin-tab")) : (Array.from(document.querySelectorAll(".admin-tab-pane")).find(p => p.style.display !== "none")?.id || "adminTab_dashboard");
         if (activeAdminTab === "adminTab_dashboard") renderAdminDashboard();
         else if (activeAdminTab === "adminTab_users") renderAdminUsersTable();
         else if (activeAdminTab === "adminTab_master") renderAdminMasterLists();
