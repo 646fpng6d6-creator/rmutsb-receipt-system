@@ -4276,6 +4276,7 @@
           if (book) {
             book.latest = 0;
             book.active = false;
+            book.closed = true;
           }
           const rusBook = merged.books.find(b => b.bookNo === "RUS70001");
           if (rusBook) {
@@ -4285,8 +4286,34 @@
             const maxRus = Math.max(Number(rusBook.latest || 0), ...rusNos, 207);
             rusBook.latest = maxRus;
             if (rusBook.end < 1000) rusBook.end = 1000;
-            rusBook.active = true;
-            rusBook.closed = false;
+            if (!rusBook.digits || rusBook.digits < 4) rusBook.digits = 4;
+          }
+
+          // อัปเดต latest ของทุกเล่มตามข้อมูลจริงใน receipts
+          merged.books.forEach(b => {
+            const bNos = (merged.receipts || [])
+              .filter(r => r && r.bookNo === b.bookNo)
+              .map(r => parseInt(String(r.no || "0").replace(/\D/g, ""), 10) || 0);
+            if (bNos.length > 0) {
+              const maxNo = Math.max(...bNos);
+              if (maxNo > (Number(b.latest) || 0)) b.latest = maxNo;
+            }
+            if (b.closed) {
+              b.active = false;
+            }
+          });
+
+          // บังคับให้มีเล่มที่เปิดใช้งาน (Active) ได้เพียงเล่มเดียวเท่านั้น
+          const activeBooks = merged.books.filter(b => b.active && !b.closed);
+          if (activeBooks.length > 1) {
+            for (let i = 1; i < activeBooks.length; i++) {
+              activeBooks[i].active = false;
+            }
+          } else if (activeBooks.length === 0) {
+            const firstOpen = merged.books.find(b => !b.closed);
+            if (firstOpen) {
+              firstOpen.active = true;
+            }
           }
         }
       }
@@ -4849,10 +4876,13 @@
 
         const cloudTopKey = cloudReceipts.length > 0 ? (getReceiptKey(cloudReceipts[0]) + "-" + cloudReceipts[0].status + "-" + cloudReceipts[0].totalAmount) : "";
         const localTopKey = localReceipts.length > 0 ? (getReceiptKey(localReceipts[0]) + "-" + localReceipts[0].status + "-" + localReceipts[0].totalAmount) : "";
+        const cloudBooksKey = JSON.stringify((cloudState.books || []).map(b => `${b.bookNo}:${b.active}:${b.closed}:${b.latest}`));
+        const localBooksKey = JSON.stringify((appState.books || []).map(b => `${b.bookNo}:${b.active}:${b.closed}:${b.latest}`));
         const hasChanged = !lastCloudUpdatedAt ||
           (updatedAt && updatedAt !== lastCloudUpdatedAt) ||
           cloudReceipts.length !== localReceipts.length ||
-          cloudTopKey !== localTopKey;
+          cloudTopKey !== localTopKey ||
+          cloudBooksKey !== localBooksKey;
 
         if (!forceToast && !hasChanged) {
           updateSyncTimestamp();
@@ -7818,6 +7848,9 @@ ${loginUrl}
       appState.books = books;
       await persistAppState();
       closeBookEditModal();
+      renderReceiptBooksTable();
+      renderUserPortalBannersAndDropdowns();
+      populateBookFilterDropdowns();
       showToast(`บันทึกการแก้ไขเล่มใบเสร็จ ${newNo} เรียบร้อยแล้ว`);
     }
 
@@ -7858,14 +7891,21 @@ ${loginUrl}
       appState.books = books;
       document.getElementById("bookNoInput").value = "";
       await persistAppState();
+      renderReceiptBooksTable();
+      renderUserPortalBannersAndDropdowns();
+      populateBookFilterDropdowns();
       showToast(`เพิ่มเล่มใบเสร็จ ${bookNo} เรียบร้อยแล้ว`);
     }
 
     async function setActiveBook(bookNo) {
       appState.books = (appState.books || []).map(b => Object.assign({}, b, {
-        active: b.bookNo === bookNo && !b.closed
+        active: b.bookNo === bookNo,
+        closed: b.bookNo === bookNo ? false : b.closed
       }));
       await persistAppState();
+      renderReceiptBooksTable();
+      renderUserPortalBannersAndDropdowns();
+      populateBookFilterDropdowns();
       showToast(`ตั้งเล่มที่ ${bookNo} เป็นเล่มที่เปิดใช้งานหลัก (Active) แล้ว`);
     }
 
@@ -7880,20 +7920,33 @@ ${loginUrl}
             }
             return b;
           });
+          const remainingUnclosed = (appState.books || []).filter(b => !b.closed);
+          const hasActiveRemaining = remainingUnclosed.some(b => b.active);
+          if (!hasActiveRemaining && remainingUnclosed.length > 0) {
+            remainingUnclosed[0].active = true;
+          }
           await persistAppState();
+          renderReceiptBooksTable();
+          renderUserPortalBannersAndDropdowns();
+          populateBookFilterDropdowns();
           showToast(`ปิดการใช้งานเล่มใบเสร็จ ${bookNo} เรียบร้อยแล้ว`);
         }
       );
     }
 
     async function reopenReceiptBook(bookNo) {
-      appState.books = (appState.books || []).map(b => {
-        if (b.bookNo === bookNo) {
-          return Object.assign({}, b, { closed: false });
-        }
-        return b;
-      });
+      const books = [...(appState.books || [])];
+      const target = books.find(b => b.bookNo === bookNo);
+      if (target) {
+        target.closed = false;
+        const hasActive = books.some(b => b.active && !b.closed && b.bookNo !== bookNo);
+        target.active = !hasActive;
+      }
+      appState.books = books;
       await persistAppState();
+      renderReceiptBooksTable();
+      renderUserPortalBannersAndDropdowns();
+      populateBookFilterDropdowns();
       showToast(`เปิดเล่มใบเสร็จ ${bookNo} ให้พร้อมใช้งานอีกครั้งแล้ว`);
     }
 
@@ -7908,7 +7961,15 @@ ${loginUrl}
         if (bookReceipts.length > 0) {
           appState.receipts = (appState.receipts || []).filter(r => r.bookNo !== bookNo);
         }
+        const remainingUnclosed = (appState.books || []).filter(b => !b.closed);
+        const hasActiveRemaining = remainingUnclosed.some(b => b.active);
+        if (!hasActiveRemaining && remainingUnclosed.length > 0) {
+          remainingUnclosed[0].active = true;
+        }
         await persistAppState();
+        renderReceiptBooksTable();
+        renderUserPortalBannersAndDropdowns();
+        populateBookFilterDropdowns();
         showToast(`ลบเล่มใบเสร็จ ${bookNo} เรียบร้อยแล้ว`);
       });
     }
