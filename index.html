@@ -52,6 +52,10 @@
       padding: 0;
     }
 
+    html {
+      font-size: 13px;
+    }
+
     body {
       font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--slate-100);
@@ -84,8 +88,8 @@
     }
 
     .brand-logo {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       object-fit: contain;
       background: #ffffff;
       border-radius: 50%;
@@ -395,11 +399,11 @@
     .app-shell {
       display: flex;
       flex: 1;
-      min-height: calc(100vh - 66px);
+      min-height: calc(100vh - 56px);
     }
 
     .sidebar {
-      width: 260px;
+      width: 220px;
       background: #ffffff;
       border-right: 1px solid var(--slate-200);
       padding: 1.25rem 0.85rem;
@@ -1255,6 +1259,9 @@
     }
 
     @media print {
+      html {
+        font-size: 16px !important;
+      }
       body {
         background: #ffffff !important;
         margin: 0 !important;
@@ -1340,10 +1347,10 @@
   </header>
 
   <!-- ======================== 1. AUTHENTIC LOGIN PAGE ======================== -->
-  <main id="landingView" class="landing-container no-print" style="max-width:440px; margin:3.5rem auto 2.5rem; padding:0 1rem;">
+  <main id="landingView" class="landing-container no-print" style="max-width:400px; margin:3.5rem auto 2.5rem; padding:0 1rem;">
     <div class="auth-card" style="background:#ffffff; border-radius:14px; box-shadow:0 12px 32px rgba(15, 44, 89, 0.12), 0 2px 6px rgba(15, 44, 89, 0.06); border:1px solid #e2e8f0; border-top:5px solid var(--primary-navy); padding:2.25rem 2rem; text-align:center;">
       <div style="margin-bottom:1.5rem;">
-        <img id="heroLogoImg" alt="ตราสัญลักษณ์ มทร.สุวรรณภูมิ" style="width:72px; height:72px; object-fit:contain; margin-bottom:0.75rem;" />
+        <img id="heroLogoImg" alt="ตราสัญลักษณ์ มทร.สุวรรณภูมิ" style="width:60px; height:60px; object-fit:contain; margin-bottom:0.75rem;" />
         <h2 style="font-size:1.4rem; font-weight:700; color:var(--primary-navy); margin:0 0 0.35rem 0;">ระบบออกใบเสร็จรับเงิน</h2>
         <div style="font-size:0.92rem; color:var(--slate-600); font-weight:500;">มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ</div>
       </div>
@@ -1353,16 +1360,16 @@
       <form id="unifiedLoginForm" onsubmit="handleUnifiedLoginSubmit(event)" style="text-align:left;">
         <div class="form-group" style="margin-bottom:1rem;">
           <label class="form-label" style="font-weight:600; color:var(--slate-700); font-size:0.9rem; margin-bottom:0.4rem;">ชื่อผู้ใช้งาน / รหัสเจ้าหน้าที่</label>
-          <input type="text" id="unifiedUsernameInput" class="form-control" placeholder="ระบุ Username หรือรหัสเจ้าหน้าที่" required autocomplete="username" style="height:44px; font-size:0.95rem; border-radius:8px;" />
+          <input type="text" id="unifiedUsernameInput" class="form-control" placeholder="ระบุ Username หรือรหัสเจ้าหน้าที่" required autocomplete="username" style="height:38px; font-size:0.95rem; border-radius:8px;" />
         </div>
         <div class="form-group" style="margin-bottom:1.5rem;">
           <label class="form-label" style="font-weight:600; color:var(--slate-700); font-size:0.9rem; margin-bottom:0.4rem;">รหัสผ่าน</label>
           <div style="display:flex; gap:0.4rem;">
-            <input type="password" id="unifiedPasswordInput" class="form-control" placeholder="ระบุรหัสผ่าน" required autocomplete="current-password" style="height:44px; font-size:0.95rem; border-radius:8px;" />
+            <input type="password" id="unifiedPasswordInput" class="form-control" placeholder="ระบุรหัสผ่าน" required autocomplete="current-password" style="height:38px; font-size:0.95rem; border-radius:8px;" />
             <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('unifiedPasswordInput', this)" style="padding:0 0.75rem; border-radius:8px;">แสดง</button>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" id="unifiedLoginBtn" style="width:100%; height:44px; font-size:1rem; font-weight:600; background:linear-gradient(135deg, #0f2c59, #1e40af); border:none; border-radius:8px; box-shadow:0 4px 6px -1px rgba(15, 44, 89, 0.2);">
+        <button type="submit" class="btn btn-primary" id="unifiedLoginBtn" style="width:100%; height:38px; font-size:1rem; font-weight:600; background:linear-gradient(135deg, #0f2c59, #1e40af); border:none; border-radius:8px; box-shadow:0 4px 6px -1px rgba(15, 44, 89, 0.2);">
           เข้าสู่ระบบ
         </button>
       </form>
